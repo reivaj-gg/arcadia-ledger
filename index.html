@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arcadia 3D · The Verifiable Spatial Sanctuary</title>
+  <title>Arcadia · The Verifiable Spatial Ledger</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
     * {
       margin: 0;
@@ -31,6 +31,16 @@
       z-index: 1;
     }
 
+    /* VIGNETTE ANALÓGICO CINEMÁTICO */
+    .vignette-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      box-shadow: inset 0 0 140px rgba(10, 7, 5, 0.75), inset 0 0 40px rgba(245, 158, 11, 0.08);
+      mix-blend-mode: multiply;
+    }
+
     /* UI OVERLAY ESTILO JUEGO NARRATIVO */
     #ui-layer {
       position: absolute;
@@ -43,7 +53,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 24px 28px;
     }
 
     .interactive {
@@ -61,23 +71,39 @@
 
     /* Banner del Efecto Mariposa */
     .butterfly-banner {
-      background: rgba(22, 17, 13, 0.88);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      backdrop-filter: blur(12px);
-      border-radius: 16px;
-      padding: 10px 18px;
+      background: rgba(26, 20, 16, 0.88);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      backdrop-filter: blur(16px);
+      border-radius: 18px;
+      padding: 10px 20px;
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      gap: 14px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.55), 0 0 20px rgba(56, 189, 248, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .butterfly-banner:hover {
+      border-color: rgba(56, 189, 248, 0.6);
+      transform: translateY(-1px);
+    }
+
+    .butterfly-icon-glow {
+      animation: butterflyPulse 3s infinite ease-in-out;
+      filter: drop-shadow(0 0 8px #38bdf8);
+    }
+
+    @keyframes butterflyPulse {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
+      50% { transform: scale(1.1) rotate(3deg); opacity: 1; filter: drop-shadow(0 0 14px #60a5fa); }
     }
 
     .ledger-badge {
-      background: rgba(15, 23, 42, 0.88);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid rgba(56, 189, 248, 0.4);
-      backdrop-filter: blur(12px);
-      border-radius: 16px;
-      padding: 10px 16px;
+      backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 9px 16px;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -91,7 +117,31 @@
     .ledger-badge:hover {
       background: rgba(30, 41, 59, 0.95);
       border-color: #38bdf8;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-action {
+      padding: 9px 15px;
+      background: rgba(28, 22, 17, 0.85);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      background: rgba(45, 34, 25, 0.95);
+      border-color: #f59e0b;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
     }
 
     /* Prompt de interacción 3D flotante */
@@ -102,17 +152,17 @@
       transform: translateX(-50%) translateY(20px);
       opacity: 0;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      background: rgba(26, 20, 15, 0.95);
+      background: rgba(26, 20, 15, 0.96);
       border: 2px solid #f59e0b;
       color: #fbbf24;
-      padding: 12px 24px;
+      padding: 12px 26px;
       border-radius: 9999px;
       font-size: 14px;
       font-weight: 600;
-      box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 25px rgba(245, 158, 11, 0.45);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     #interaction-prompt.visible {
@@ -123,23 +173,25 @@
     .key-badge {
       background: #f59e0b;
       color: #0f0e0c;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 7px;
+      font-weight: 800;
       font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
     /* Controles de juego inferiores */
     .controls-pill {
-      background: rgba(18, 14, 11, 0.85);
+      background: rgba(22, 17, 13, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 8px 16px;
+      backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 9px 18px;
       font-size: 12px;
-      color: #d4c5b2;
+      color: #dcd0c0;
       display: flex;
-      gap: 16px;
+      gap: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
 
     /* Modal del Diario de Max */
@@ -147,8 +199,8 @@
       display: none;
       position: absolute;
       inset: 0;
-      background: rgba(10, 8, 6, 0.88);
-      backdrop-filter: blur(10px);
+      background: rgba(8, 6, 4, 0.88);
+      backdrop-filter: blur(12px);
       z-index: 50;
       align-items: center;
       justify-content: center;
@@ -158,19 +210,25 @@
 
     #journal-modal.active {
       display: flex;
+      animation: journalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes journalPop {
+      0% { opacity: 0; transform: scale(0.96) translateY(12px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
     }
 
     .moleskine-book {
-      width: 960px;
+      width: 980px;
       max-width: 95vw;
-      height: 640px;
+      height: 660px;
       max-height: 92vh;
-      background: #f5ede0;
+      background: #f8f1e5;
       border-radius: 20px;
       border: 4px solid #3d2f22;
-      box-shadow: 0 35px 70px rgba(0,0,0,0.85);
+      box-shadow: 0 35px 80px rgba(0,0,0,0.9), inset 0 0 60px rgba(180, 150, 120, 0.25);
       display: grid;
-      grid-template-columns: 1fr 1.1fr;
+      grid-template-columns: 1fr 1.15fr;
       position: relative;
       overflow: hidden;
       color: #2b2016;
@@ -180,12 +238,42 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      left: 47.6%;
-      width: 24px;
+      left: 46.5%;
+      width: 28px;
       transform: translateX(-50%);
-      background: linear-gradient(to right, rgba(0,0,0,0.12), rgba(0,0,0,0.25) 50%, rgba(0,0,0,0.12));
+      background: linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.28) 50%, rgba(0,0,0,0.08));
       pointer-events: none;
       z-index: 5;
+    }
+
+    /* Washi tape sticker */
+    .washi-tape {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-1deg);
+      width: 85px;
+      height: 22px;
+      background: rgba(245, 230, 180, 0.7);
+      border-left: 2px dashed rgba(180, 150, 100, 0.4);
+      border-right: 2px dashed rgba(180, 150, 100, 0.4);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    /* Red Verified Seal */
+    .seal-verified {
+      display: inline-block;
+      border: 2px dashed #b91c1c;
+      color: #b91c1c;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transform: rotate(-3deg);
     }
 
     /* Panel Drawer del Ledger Criptográfico */
@@ -194,32 +282,45 @@
       position: absolute;
       top: 80px;
       right: 24px;
-      width: 440px;
-      max-height: 80vh;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid #38bdf8;
-      border-radius: 16px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      width: 480px;
+      max-height: 84vh;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-radius: 18px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 30px rgba(56, 189, 248, 0.2);
       z-index: 40;
       pointer-events: auto;
-      padding: 20px;
+      padding: 22px;
       overflow-y: auto;
       font-family: 'JetBrains Mono', monospace;
       color: #e2e8f0;
+      animation: drawerSlide 0.25s ease-out;
     }
 
     #ledger-drawer.active {
       display: block;
     }
 
+    @keyframes drawerSlide {
+      0% { opacity: 0; transform: translateX(20px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
     .event-card {
       background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
       font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .event-card:hover {
+      border-color: #38bdf8;
+      background: rgba(30, 41, 59, 0.98);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     }
 
     .hash-text {
@@ -234,34 +335,37 @@
   <!-- CANVAS WEBGL 3D -->
   <canvas id="webgl-canvas"></canvas>
 
+  <!-- OVERLAY ANALÓGICO CINEMÁTICO -->
+  <div class="vignette-overlay"></div>
+
   <!-- OVERLAY DE LA EXPERIENCIA -->
   <div id="ui-layer">
     
     <!-- HEADER CON AMBIENTE Y ESTADO -->
     <div class="header-bar">
       <div class="butterfly-banner interactive">
-        <svg style="width:24px;height:24px;color:#38bdf8;" viewBox="0 0 24 24" fill="currentColor">
+        <svg class="butterfly-icon-glow" style="width:26px;height:26px;color:#38bdf8;" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C9 5 4 6 2 9c-2 3-1 7 1 9 3 3 7 1 9-2 2 3 6 5 9 2 2-2 3-6 1-9-2-3-7-4-10-7zm-1 9c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2zm2 0c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z"/>
         </svg>
         <div>
-          <div style="font-size:11px;color:#a89a87;font-weight:600;">Arcadia · The Verifiable Spatial Ledger</div>
-          <div style="font-size:16px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;">"This action will have consequences..."</div>
+          <div style="font-size:11px;color:#a89a87;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Arcadia · Verifiable Spatial Ledger</div>
+          <div style="font-size:17px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;letter-spacing:0.3px;">"This action will have consequences..."</div>
         </div>
       </div>
 
       <!-- BOTONES DE CONTROL DE CLIMA, AUDIO Y LEDGER -->
-      <div style="display:flex;align-items:center;gap:10px;" class="interactive">
+      <div style="display:flex;align-items:center;gap:12px;" class="interactive">
         <div id="btn-toggle-ledger" class="ledger-badge">
           <span>⛓️</span>
-          <span>Ledger: <strong id="hud-ledger-count">3</strong> eventos · <span id="hud-chain-status" style="color:#10b981;">✓ Validado</span></span>
+          <span>Ledger: <strong id="hud-ledger-count">5</strong> eventos · <span id="hud-chain-status" style="color:#10b981;">✓ Validado</span></span>
         </div>
 
-        <button id="btn-weather" style="padding:10px 14px;background:#1c1611cc;border:1px solid #d9770666;color:#fbbf24;font-size:12px;font-weight:600;border-radius:12px;backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <button id="btn-weather" class="btn-action">
           <span id="weather-icon">☀️</span>
           <span id="weather-text">Atardecer Dorado</span>
         </button>
 
-        <button id="btn-audio" style="padding:10px 14px;background:#1c1611cc;border:1px solid #38bdf866;color:#38bdf8;font-size:12px;font-weight:600;border-radius:12px;backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <button id="btn-audio" class="btn-action" style="color:#38bdf8;border-color:rgba(56,189,248,0.35);">
           <span>🎸</span>
           <span id="audio-text">Música Indie (Life is Strange)</span>
         </button>
@@ -278,13 +382,13 @@
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="controls-pill">
         <span>🎮 <strong>[W][A][S][D]</strong> Caminar</span>
-        <span>🖱️ <strong>[Click Izq + Arrastrar]</strong> Cámara 360°</span>
-        <span>🔍 <strong>[Scroll]</strong> Zoom</span>
+        <span>🖱️ <strong>[Click Izq + Arrastrar]</strong> Rotar Cámara</span>
+        <span>🔍 <strong>[Rueda]</strong> Zoom</span>
         <span>✨ <strong>[E]</strong> Abrir Diario / Interactuar</span>
       </div>
 
-      <div style="font-size:12px;color:#a89a87;font-family:'JetBrains Mono',monospace;">
-        Meta Multimodal: <span style="color:#f59e0b;">Muse Spark 1.3</span> + <span style="color:#38bdf8;">SAM 3.1</span> + <span style="color:#10b981;">Muse Voice 1.0</span>
+      <div style="background:rgba(22,17,13,0.85);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(14px);border-radius:14px;padding:9px 18px;font-size:11px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;">
+        Meta Multimodal: <span style="color:#f59e0b;font-weight:700;">Muse Spark 1.3</span> ➔ <span style="color:#38bdf8;font-weight:700;">SAM 3.1</span> + <span style="color:#10b981;font-weight:700;">Muse Voice 1.0</span>
       </div>
     </div>
 
@@ -292,14 +396,19 @@
 
   <!-- DRAWER DEL LEDGER CRIPTOGRÁFICO -->
   <div id="ledger-drawer">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;padding-bottom:8px;margin-bottom:12px;">
-      <span style="font-weight:bold;color:#38bdf8;">📜 Cadena Criptográfica SHA-256</span>
-      <button id="btn-close-ledger" style="background:none;border:none;color:#94a3b8;font-size:16px;cursor:pointer;">✕</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(56,189,248,0.3);padding-bottom:12px;margin-bottom:14px;">
+      <div>
+        <div style="font-weight:bold;color:#38bdf8;font-size:13px;letter-spacing:0.5px;">📜 LEDGER INMUTABLE SHA-256</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Cadena de custodia criptográfica auditable</div>
+      </div>
+      <button id="btn-close-ledger" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
     </div>
-    <div style="font-size:10px;color:#94a3b8;margin-bottom:12px;">
-      Bloque Génesis: <code>0000000000000000000000000000000000000000000000000000000000000000</code><br>
-      Cada evento enlaza criptográficamente el hash anterior con sus pruebas de proveniencia.
+
+    <div style="background:rgba(15,23,42,0.6);border-left:3px solid #10b981;padding:8px 12px;border-radius:6px;font-size:10px;color:#94a3b8;margin-bottom:14px;">
+      Génesis: <code style="color:#64748b;">0000000000000000000000000000000000000000000000000000000000000000</code><br>
+      Cada bloque sella: <code>hash = SHA256(seq + prevHash + payloadHash + timestamp)</code>
     </div>
+
     <div id="ledger-events-container">
       <!-- Inyectado dinámicamente -->
     </div>
@@ -311,83 +420,91 @@
       <div class="book-fold"></div>
 
       <!-- PÁGINA IZQUIERDA: POLAROID Y PROVENIENCIA MULTIMODAL -->
-      <div style="padding: 28px 32px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #d4c5b2; overflow-y: auto;">
+      <div style="padding: 30px 34px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #d4c5b2; overflow-y: auto;">
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 6px;">
-            <span style="font-family: 'Patrick Hand', cursive; font-size: 24px; color: #7c2d12; font-weight: bold;">Martes, 3 de Noviembre</span>
-            <span style="font-size: 11px; color: #786551; font-family: monospace;">EVIDENCIA MULTIMODAL</span>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 8px;">
+            <span style="font-family: 'Patrick Hand', cursive; font-size: 26px; color: #7c2d12; font-weight: bold;">Martes, 3 de Noviembre</span>
+            <span class="seal-verified">✓ Provenance Sealed</span>
           </div>
 
           <!-- Polaroid con el chat de WhatsApp resaltado por SAM 3.1 -->
-          <div style="background: white; padding: 10px 10px 24px 10px; margin: 16px auto 0; width: 280px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); transform: rotate(-1.5deg); text-align: center;">
-            <div style="background: #0b141a; width: 100%; height: 170px; border-radius: 4px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 10px; text-align: left;">
-              <!-- Globo de chat con bounding box simulado de SAM 3.1 -->
-              <div style="background: #202c33; border: 2px solid #38bdf8; border-radius: 8px; padding: 8px; font-size: 11px; color: #e9edef; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">
-                <div style="font-size: 9px; color: #38bdf8; font-family: monospace; margin-bottom: 2px;">[SAM 3.1 Mask Token: &lt;mask:96.1%&gt;]</div>
-                <div>"¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM."</div>
+          <div style="position:relative; background: white; padding: 12px 12px 28px 12px; margin: 20px auto 0; width: 300px; box-shadow: 0 12px 30px rgba(0,0,0,0.22); transform: rotate(-2deg); text-align: center; border-radius: 2px;">
+            <div class="washi-tape"></div>
+            
+            <div style="background: #0b141a; width: 100%; height: 180px; border-radius: 4px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 12px; text-align: left;">
+              <!-- Chat Bubble con Bounding Box y Máscara de SAM 3.1 -->
+              <div style="background: #202c33; border: 2px solid #38bdf8; border-radius: 8px; padding: 10px; font-size: 11px; color: #e9edef; box-shadow: 0 0 14px rgba(56, 189, 248, 0.5); position:relative;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                  <span style="font-size: 9px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-weight:bold;">[SAM 3.1 Mask: IoU 96.1%]</span>
+                  <span style="font-size: 8px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">14:32</span>
+                </div>
+                <div style="line-height:1.4;">"¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM."</div>
               </div>
             </div>
-            <div style="font-family: 'Patrick Hand', cursive; font-size: 15px; color: #3d2e1f; margin-top: 8px;">"Mariana · Captura de WhatsApp"</div>
+
+            <div style="font-family: 'Patrick Hand', cursive; font-size: 16px; color: #3d2e1f; margin-top: 10px; letter-spacing: 0.5px;">"Mariana · Captura de WhatsApp"</div>
           </div>
 
           <!-- Turno de Audio Transcrito por Muse Voice -->
-          <div style="margin-top: 14px; background: #e8dcc8; border-radius: 10px; padding: 10px; font-size: 12px; color: #3b2c1d; border-left: 3px solid #10b981;">
-            <div style="font-weight: bold; font-size: 11px; color: #047857; display: flex; justify-content: space-between;">
-              <span>🎙️ Muse Voice Transcribe (Turno 2)</span>
-              <span style="font-family: monospace;">00:04.400 - 00:08.600</span>
+          <div style="margin-top: 16px; background: #e8dcc8; border-radius: 12px; padding: 12px; font-size: 12px; color: #3b2c1d; border-left: 4px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="font-weight: bold; font-size: 11px; color: #047857; display: flex; justify-content: space-between; align-items:center;">
+              <span style="display:flex;align-items:center;gap:6px;">🎙️ Muse Voice Transcribe (Turno 2)</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">00:04.400 - 00:08.600</span>
             </div>
-            <div style="font-style: italic; margin-top: 4px; font-family: 'Patrick Hand', cursive; font-size: 15px;">
+            <div style="font-style: italic; margin-top: 6px; font-family: 'Patrick Hand', cursive; font-size: 16px; color: #291c10;">
               "Pero a las 3 tengo clase de cálculo y no puedo faltar..."
             </div>
           </div>
         </div>
 
-        <div style="font-size: 11px; color: #786551; font-family: monospace; border-top: 1px dashed #b8a791; padding-top: 8px;">
-          Root Hash: <span style="color:#0284c7;">7f8a91c4...e69a</span> · Append-Only Ledger
+        <div style="font-size: 11px; color: #786551; font-family: 'JetBrains Mono', monospace; border-top: 1px dashed #b8a791; padding-top: 10px; margin-top: 12px;">
+          Root Hash: <span style="color:#0284c7;font-weight:bold;">7f8a91c4...e69a</span> · Append-Only Ledger
         </div>
       </div>
 
       <!-- PÁGINA DERECHA: EL DILEMA, RAMAS CAUSALES Y REWIND -->
-      <div style="padding: 28px 32px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow-y: auto;">
-        <button id="btn-close-journal" style="position: absolute; top: 16px; right: 20px; background: #e0d0bd; border: none; font-size: 16px; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; color: #523e2b; font-weight: bold;">✕</button>
+      <div style="padding: 30px 34px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow-y: auto;">
+        <button id="btn-close-journal" style="position: absolute; top: 18px; right: 22px; background: #e0d0bd; border: none; font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; color: #523e2b; font-weight: bold; transition: all 0.2s;">✕</button>
 
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 6px;">
-            <h3 style="font-family: 'Patrick Hand', cursive; font-size: 24px; color: #0f172a;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 8px;">
+            <h3 style="font-family: 'Patrick Hand', cursive; font-size: 26px; color: #0f172a;">
               Encrucijada Temporal Activa
             </h3>
-            <button id="btn-rewind" style="background:#fef3c7;border:1px solid #f59e0b;color:#b45309;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:4px;">
+            <button id="btn-rewind" style="background:#fef3c7;border:1px solid #f59e0b;color:#b45309;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
               ⏪ Rebobinar (Rewind)
             </button>
           </div>
 
           <!-- Alerta de Conflicto Real Detectado por el Ledger -->
-          <div style="margin-top: 12px; background: #fee2e2; border: 1px solid #ef4444; padding: 10px; border-radius: 10px; font-size: 12px; color: #991b1b;">
-            <strong>⚠️ Solapamiento de Horario Detectado:</strong><br>
-            La entrega de Mariana (16:00 - 17:00) colisiona directamente con tu Clase de Cálculo (15:00 - 17:00).
+          <div style="margin-top: 14px; background: #fee2e2; border: 1px solid #ef4444; padding: 12px; border-radius: 12px; font-size: 12px; color: #991b1b; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);">
+            <div style="font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+              <span>⚠️</span> <span>Solapamiento Causal Detectado</span>
+            </div>
+            <div>La entrega acordada con Mariana (16:00 - 17:00) colisiona directamente con tu Clase de Cálculo (15:00 - 17:00).</div>
           </div>
 
           <!-- Botones de elección interactivos -->
-          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px;">
-            <button id="choice-a" style="text-align: left; background: #fff5f5; border: 2px solid #ef4444; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;">
+          <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+            <button id="choice-a" style="text-align: left; background: #fff5f5; border: 2px solid #ef4444; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight: bold; color: #b91c1c; font-size: 13px;">⚡ Senda A: Aceptar jueves y faltar a clase</span>
-                <span style="font-size: 10px; background: #fecaca; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-weight: bold;">ALTO RIESGO</span>
+                <span style="font-size: 10px; background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-weight: bold;">ALTO RIESGO</span>
               </div>
-              <div style="font-size: 11px; color: #7f1d1d; margin-top: 4px;">+11h trabajo · -7 energía · Deuda de sueño acumulada. Tormenta en el santuario.</div>
+              <div style="font-size: 11px; color: #7f1d1d; margin-top: 6px; line-height: 1.4;">+$200 ingresos · Inasistencia a examen · Tormenta y colapso temporal en el santuario.</div>
             </button>
 
-            <button id="choice-b" style="text-align: left; background: #f0fdf4; border: 2px solid #10b981; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all 0.2s;">
+            <button id="choice-b" style="text-align: left; background: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight: bold; color: #047857; font-size: 13px;">✨ Senda B: Proteger clase y negociar entrega</span>
-                <span style="font-size: 10px; background: #bbf7d0; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: bold;">RIESGO MEDIO</span>
+                <span style="font-weight: bold; color: #047857; font-size: 13px;">✨ Senda B: Proteger clase y renegociar entrega</span>
+                <span style="font-size: 10px; background: #bbf7d0; color: #166534; padding: 2px 8px; border-radius: 6px; font-weight: bold;">CALMA Y ORDEN</span>
               </div>
-              <div style="font-size: 11px; color: #065f46; margin-top: 4px;">+6h trabajo · Asistencia salvada · Entrega viernes 11 AM. Luz dorada en el santuario.</div>
+              <div style="font-size: 11px; color: #065f46; margin-top: 6px; line-height: 1.4;">Asistencia salvada · Entrega viernes 11 AM acordada · Atardecer dorado y paz mental.</div>
             </button>
           </div>
         </div>
 
-        <div style="text-align: center; font-size: 11px; color: #8a735c; margin-top: 12px;">
+        <div style="text-align: center; font-size: 11px; color: #8a735c; margin-top: 14px;">
           Cada elección añade un bloque sellado con SHA-256 al Ledger. Presiona <strong>[ESC]</strong> para salir.
         </div>
       </div>
