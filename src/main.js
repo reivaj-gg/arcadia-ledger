@@ -11,12 +11,15 @@ import {
 } from './services/fixtures.ts';
 
 // ============================================================================
-// ARCADIA 3D · THE LIVING SANCTUARY (LIFE IS STRANGE AESTHETIC ENGINE)
+// ARCADIA 3D · THE LIVING SANCTUARY (CINEMATIC PHYSICS & INTERACTION ENGINE)
 // ============================================================================
 
 const canvas = document.getElementById('webgl-canvas');
-const promptElem = document.getElementById('interaction-prompt');
-const promptText = document.getElementById('prompt-action-text');
+const worldHotspotPrompt = document.getElementById('world-hotspot-prompt');
+const hotspotActionText = document.getElementById('hotspot-action-text');
+const introspectionBox = document.getElementById('introspection-box');
+const rewindOverlay = document.getElementById('rewind-fx-overlay');
+
 const journalModal = document.getElementById('journal-modal');
 const btnCloseJournal = document.getElementById('btn-close-journal');
 const btnWeather = document.getElementById('btn-weather');
@@ -25,6 +28,7 @@ const weatherText = document.getElementById('weather-text');
 const btnAudio = document.getElementById('btn-audio');
 const btnToggleLedger = document.getElementById('btn-toggle-ledger');
 const btnCloseLedger = document.getElementById('btn-close-ledger');
+const btnQuickRewind = document.getElementById('btn-quick-rewind');
 const ledgerDrawer = document.getElementById('ledger-drawer');
 const ledgerEventsContainer = document.getElementById('ledger-events-container');
 const hudLedgerCount = document.getElementById('hud-ledger-count');
@@ -50,11 +54,9 @@ const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerH
 camera.position.set(0, 4.2, 7.2);
 
 // LIGHTS
-// 1. Hemispheric ambient light (Warm golden sky bounce + dark wooden floor bounce)
 const hemiLight = new THREE.HemisphereLight(0xffecd6, 0x422618, 1.4);
 scene.add(hemiLight);
 
-// 2. Main Golden Sunbeam pouring through window
 const sunLight = new THREE.DirectionalLight(0xf59e0b, 3.8);
 sunLight.position.set(-7, 7, -3.5);
 sunLight.castShadow = true;
@@ -70,23 +72,20 @@ sunLight.shadow.bias = -0.0004;
 sunLight.shadow.radius = 2.5;
 scene.add(sunLight);
 
-// 3. Warm desk lamp point light
 const deskLampLight = new THREE.PointLight(0xffa726, 2.4, 6.0, 1.2);
 deskLampLight.position.set(2.8, 2.3, -2.4);
 deskLampLight.castShadow = true;
 deskLampLight.shadow.bias = -0.0008;
 scene.add(deskLampLight);
 
-// 4. Subtle cozy warm fill light over the bed & fairy lights
 const bedFillLight = new THREE.PointLight(0xfcd34d, 1.2, 7.0, 1.5);
 bedFillLight.position.set(-3.6, 2.8, -2.8);
 scene.add(bedFillLight);
 
 // ============================================================================
-// PROCEDURAL CANVAS TEXTURES (ATMÓSFERA VISUAL RICA & ESTILIZADA)
+// PROCEDURAL CANVAS TEXTURES
 // ============================================================================
 
-// 1. Piso de madera cálida con vetas y ranuras
 function createWoodFloorTexture() {
   const c = document.createElement('canvas');
   c.width = 1024;
@@ -95,20 +94,17 @@ function createWoodFloorTexture() {
   ctx.fillStyle = '#6e472a';
   ctx.fillRect(0, 0, 1024, 1024);
 
-  // Tablones horizontales
   const plankHeight = 128;
   for (let y = 0; y < 1024; y += plankHeight) {
     const tone = Math.sin(y * 0.1) * 15;
     ctx.fillStyle = `rgb(${110 + tone}, ${71 + tone * 0.7}, ${42 + tone * 0.4})`;
     ctx.fillRect(0, y, 1024, plankHeight);
 
-    // Vetas de madera
     for (let i = 0; i < 40; i++) {
       ctx.fillStyle = 'rgba(40, 22, 12, 0.08)';
       ctx.fillRect(Math.random() * 1024, y, Math.random() * 20 + 5, plankHeight);
     }
 
-    // Línea de unión entre tablones
     ctx.fillStyle = '#2b170c';
     ctx.fillRect(0, y + plankHeight - 3, 1024, 3);
     ctx.fillStyle = 'rgba(255, 230, 190, 0.12)';
@@ -122,24 +118,20 @@ function createWoodFloorTexture() {
   return tex;
 }
 
-// 2. Paredes cálidas tipo yeso / papel tapiz vintage de Blackwell
 function createWallTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
-  // Color crema / beige cálido característico de Life is Strange
   ctx.fillStyle = '#dfd3c0';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Textura sutil estucada
   for (let i = 0; i < 6000; i++) {
     const v = Math.random() * 20 - 10;
     ctx.fillStyle = `rgba(${200 + v}, ${190 + v}, ${170 + v}, 0.15)`;
     ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
   }
 
-  // Franjas verticales muy tenues de papel tapiz retro
   ctx.fillStyle = 'rgba(180, 160, 140, 0.08)';
   for (let x = 0; x < 512; x += 48) {
     ctx.fillRect(x, 0, 24, 512);
@@ -152,16 +144,14 @@ function createWallTexture() {
   return tex;
 }
 
-// 3. Alfombra bohemia / navajo con motivos geométricos y flecos
 function createNavajoRugTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#993d28'; // Terracota base
+  ctx.fillStyle = '#993d28';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Bordes geométricos
   ctx.strokeStyle = '#f3e8d2';
   ctx.lineWidth = 8;
   ctx.strokeRect(20, 20, 472, 472);
@@ -170,7 +160,6 @@ function createNavajoRugTexture() {
   ctx.lineWidth = 6;
   ctx.strokeRect(36, 36, 440, 440);
 
-  // Diamante central navajo
   ctx.fillStyle = '#d97706';
   ctx.beginPath();
   ctx.moveTo(256, 100);
@@ -198,20 +187,17 @@ function createNavajoRugTexture() {
   ctx.closePath();
   ctx.fill();
 
-  const tex = new THREE.CanvasTexture(c);
-  return tex;
+  return new THREE.CanvasTexture(c);
 }
 
-// 4. Manta escocesa / tartán para la cama
 function createBlanketTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#831843'; // Granate profundo
+  ctx.fillStyle = '#831843';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Rayas azul marino y verde bosque
   ctx.fillStyle = 'rgba(30, 58, 138, 0.6)';
   for (let i = 0; i < 512; i += 64) {
     ctx.fillRect(i, 0, 24, 512);
@@ -231,25 +217,21 @@ function createBlanketTexture() {
   return tex;
 }
 
-// 5. Textura de foto Polaroid realista
 function createPolaroidTexture(caption, type) {
   const c = document.createElement('canvas');
   c.width = 256;
   c.height = 320;
   const ctx = c.getContext('2d');
 
-  // Marco blanco Polaroid
   ctx.fillStyle = '#faf8f5';
   ctx.fillRect(0, 0, 256, 320);
 
-  // Foto interior
   const imgY = 16;
   const imgX = 16;
   const imgW = 224;
   const imgH = 224;
 
   if (type === 'lighthouse') {
-    // Faro de Arcadia Bay al atardecer
     const grad = ctx.createLinearGradient(0, imgY, 0, imgY + imgH);
     grad.addColorStop(0, '#f97316');
     grad.addColorStop(0.5, '#facc15');
@@ -257,7 +239,6 @@ function createPolaroidTexture(caption, type) {
     ctx.fillStyle = grad;
     ctx.fillRect(imgX, imgY, imgW, imgH);
 
-    // Océano y acantilado
     ctx.fillStyle = '#1e3a8a';
     ctx.fillRect(imgX, imgY + 160, imgW, 64);
     ctx.fillStyle = '#1e293b';
@@ -267,7 +248,6 @@ function createPolaroidTexture(caption, type) {
     ctx.lineTo(imgX + 160, imgY + 224);
     ctx.fill();
 
-    // Silueta de Faro blanco
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(imgX + 70, imgY + 95, 14, 50);
     ctx.fillStyle = '#fef08a';
@@ -275,10 +255,8 @@ function createPolaroidTexture(caption, type) {
     ctx.arc(imgX + 77, imgY + 95, 12, 0, Math.PI * 2);
     ctx.fill();
   } else if (type === 'chat') {
-    // Evidencia WhatsApp con máscara SAM 3.1
     ctx.fillStyle = '#0b141a';
     ctx.fillRect(imgX, imgY, imgW, imgH);
-    // Bubble
     ctx.fillStyle = '#202c33';
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 3;
@@ -292,7 +270,6 @@ function createPolaroidTexture(caption, type) {
     ctx.fillText('Entrega Jueves 4 PM', imgX + 30, imgY + 80);
     ctx.fillText('$200 acordados', imgX + 30, imgY + 98);
   } else if (type === 'guitar') {
-    // Guitarra acústica en la habitación
     ctx.fillStyle = '#451a03';
     ctx.fillRect(imgX, imgY, imgW, imgH);
     ctx.fillStyle = '#d97706';
@@ -304,7 +281,6 @@ function createPolaroidTexture(caption, type) {
     ctx.arc(imgX + 112, imgY + 130, 18, 0, Math.PI * 2);
     ctx.fill();
   } else {
-    // Paisaje de bosque de pinos
     const grad = ctx.createLinearGradient(0, imgY, 0, imgY + imgH);
     grad.addColorStop(0, '#fbbf24');
     grad.addColorStop(1, '#065f46');
@@ -320,7 +296,6 @@ function createPolaroidTexture(caption, type) {
     }
   }
 
-  // Texto a mano en la parte inferior
   ctx.fillStyle = '#3d2e1f';
   ctx.font = '18px "Patrick Hand", cursive, sans-serif';
   ctx.textAlign = 'center';
@@ -329,14 +304,12 @@ function createPolaroidTexture(caption, type) {
   return new THREE.CanvasTexture(c);
 }
 
-// 6. Textura de corcho con notas y pruebas conectadas con hilo rojo
 function createCorkboardTexture() {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
 
-  // Corcho granulado
   ctx.fillStyle = '#bc8a5f';
   ctx.fillRect(0, 0, 512, 512);
   for (let i = 0; i < 8000; i++) {
@@ -345,8 +318,6 @@ function createCorkboardTexture() {
     ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
   }
 
-  // Notas adhesivas
-  // Nota amarilla
   ctx.fillStyle = '#fef08a';
   ctx.fillRect(60, 60, 110, 110);
   ctx.fillStyle = '#713f12';
@@ -354,21 +325,18 @@ function createCorkboardTexture() {
   ctx.fillText('Entrega Mariana', 70, 95);
   ctx.fillText('Jueves 4 PM', 70, 120);
 
-  // Nota azul
   ctx.fillStyle = '#bae6fd';
   ctx.fillRect(320, 80, 120, 110);
   ctx.fillStyle = '#0c4a6e';
   ctx.fillText('Clase Cálculo', 330, 115);
   ctx.fillText('Jueves 3 PM', 330, 140);
 
-  // Chinchetas rojas
   ctx.fillStyle = '#dc2626';
   ctx.beginPath();
   ctx.arc(115, 70, 6, 0, Math.PI * 2);
   ctx.arc(380, 90, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  // Hilo rojo que conecta el conflicto (Tesis de Arcadia)
   ctx.strokeStyle = '#ef4444';
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -376,7 +344,6 @@ function createCorkboardTexture() {
   ctx.bezierCurveTo(240, 160, 260, 30, 380, 90);
   ctx.stroke();
 
-  // Etiqueta de Conflicto en el centro del hilo
   ctx.fillStyle = '#fee2e2';
   ctx.fillRect(200, 120, 110, 30);
   ctx.strokeStyle = '#ef4444';
@@ -388,25 +355,21 @@ function createCorkboardTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-// 7. Textura de rostro estilizado de Max Caulfield (pecas, ojos expresivos)
 function createMaxFaceTexture() {
   const c = document.createElement('canvas');
   c.width = 256;
   c.height = 256;
   const ctx = c.getContext('2d');
 
-  // Piel cálida
   ctx.fillStyle = '#fde2cc';
   ctx.fillRect(0, 0, 256, 256);
 
-  // Rubor en las mejillas
   ctx.fillStyle = 'rgba(244, 114, 182, 0.25)';
   ctx.beginPath();
   ctx.arc(60, 145, 30, 0, Math.PI * 2);
   ctx.arc(196, 145, 30, 0, Math.PI * 2);
   ctx.fill();
 
-  // Pecas icónicas de Max
   ctx.fillStyle = '#b45309';
   const freckles = [
     [70, 135], [85, 140], [100, 145], [115, 143], [140, 143],
@@ -416,7 +379,6 @@ function createMaxFaceTexture() {
     ctx.fillRect(x, y, 3, 3);
   });
 
-  // Ojos azules / avellana grandes
   [[75, 110], [180, 110]].forEach(([x, y]) => {
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
@@ -433,13 +395,11 @@ function createMaxFaceTexture() {
     ctx.arc(x, y, 5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Brillo en los ojos
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(x - 3, y - 3, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pestañas sutiles
     ctx.strokeStyle = '#451a03';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -447,7 +407,6 @@ function createMaxFaceTexture() {
     ctx.stroke();
   });
 
-  // Cejas suaves
   ctx.strokeStyle = '#78350f';
   ctx.lineWidth = 4;
   ctx.beginPath();
@@ -457,7 +416,6 @@ function createMaxFaceTexture() {
   ctx.quadraticCurveTo(180, 80, 200, 85);
   ctx.stroke();
 
-  // Sonrisa discreta
   ctx.strokeStyle = '#9a3412';
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -467,7 +425,6 @@ function createMaxFaceTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-// 8. Textura de póster indie en la pared
 function createPosterTexture(title, band) {
   const c = document.createElement('canvas');
   c.width = 256;
@@ -477,7 +434,6 @@ function createPosterTexture(title, band) {
   ctx.fillStyle = '#1c1917';
   ctx.fillRect(0, 0, 256, 360);
 
-  // Gráfico geométrico vintage
   const grad = ctx.createLinearGradient(0, 0, 256, 360);
   grad.addColorStop(0, '#f59e0b');
   grad.addColorStop(0.5, '#ec4899');
@@ -506,13 +462,13 @@ function createPosterTexture(title, band) {
 }
 
 // ============================================================================
-// CONSTRUCCIÓN DEL SANTUARIO 3D (HABITACIÓN DE MAX EN ARCADIA BAY)
+// CONSTRUCCIÓN DEL SANTUARIO 3D
 // ============================================================================
 
 const roomGroup = new THREE.Group();
 scene.add(roomGroup);
 
-// PISO DE MADERA CÁLIDA
+// Piso
 const floorGeo = new THREE.PlaneGeometry(13, 13);
 const floorMat = new THREE.MeshStandardMaterial({
   map: createWoodFloorTexture(),
@@ -524,7 +480,7 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 roomGroup.add(floor);
 
-// ALFOMBRA BOHEMIA NAVAJO
+// Alfombra
 const rugGeo = new THREE.PlaneGeometry(3.6, 2.8);
 const rugMat = new THREE.MeshStandardMaterial({
   map: createNavajoRugTexture(),
@@ -537,7 +493,7 @@ rug.position.set(0.2, 0.015, 0.4);
 rug.receiveShadow = true;
 roomGroup.add(rug);
 
-// PAREDES CÁLIDAS CON TEXTURA ESTILIZADA
+// Paredes
 const wallTex = createWallTexture();
 const wallMat = new THREE.MeshStandardMaterial({
   map: wallTex,
@@ -546,26 +502,21 @@ const wallMat = new THREE.MeshStandardMaterial({
   metalness: 0.02
 });
 
-// Pared Norte (Fondo con Ventana y Corcho)
-const northWallGeo = new THREE.BoxGeometry(13, 6.5, 0.4);
-const northWall = new THREE.Mesh(northWallGeo, wallMat);
+const northWall = new THREE.Mesh(new THREE.BoxGeometry(13, 6.5, 0.4), wallMat);
 northWall.position.set(0, 3.25, -6.5);
 northWall.receiveShadow = true;
 roomGroup.add(northWall);
 
-// Pared Oeste (Izquierda - Cama y Luces de Hada)
-const westWallGeo = new THREE.BoxGeometry(0.4, 6.5, 13);
-const westWall = new THREE.Mesh(westWallGeo, wallMat);
+const westWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6.5, 13), wallMat);
 westWall.position.set(-6.5, 3.25, 0);
 westWall.receiveShadow = true;
 roomGroup.add(westWall);
 
-// Pared Este (Derecha - Escritorio y Estanterías)
 const eastWall = westWall.clone();
 eastWall.position.set(6.5, 3.25, 0);
 roomGroup.add(eastWall);
 
-// RODAPIÉS DE MADERA (BASEBOARDS)
+// Rodapiés
 const baseboardMat = new THREE.MeshStandardMaterial({ color: 0x3d2516, roughness: 0.5 });
 const baseNorth = new THREE.Mesh(new THREE.BoxGeometry(13, 0.25, 0.08), baseboardMat);
 baseNorth.position.set(0, 0.125, -6.25);
@@ -579,19 +530,14 @@ const baseEast = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 13), baseboard
 baseEast.position.set(6.25, 0.125, 0);
 roomGroup.add(baseEast);
 
-// ============================================================================
-// VENTANA PANORÁMICA DE ARCADIA BAY & HAZ DE LUZ VOLUMÉTRICO
-// ============================================================================
-
+// Ventana panorámica
 const windowGroup = new THREE.Group();
 windowGroup.position.set(-2.8, 3.4, -6.3);
 
-// Marco exterior de madera de la ventana
 const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x4a2e1b, roughness: 0.6 });
 const winFrame = new THREE.Mesh(new THREE.BoxGeometry(3.6, 4.4, 0.3), winFrameMat);
 windowGroup.add(winFrame);
 
-// Hueco de vidrio / vista
 const winGlassMat = new THREE.MeshStandardMaterial({
   color: 0xfde047,
   roughness: 0.1,
@@ -603,7 +549,6 @@ const winGlass = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 3.9), winGlassMat);
 winGlass.position.z = 0.05;
 windowGroup.add(winGlass);
 
-// Travesaños / cuarterones de la ventana (grid 3x2)
 const mullionMat = new THREE.MeshStandardMaterial({ color: 0x3a2315 });
 const mullionV1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.9, 0.12), mullionMat);
 mullionV1.position.set(-0.52, 0, 0.06);
@@ -615,7 +560,6 @@ const mullionH = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.08, 0.12), mullionM
 mullionH.position.set(0, 0, 0.06);
 windowGroup.add(mullionH);
 
-// Cortinas traslúcidas que enmarcan la ventana
 const curtainMat = new THREE.MeshStandardMaterial({ color: 0xf5eedb, roughness: 0.9, side: THREE.DoubleSide });
 const leftCurtain = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 4.2, 16, 1, false, 0, Math.PI), curtainMat);
 leftCurtain.position.set(-1.8, 0, 0.15);
@@ -626,7 +570,6 @@ const rightCurtain = leftCurtain.clone();
 rightCurtain.position.set(1.8, 0, 0.15);
 windowGroup.add(rightCurtain);
 
-// Fondo exterior de Arcadia Bay (Montañas, Acantilados, Pinos al Atardecer)
 const backdropCanvas = document.createElement('canvas');
 backdropCanvas.width = 512;
 backdropCanvas.height = 512;
@@ -639,7 +582,6 @@ skyGrad.addColorStop(1, '#1e3a8a');
 bctx.fillStyle = skyGrad;
 bctx.fillRect(0, 0, 512, 512);
 
-// Siluetas de pinos en el horizonte exterior
 bctx.fillStyle = '#1e293b';
 for (let i = 0; i < 15; i++) {
   const px = i * 36;
@@ -650,7 +592,6 @@ for (let i = 0; i < 15; i++) {
   bctx.lineTo(px - 24, py);
   bctx.fill();
 }
-// Silueta del faro al fondo
 bctx.fillStyle = '#0f172a';
 bctx.fillRect(400, 220, 18, 90);
 bctx.fillStyle = '#fef08a';
@@ -658,14 +599,13 @@ bctx.beginPath();
 bctx.arc(409, 215, 16, 0, Math.PI * 2);
 bctx.fill();
 
-const backdropTex = new THREE.CanvasTexture(backdropCanvas);
-const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(8, 7), new THREE.MeshBasicMaterial({ map: backdropTex }));
+const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(8, 7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(backdropCanvas) }));
 backdrop.position.set(0, 0, -2.5);
 windowGroup.add(backdrop);
 
 roomGroup.add(windowGroup);
 
-// HAZ DE LUZ VOLUMÉTRICO (GOD RAYS DEL ATARDECER)
+// Haz de luz volumétrico
 const lightShaftGeo = new THREE.ConeGeometry(2.4, 8.5, 32, 1, true);
 const lightShaftMat = new THREE.MeshBasicMaterial({
   color: 0xf59e0b,
@@ -681,14 +621,10 @@ lightShaft.rotation.x = 0.9;
 lightShaft.rotation.z = -0.4;
 scene.add(lightShaft);
 
-// ============================================================================
-// LA CAMA DE MAX CAULFIELD (DORMITORIO DE BLACKWELL)
-// ============================================================================
-
+// Cama de Max Caulfield
 const bedGroup = new THREE.Group();
 bedGroup.position.set(-4.5, 0, -3.2);
 
-// Estructura de madera de la cama
 const bedWoodMat = new THREE.MeshStandardMaterial({ color: 0x543621, roughness: 0.5 });
 const bedBase = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 4.4), bedWoodMat);
 bedBase.position.y = 0.35;
@@ -696,30 +632,21 @@ bedBase.castShadow = true;
 bedBase.receiveShadow = true;
 bedGroup.add(bedBase);
 
-// Cabecero alto de madera con listones
 const headboard = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.2, 0.15), bedWoodMat);
 headboard.position.set(0, 1.3, -2.15);
 headboard.castShadow = true;
 bedGroup.add(headboard);
 
-// Colchón mullido blanco
-const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.8 });
-const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.38, 4.1), mattressMat);
+const mattress = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.38, 4.1), new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.8 }));
 mattress.position.set(0, 0.65, 0.05);
 mattress.castShadow = true;
 bedGroup.add(mattress);
 
-// Manta de tartán escocesa doblada en la cama
-const blanketMat = new THREE.MeshStandardMaterial({
-  map: createBlanketTexture(),
-  roughness: 0.85
-});
-const blanket = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.18, 2.6), blanketMat);
+const blanket = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.18, 2.6), new THREE.MeshStandardMaterial({ map: createBlanketTexture(), roughness: 0.85 }));
 blanket.position.set(0, 0.8, 0.7);
 blanket.castShadow = true;
 bedGroup.add(blanket);
 
-// Almohadas mullidas
 const pillowMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.9 });
 const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.22, 0.65), pillowMat);
 pillow1.position.set(-0.6, 0.9, -1.5);
@@ -735,51 +662,40 @@ bedGroup.add(pillow2);
 
 roomGroup.add(bedGroup);
 
-// ============================================================================
-// GUITARRA ACÚSTICA JUNTO A LA CAMA
-// ============================================================================
-
+// Guitarra Acústica
 const guitarGroup = new THREE.Group();
 guitarGroup.position.set(-5.8, 0, -1.2);
 guitarGroup.rotation.y = 0.6;
-guitarGroup.rotation.z = -0.15; // Apoyada contra la pared
+guitarGroup.rotation.z = -0.15;
 
 const guitarWoodMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.4 });
-// Cuerpo inferior
 const guitarBody1 = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.16, 24), guitarWoodMat);
 guitarBody1.rotation.x = Math.PI / 2;
 guitarBody1.position.y = 0.5;
 guitarGroup.add(guitarBody1);
 
-// Cuerpo superior
 const guitarBody2 = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.16, 24), guitarWoodMat);
 guitarBody2.rotation.x = Math.PI / 2;
 guitarBody2.position.y = 0.9;
 guitarGroup.add(guitarBody2);
 
-// Boca de la guitarra (soundhole)
 const soundhole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.18, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
 soundhole.rotation.x = Math.PI / 2;
 soundhole.position.set(0, 0.85, 0.01);
 guitarGroup.add(soundhole);
 
-// Mástil de madera
 const neckMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
 const neck = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.08), neckMat);
 neck.position.set(0, 1.45, 0);
 guitarGroup.add(neck);
 
-// Pala con clavijero
 const headstock = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.07), neckMat);
 headstock.position.set(0, 1.95, 0);
 guitarGroup.add(headstock);
 
 roomGroup.add(guitarGroup);
 
-// ============================================================================
-// GUIRNALDA DE LUCES DE HADA (FAIRY STRING LIGHTS) EN LA PARED
-// ============================================================================
-
+// Luces de hada
 const fairyLightsGroup = new THREE.Group();
 const fairyLightMat = new THREE.MeshStandardMaterial({
   color: 0xfef08a,
@@ -787,10 +703,8 @@ const fairyLightMat = new THREE.MeshStandardMaterial({
   emissiveIntensity: 2.8,
   roughness: 0.2
 });
-
 const fairyBulbGeo = new THREE.SphereGeometry(0.06, 12, 12);
 
-// Cable colgante con curvatura catenaria suave
 for (let i = 0; i < 18; i++) {
   const t = i / 17;
   const x = -6.28;
@@ -803,7 +717,6 @@ for (let i = 0; i < 18; i++) {
   fairyLightsGroup.add(bulb);
 }
 
-// 2 luces tenues que proyectan el resplandor cálido de la guirnalda
 const fairyGlow1 = new THREE.PointLight(0xf59e0b, 1.5, 4.0);
 fairyGlow1.position.set(-5.9, 3.8, -4.2);
 fairyLightsGroup.add(fairyGlow1);
@@ -814,10 +727,7 @@ fairyLightsGroup.add(fairyGlow2);
 
 roomGroup.add(fairyLightsGroup);
 
-// ============================================================================
-// TENDEDERO DE FOTOS POLAROID EN LA PARED (HISTORIAS DE ARCADIA)
-// ============================================================================
-
+// Tendedero de Polaroids
 const polaroidGallery = new THREE.Group();
 polaroidGallery.position.set(-6.26, 3.2, 0.5);
 
@@ -839,7 +749,6 @@ polaroidsData.forEach((p) => {
   pMesh.rotation.x = p.rot;
   polaroidGallery.add(pMesh);
 
-  // Pinza de madera pequeña
   const peg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.04), new THREE.MeshStandardMaterial({ color: 0x854d0e }));
   peg.position.set(0.02, 0.4, p.z);
   polaroidGallery.add(peg);
@@ -847,10 +756,7 @@ polaroidsData.forEach((p) => {
 
 roomGroup.add(polaroidGallery);
 
-// ============================================================================
-// TABLÓN DE CORCHO DE INVESTIGACIÓN CON HILO ROJO (SPATIAL EVIDENCE BOARD)
-// ============================================================================
-
+// Tablón de corcho con hilo rojo
 const corkboardGroup = new THREE.Group();
 corkboardGroup.position.set(0.8, 3.6, -6.28);
 
@@ -858,95 +764,68 @@ const corkFrameMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness
 const corkFrame = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.0, 0.08), corkFrameMat);
 corkboardGroup.add(corkFrame);
 
-const corkSurfaceMat = new THREE.MeshStandardMaterial({
-  map: createCorkboardTexture(),
-  roughness: 0.95
-});
-const corkSurface = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.8), corkSurfaceMat);
+const corkSurface = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.8), new THREE.MeshStandardMaterial({ map: createCorkboardTexture(), roughness: 0.95 }));
 corkSurface.position.z = 0.05;
 corkboardGroup.add(corkSurface);
 
 roomGroup.add(corkboardGroup);
 
-// PÓSTERS EN LA PARED ESTE
+// Pósters
 const posterGroup = new THREE.Group();
 posterGroup.position.set(6.28, 3.4, 0);
 
-const p1 = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.2, 1.7),
-  new THREE.MeshStandardMaterial({ map: createPosterTexture('VORTEX CLUB · OCTOBER', 'SYD MATTERS'), roughness: 0.4 })
-);
+const p1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('VORTEX CLUB · OCTOBER', 'SYD MATTERS'), roughness: 0.4 }));
 p1.rotation.y = -Math.PI / 2;
 p1.position.z = -1.5;
 posterGroup.add(p1);
 
-const p2 = new THREE.Mesh(
-  new THREE.PlaneGeometry(1.2, 1.7),
-  new THREE.MeshStandardMaterial({ map: createPosterTexture('FALL FESTIVAL CONCERT', 'JOSÉ GONZÁLEZ'), roughness: 0.4 })
-);
+const p2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('FALL FESTIVAL CONCERT', 'JOSÉ GONZÁLEZ'), roughness: 0.4 }));
 p2.rotation.y = -Math.PI / 2;
 p2.position.z = 1.5;
 posterGroup.add(p2);
 
 roomGroup.add(posterGroup);
 
-// ============================================================================
-// MESA DE TRABAJO (DESK) DE MAX CON LAPTOP, CÁMARA RETRO Y DIARIO
-// ============================================================================
-
+// Mesa de Trabajo
 const deskGroup = new THREE.Group();
 deskGroup.position.set(2.8, 0, -2.5);
 
-// Tablero de madera pulida
-const deskTopGeo = new THREE.BoxGeometry(3.6, 0.16, 1.9);
 const deskTopMat = new THREE.MeshStandardMaterial({ color: 0x5a3922, roughness: 0.45 });
-const deskTop = new THREE.Mesh(deskTopGeo, deskTopMat);
+const deskTop = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.16, 1.9), deskTopMat);
 deskTop.position.y = 1.45;
 deskTop.castShadow = true;
 deskTop.receiveShadow = true;
 deskGroup.add(deskTop);
 
-// Cajonera lateral izquierda
 const drawerBox = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.25, 1.6), deskTopMat);
 drawerBox.position.set(-1.25, 0.72, 0);
 drawerBox.castShadow = true;
 deskGroup.add(drawerBox);
 
-// Tiradores metálicos de latón
 for (let d = 0; d < 3; d++) {
   const handle = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.03, 0.04), new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8 }));
   handle.position.set(-1.25, 1.1 - d * 0.35, 0.82);
   deskGroup.add(handle);
 }
 
-// Patas derechas metálicas oscuras
-const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.45);
 const legMat = new THREE.MeshStandardMaterial({ color: 0x1f1b18 });
 [[1.6, -0.75], [1.6, 0.75]].forEach(([x, z]) => {
-  const leg = new THREE.Mesh(legGeo, legMat);
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.45), legMat);
   leg.position.set(x, 0.72, z);
   leg.castShadow = true;
   deskGroup.add(leg);
 });
 
-// Laptop con pantalla encendida mostrando el Ledger
-const laptopBase = new THREE.Mesh(
-  new THREE.BoxGeometry(0.75, 0.02, 0.52),
-  new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 })
-);
+const laptopBase = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.02, 0.52), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.3 }));
 laptopBase.position.set(0.65, 1.54, 0);
 laptopBase.castShadow = true;
 deskGroup.add(laptopBase);
 
-const laptopScreen = new THREE.Mesh(
-  new THREE.BoxGeometry(0.75, 0.48, 0.02),
-  new THREE.MeshBasicMaterial({ color: 0x0284c7 })
-);
+const laptopScreen = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.48, 0.02), new THREE.MeshBasicMaterial({ color: 0x0284c7 }));
 laptopScreen.position.set(0.65, 1.78, -0.26);
 laptopScreen.rotation.x = 0.22;
 deskGroup.add(laptopScreen);
 
-// Lámpara vintage de cuello de cisne (Anglepoise)
 const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.05), new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8 }));
 lampBase.position.set(1.4, 1.55, -0.6);
 deskGroup.add(lampBase);
@@ -956,7 +835,6 @@ lampShade.position.set(1.4, 2.2, -0.6);
 lampShade.rotation.x = 0.55;
 deskGroup.add(lampShade);
 
-// Cuaderno Moleskine interactivo sobre la mesa
 const diaryGeo = new THREE.BoxGeometry(0.7, 0.08, 0.9);
 const diaryMat = new THREE.MeshStandardMaterial({ color: 0x3d271d, roughness: 0.7 });
 const diaryMesh = new THREE.Mesh(diaryGeo, diaryMat);
@@ -965,7 +843,6 @@ diaryMesh.rotation.y = 0.18;
 diaryMesh.castShadow = true;
 deskGroup.add(diaryMesh);
 
-// Cámara instantánea retro Polaroid Sun 660 en la mesa
 const cameraBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.35), new THREE.MeshStandardMaterial({ color: 0x18181b }));
 cameraBody.position.set(-0.25, 1.65, -0.55);
 cameraBody.rotation.y = -0.3;
@@ -976,14 +853,13 @@ cameraLens.rotation.x = Math.PI / 2;
 cameraLens.position.set(-0.25, 1.65, -0.36);
 deskGroup.add(cameraLens);
 
-// Taza de café con vapor humeante
 const mugMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.24), new THREE.MeshStandardMaterial({ color: 0xfef08a }));
 mugMesh.position.set(1.3, 1.65, 0.25);
 deskGroup.add(mugMesh);
 
 roomGroup.add(deskGroup);
 
-// Silla de escritorio retro de madera
+// Silla
 const chairGroup = new THREE.Group();
 chairGroup.position.set(2.8, 0, -1.2);
 chairGroup.rotation.y = Math.PI;
@@ -1003,10 +879,7 @@ chairGroup.add(chairBack);
 });
 roomGroup.add(chairGroup);
 
-// ============================================================================
-// TOCADISCOS VINTAGE Y DISCO GIRATORIO
-// ============================================================================
-
+// Tocadiscos
 const turntableGroup = new THREE.Group();
 turntableGroup.position.set(-5.2, 0, 1.4);
 
@@ -1015,12 +888,10 @@ ttStand.position.y = 0.65;
 ttStand.castShadow = true;
 turntableGroup.add(ttStand);
 
-// Rejilla de altavoz frontal de tela vintage
 const grilleMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.7), new THREE.MeshStandardMaterial({ color: 0x78563a, roughness: 0.9 }));
 grilleMesh.position.set(0, 0.6, 0.66);
 turntableGroup.add(grilleMesh);
 
-// Plato y disco de vinilo
 const ttPlatter = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.04), new THREE.MeshStandardMaterial({ color: 0x18181b }));
 ttPlatter.position.set(0, 1.32, 0);
 turntableGroup.add(ttPlatter);
@@ -1036,7 +907,6 @@ const vinylLabel = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.025),
 vinylLabel.position.set(0, 1.345, 0);
 turntableGroup.add(vinylLabel);
 
-// Brazo fonocaptor de latón
 const tonearm = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.45), new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9 }));
 tonearm.rotation.z = Math.PI / 2;
 tonearm.rotation.y = 0.4;
@@ -1045,7 +915,7 @@ turntableGroup.add(tonearm);
 
 roomGroup.add(turntableGroup);
 
-// PLANTA MONSTERA EN MACETA DE CERÁMICA
+// Planta
 const plantGroup = new THREE.Group();
 plantGroup.position.set(5.2, 0, 3.2);
 
@@ -1066,10 +936,7 @@ for (let l = 0; l < 8; l++) {
 }
 roomGroup.add(plantGroup);
 
-// ============================================================================
-// PARTÍCULAS DORADAS DE POLVO EN LA LUZ (DUST MOTES)
-// ============================================================================
-
+// Partículas de polvo
 const dustCount = 350;
 const dustGeo = new THREE.BufferGeometry();
 const dustPositions = new Float32Array(dustCount * 3);
@@ -1091,10 +958,7 @@ const dustMat = new THREE.PointsMaterial({
 const dustParticles = new THREE.Points(dustGeo, dustMat);
 scene.add(dustParticles);
 
-// ============================================================================
-// LA MARIPOSA AZUL MORPHO (EL EFECTO MARIPOSA VIVO)
-// ============================================================================
-
+// Mariposa Azul Morpho
 const butterflyGroup = new THREE.Group();
 butterflyGroup.position.set(-1.2, 2.5, 0.2);
 
@@ -1120,124 +984,253 @@ const butterflyLight = new THREE.PointLight(0x38bdf8, 1.8, 3.5);
 butterflyGroup.add(butterflyLight);
 scene.add(butterflyGroup);
 
+// Partículas de notas musicales flotantes para la guitarra
+const musicalNotesGroup = new THREE.Group();
+scene.add(musicalNotesGroup);
+
+function createNoteTexture(char = '♪') {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = 'bold 72px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#fbbf24';
+  ctx.shadowBlur = 14;
+  ctx.fillText(char, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+
+const noteTex1 = createNoteTexture('♪');
+const noteTex2 = createNoteTexture('♫');
+const activeNotes = [];
+
+function spawnMusicNote() {
+  const isSecond = Math.random() > 0.5;
+  const mat = new THREE.SpriteMaterial({
+    map: isSecond ? noteTex2 : noteTex1,
+    color: 0xfffbeb,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending
+  });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.35, 0.35, 0.35);
+  sprite.position.set(-5.6 + (Math.random() - 0.5) * 0.3, 1.3, -1.2 + (Math.random() - 0.5) * 0.3);
+  musicalNotesGroup.add(sprite);
+  activeNotes.push({
+    sprite,
+    vy: 0.012 + Math.random() * 0.01,
+    vx: (Math.random() - 0.5) * 0.006,
+    life: 1.0,
+    wobble: Math.random() * Math.PI * 2
+  });
+}
+
 // ============================================================================
-// AVATAR ESTILIZADO DE MAX CAULFIELD
+// AVATAR ESTILIZADO DE MAX CAULFIELD (ARTICULACIONES Y PIVOTES REALES)
 // ============================================================================
 
 const avatar = new THREE.Group();
 avatar.position.set(0, 0, 1.2);
 scene.add(avatar);
 
-// Cabeza con textura facial estilizada (pecas y ojos)
+// Caderas (base para piernas)
+const hipsGroup = new THREE.Group();
+hipsGroup.position.set(0, 0.72, 0);
+avatar.add(hipsGroup);
+
+const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8 });
+const shoeMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
+const soleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+const legGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.68, 16);
+
+// Pierna izquierda articulada en cadera
+const leftLegPivot = new THREE.Group();
+leftLegPivot.position.set(-0.16, 0, 0);
+hipsGroup.add(leftLegPivot);
+
+const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+leftLegMesh.position.y = -0.34;
+leftLegMesh.castShadow = true;
+leftLegPivot.add(leftLegMesh);
+
+const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.28), shoeMat);
+shoeL.position.set(0, -0.68, 0.05);
+leftLegPivot.add(shoeL);
+
+const soleL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
+soleL.position.set(0, -0.74, 0.05);
+leftLegPivot.add(soleL);
+
+// Pierna derecha articulada en cadera
+const rightLegPivot = new THREE.Group();
+rightLegPivot.position.set(0.16, 0, 0);
+hipsGroup.add(rightLegPivot);
+
+const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+rightLegMesh.position.y = -0.34;
+rightLegMesh.castShadow = true;
+rightLegPivot.add(rightLegMesh);
+
+const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.28), shoeMat);
+shoeR.position.set(0, -0.68, 0.05);
+rightLegPivot.add(shoeR);
+
+const soleR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
+soleR.position.set(0, -0.74, 0.05);
+rightLegPivot.add(soleR);
+
+// Torso / Cuerpo Superior
+const upperBodyGroup = new THREE.Group();
+upperBodyGroup.position.set(0, 0.72, 0);
+avatar.add(upperBodyGroup);
+
+const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
+const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.66, 0.32), hoodieMat);
+bodyMesh.position.y = 0.42;
+bodyMesh.castShadow = true;
+upperBodyGroup.add(bodyMesh);
+
+// Cordoncillos
+const cordMat = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
+const cord1 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
+cord1.position.set(-0.08, 0.62, 0.17);
+upperBodyGroup.add(cord1);
+const cord2 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
+cord2.position.set(0.08, 0.62, 0.17);
+upperBodyGroup.add(cord2);
+
+// Bolso bandolera de Max
+const bagMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(0.38, 0.42, 0.16),
+  new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.6 })
+);
+bagMesh.position.set(0.24, 0.33, 0);
+bagMesh.rotation.z = -0.15;
+upperBodyGroup.add(bagMesh);
+
+const strap = new THREE.Mesh(
+  new THREE.BoxGeometry(0.05, 0.75, 0.34),
+  new THREE.MeshStandardMaterial({ color: 0x78350f })
+);
+strap.position.set(0.02, 0.46, 0);
+strap.rotation.z = -0.4;
+upperBodyGroup.add(strap);
+
+// Brazos articulados en los hombros
+const armGeo = new THREE.CylinderGeometry(0.07, 0.065, 0.54, 16);
+const handMat = new THREE.MeshStandardMaterial({ color: 0xfbd0be, roughness: 0.8 });
+const handGeo = new THREE.SphereGeometry(0.055, 12, 12);
+
+const leftArmPivot = new THREE.Group();
+leftArmPivot.position.set(-0.34, 0.68, 0);
+upperBodyGroup.add(leftArmPivot);
+
+const leftArmMesh = new THREE.Mesh(armGeo, hoodieMat);
+leftArmMesh.position.y = -0.27;
+leftArmPivot.add(leftArmMesh);
+
+const leftHand = new THREE.Mesh(handGeo, handMat);
+leftHand.position.y = -0.54;
+leftArmPivot.add(leftHand);
+
+const rightArmPivot = new THREE.Group();
+rightArmPivot.position.set(0.34, 0.68, 0);
+upperBodyGroup.add(rightArmPivot);
+
+const rightArmMesh = new THREE.Mesh(armGeo, hoodieMat);
+rightArmMesh.position.y = -0.27;
+rightArmPivot.add(rightArmMesh);
+
+const rightHand = new THREE.Mesh(handGeo, handMat);
+rightHand.position.y = -0.54;
+rightArmPivot.add(rightHand);
+
+// Cabeza y cabello
+const headGroup = new THREE.Group();
+headGroup.position.set(0, 0.82, 0);
+upperBodyGroup.add(headGroup);
+
 const faceTex = createMaxFaceTexture();
 const headMesh = new THREE.Mesh(
   new THREE.SphereGeometry(0.26, 24, 24),
   new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.7 })
 );
-headMesh.position.y = 1.62;
-headMesh.rotation.y = -Math.PI / 2; // Orientar rostro hacia adelante
+headMesh.position.set(0, 0.12, 0);
+headMesh.rotation.y = -Math.PI / 2;
 headMesh.castShadow = true;
-avatar.add(headMesh);
+headGroup.add(headMesh);
 
-// Cabello castaño icónico de Max (corte bob con flequillo)
 const hairMat = new THREE.MeshStandardMaterial({ color: 0x5a3217, roughness: 0.85 });
 const hairMain = new THREE.Mesh(new THREE.SphereGeometry(0.29, 20, 20), hairMat);
-hairMain.position.set(0, 1.68, -0.06);
+hairMain.position.set(0, 0.18, -0.06);
 hairMain.scale.set(1.06, 1.12, 1.18);
-avatar.add(hairMain);
+headGroup.add(hairMain);
 
-// Flequillo y mechones laterales
 const bangL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.1), hairMat);
-bangL.position.set(-0.2, 1.58, 0.14);
+bangL.position.set(-0.2, 0.08, 0.14);
 bangL.rotation.z = -0.15;
-avatar.add(bangL);
+headGroup.add(bangL);
 
 const bangR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.1), hairMat);
-bangR.position.set(0.2, 1.58, 0.14);
+bangR.position.set(0.2, 0.08, 0.14);
 bangR.rotation.z = 0.15;
-avatar.add(bangR);
-
-// Torso con sudadera con capucha gris
-const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
-const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.68, 0.32), hoodieMat);
-bodyMesh.position.y = 1.15;
-bodyMesh.castShadow = true;
-avatar.add(bodyMesh);
-
-// Cuello de sudadera / cordones blancos
-const cordMat = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
-const cord1 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
-cord1.position.set(-0.08, 1.35, 0.17);
-avatar.add(cord1);
-const cord2 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
-cord2.position.set(0.08, 1.35, 0.17);
-avatar.add(cord2);
-
-// Bolso bandolera de cuero marrón cruzado
-const bagMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(0.38, 0.42, 0.16),
-  new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.6 })
-);
-bagMesh.position.set(0.22, 1.05, 0);
-bagMesh.rotation.z = -0.15;
-avatar.add(bagMesh);
-
-// Correa del bolso cruzada
-const strap = new THREE.Mesh(
-  new THREE.BoxGeometry(0.05, 0.75, 0.34),
-  new THREE.MeshStandardMaterial({ color: 0x78350f })
-);
-strap.position.set(0.02, 1.18, 0);
-strap.rotation.z = -0.4;
-avatar.add(strap);
-
-// Brazos con mangas de sudadera
-const armGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.58);
-const leftArm = new THREE.Mesh(armGeo, hoodieMat);
-leftArm.position.set(-0.34, 1.15, 0);
-avatar.add(leftArm);
-
-const rightArm = new THREE.Mesh(armGeo, hoodieMat);
-rightArm.position.set(0.34, 1.15, 0);
-avatar.add(rightArm);
-
-// Piernas con pantalones vaqueros azules
-const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8 });
-const legCharGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.72);
-
-const leftLeg = new THREE.Mesh(legCharGeo, pantsMat);
-leftLeg.position.set(-0.16, 0.46, 0);
-leftLeg.castShadow = true;
-avatar.add(leftLeg);
-
-const rightLeg = new THREE.Mesh(legCharGeo, pantsMat);
-rightLeg.position.set(0.16, 0.46, 0);
-rightLeg.castShadow = true;
-avatar.add(rightLeg);
-
-// Zapatillas tipo Converse con suela de goma blanca
-const shoeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-const soleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc });
-
-const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.28), shoeMat);
-shoeL.position.set(-0.16, 0.06, 0.05);
-avatar.add(shoeL);
-const soleL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
-soleL.position.set(-0.16, 0.02, 0.05);
-avatar.add(soleL);
-
-const shoeR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.28), shoeMat);
-shoeR.position.set(0.16, 0.06, 0.05);
-avatar.add(shoeR);
-const soleR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
-soleR.position.set(0.16, 0.02, 0.05);
-avatar.add(soleR);
+headGroup.add(bangR);
 
 // ============================================================================
-// CONTROLES DE NAVEGACIÓN Y CÁMARA
+// SISTEMA DE FÍSICAS: COLISIONADORES SÓLIDOS & DESLIZAMIENTO
 // ============================================================================
 
-const keys = { w: false, a: false, s: false, d: false };
+// Cajas de colisión AABB ajustadas con precisión
+const colliders = [
+  // Cama
+  { minX: -6.0, maxX: -3.0, minZ: -5.6, maxZ: -0.9 },
+  // Mesa de escritorio y silla
+  { minX: 0.8, maxX: 4.8, minZ: -3.6, maxZ: -0.6 },
+  // Mueble tocadiscos
+  { minX: -6.2, maxX: -4.2, minZ: 0.6, maxZ: 2.2 },
+  // Maceta con planta
+  { minX: 4.5, maxX: 6.0, minZ: 2.4, maxZ: 4.0 },
+  // Guitarra
+  { minX: -6.4, maxX: -5.0, minZ: -1.8, maxZ: -0.6 }
+];
+
+function checkCollision(x, z, radius = 0.32) {
+  // Límites perimetrales de la habitación
+  if (x - radius < -6.0 || x + radius > 6.0 || z - radius < -6.0 || z + radius > 5.8) {
+    return true;
+  }
+  // Muebles interiores
+  for (let i = 0; i < colliders.length; i++) {
+    const c = colliders[i];
+    if (
+      x + radius > c.minX &&
+      x - radius < c.maxX &&
+      z + radius > c.minZ &&
+      z - radius < c.maxZ
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Suavizado angular para no dar giros bruscos de 360 grados
+function lerpAngle(current, target, factor) {
+  let diff = (target - current) % (Math.PI * 2);
+  if (diff < -Math.PI) diff += Math.PI * 2;
+  if (diff > Math.PI) diff -= Math.PI * 2;
+  return current + diff * factor;
+}
+
+// ============================================================================
+// CONTROLES, RAYCASTING Y CÁMARA CINEMÁTICA CON ENFOQUE DINÁMICO
+// ============================================================================
+
+const keys = { w: false, a: false, s: false, d: false, shift: false };
 
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
@@ -1245,12 +1238,17 @@ window.addEventListener('keydown', (e) => {
   if (k === 's' || k === 'arrowdown') keys.s = true;
   if (k === 'a' || k === 'arrowleft') keys.a = true;
   if (k === 'd' || k === 'arrowright') keys.d = true;
+  if (e.key === 'Shift') keys.shift = true;
 
   if (k === 'e') {
     handleInteraction();
   }
+  if (k === 'r') {
+    executeRewind();
+  }
   if (e.key === 'Escape') {
     closeJournal();
+    exitCinematicFocus();
   }
 });
 
@@ -1260,79 +1258,258 @@ window.addEventListener('keyup', (e) => {
   if (k === 's' || k === 'arrowdown') keys.s = false;
   if (k === 'a' || k === 'arrowleft') keys.a = false;
   if (k === 'd' || k === 'arrowright') keys.d = false;
+  if (e.key === 'Shift') keys.shift = false;
 });
 
 let isDragging = false;
+let clickStartX = 0;
+let clickStartY = 0;
 let prevMouseX = 0;
+let prevMouseY = 0;
 let cameraAngleY = 0;
-let cameraDistance = 6.8;
+let cameraPitch = 0.38; // Inclinación vertical
+let cameraDistance = 6.2;
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 window.addEventListener('mousedown', (e) => {
   if (e.button === 0 && e.target === canvas) {
     isDragging = true;
+    clickStartX = e.clientX;
+    clickStartY = e.clientY;
     prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+    exitCinematicFocus();
   }
 });
 
-window.addEventListener('mouseup', () => (isDragging = false));
+window.addEventListener('mouseup', (e) => {
+  if (isDragging) {
+    isDragging = false;
+    // Si fue un click estático (no arrastre), probar interactuar directamente con el objeto clicado
+    const dragDist = Math.hypot(e.clientX - clickStartX, e.clientY - clickStartY);
+    if (dragDist < 6 && e.target === canvas) {
+      handleRaycastClick(e.clientX, e.clientY);
+    }
+  }
+});
 
 window.addEventListener('mousemove', (e) => {
   if (isDragging) {
     const deltaX = e.clientX - prevMouseX;
+    const deltaY = e.clientY - prevMouseY;
     cameraAngleY += deltaX * 0.005;
+    cameraPitch = Math.max(0.12, Math.min(1.05, cameraPitch + deltaY * 0.003));
     prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  } else if (e.target === canvas) {
+    // Cambio sutil de cursor al sobrevolar objetos interactivos
+    checkHoverCursor(e.clientX, e.clientY);
   }
 });
 
 window.addEventListener('wheel', (e) => {
-  cameraDistance = Math.max(3.8, Math.min(9.5, cameraDistance + e.deltaY * 0.005));
+  cameraDistance = Math.max(3.2, Math.min(8.5, cameraDistance + e.deltaY * 0.004));
 });
 
+// Click en el marcador flotante HUD para interactuar
+if (worldHotspotPrompt) {
+  worldHotspotPrompt.addEventListener('click', () => {
+    handleInteraction();
+  });
+}
+
+function handleRaycastClick(clientX, clientY) {
+  mouse.x = (clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const targets = [
+    { obj: deskGroup, id: 'desk' },
+    { obj: corkboardGroup, id: 'corkboard' },
+    { obj: guitarGroup, id: 'guitar' },
+    { obj: bedGroup, id: 'bed' },
+    { obj: turntableGroup, id: 'turntable' },
+    { obj: butterflyGroup, id: 'butterfly' },
+    { obj: windowGroup, id: 'window' }
+  ];
+
+  for (let i = 0; i < targets.length; i++) {
+    const hits = raycaster.intersectObject(targets[i].obj, true);
+    if (hits.length > 0) {
+      const match = hotspots.find((h) => h.id === targets[i].id);
+      if (match) {
+        activeHotspot = match;
+        handleInteraction();
+      }
+      break;
+    }
+  }
+}
+
+function checkHoverCursor(clientX, clientY) {
+  mouse.x = (clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const testObjects = [deskGroup, corkboardGroup, guitarGroup, bedGroup, turntableGroup, butterflyGroup, windowGroup];
+  let hasHit = false;
+  for (let i = 0; i < testObjects.length; i++) {
+    if (raycaster.intersectObject(testObjects[i], true).length > 0) {
+      hasHit = true;
+      break;
+    }
+  }
+  canvas.style.cursor = hasHit ? 'pointer' : 'default';
+}
+
 // ============================================================================
-// PUNTOS DE INTERACCIÓN ESPACIAL (HOTSPOTS 3D)
+// PUNTOS DE INTERACCIÓN ESPACIAL (HOTSPOTS 3D CON ENFOQUE CINEMÁTICO)
 // ============================================================================
+
+const hotspots = [
+  {
+    id: 'desk',
+    pos: new THREE.Vector3(2.5, 1.6, -1.8),
+    label: 'Abrir Cuaderno de Decisiones',
+    camPos: new THREE.Vector3(1.5, 2.2, -0.6),
+    camLook: new THREE.Vector3(2.8, 1.4, -2.4),
+    thought: '"El ledger no miente: la entrega para Mariana choca exactamente con mi clase de cálculo."'
+  },
+  {
+    id: 'corkboard',
+    pos: new THREE.Vector3(0.8, 2.4, -4.5),
+    label: 'Inspeccionar Tablón de Evidencias',
+    camPos: new THREE.Vector3(0.8, 3.3, -4.0),
+    camLook: new THREE.Vector3(0.8, 3.6, -6.3),
+    thought: '"El hilo rojo une la captura con la nota de voz. Dos pruebas irrefutables, un conflicto temporal sellado con SHA-256."'
+  },
+  {
+    id: 'guitar',
+    pos: new THREE.Vector3(-5.6, 1.2, -1.2),
+    label: 'Tocar Guitarra ("Obstacles")',
+    camPos: new THREE.Vector3(-4.0, 1.8, -0.2),
+    camLook: new THREE.Vector3(-5.8, 1.1, -1.2),
+    thought: '"Cada acorde me hace sentir que el tiempo se detiene... pero las consecuencias siguen ahí."'
+  },
+  {
+    id: 'bed',
+    pos: new THREE.Vector3(-4.2, 1.2, -3.0),
+    label: 'Recostarse y Reflexionar',
+    camPos: new THREE.Vector3(-2.2, 2.1, -1.8),
+    camLook: new THREE.Vector3(-4.5, 1.0, -3.2),
+    thought: '"Arcadia Bay se ve tan tranquila... pero las decisiones que tomamos tienen un peso real."'
+  },
+  {
+    id: 'turntable',
+    pos: new THREE.Vector3(-5.0, 1.5, 1.4),
+    label: 'Encender Tocadiscos ("Obstacles")',
+    camPos: new THREE.Vector3(-3.6, 2.2, 2.2),
+    camLook: new THREE.Vector3(-5.2, 1.3, 1.4),
+    thought: '"La música analógica siempre me ayuda a poner en orden mis pensamientos."'
+  },
+  {
+    id: 'window',
+    pos: new THREE.Vector3(-2.8, 2.5, -5.5),
+    label: 'Mirar el Faro / Cambiar Clima',
+    camPos: new THREE.Vector3(-2.8, 2.6, -3.6),
+    camLook: new THREE.Vector3(-2.8, 3.2, -6.5),
+    thought: '"La luz dorada sobre el faro... el tiempo siempre parece detenerse en esta ventana."'
+  },
+  {
+    id: 'butterfly',
+    pos: new THREE.Vector3(-1.2, 2.4, 0.2),
+    label: 'Explorar Efecto Mariposa',
+    camPos: new THREE.Vector3(-0.4, 2.2, 1.4),
+    camLook: new THREE.Vector3(-1.2, 2.4, 0.2),
+    thought: '"\'This action will have consequences...\' El aleteo de una mariposa cambia todo."'
+  }
+];
 
 let activeHotspot = null;
+let cinematicFocus = null;
+let thoughtTimeout = null;
 
-function checkProximity() {
+function showThought(text) {
+  if (!introspectionBox) return;
+  clearTimeout(thoughtTimeout);
+  introspectionBox.innerText = text;
+  introspectionBox.classList.add('visible');
+  thoughtTimeout = setTimeout(() => {
+    introspectionBox.classList.remove('visible');
+  }, 5200);
+}
+
+function updateHotspotsProximity() {
   const avPos = avatar.position;
-  const distDesk = avPos.distanceTo(new THREE.Vector3(2.5, 0, -1.8));
-  const distButterfly = avPos.distanceTo(butterflyGroup.position);
-  const distTurntable = avPos.distanceTo(turntableGroup.position);
-  const distWindow = avPos.distanceTo(new THREE.Vector3(-2.8, 0, -4.5));
+  let nearest = null;
+  let minDist = 2.6;
 
-  if (distDesk < 2.2) {
-    activeHotspot = 'desk';
-    promptText.innerText = 'Abrir Diario de Decisiones de Max';
-    promptElem.classList.add('visible');
-  } else if (distButterfly < 2.4) {
-    activeHotspot = 'butterfly';
-    promptText.innerText = 'Tocar Mariposa / Explorar Efecto Mariposa';
-    promptElem.classList.add('visible');
-  } else if (distTurntable < 2.0) {
-    activeHotspot = 'turntable';
-    promptText.innerText = 'Tocar Música Indie (Life is Strange)';
-    promptElem.classList.add('visible');
-  } else if (distWindow < 2.4) {
-    activeHotspot = 'window';
-    promptText.innerText = 'Mirar por la Ventana / Cambiar Atmósfera';
-    promptElem.classList.add('visible');
+  for (let i = 0; i < hotspots.length; i++) {
+    const h = hotspots[i];
+    const d = avPos.distanceTo(new THREE.Vector3(h.pos.x, avPos.y, h.pos.z));
+    if (d < minDist) {
+      minDist = d;
+      nearest = h;
+    }
+  }
+
+  activeHotspot = nearest;
+
+  if (activeHotspot && !cinematicFocus) {
+    const screenPos = activeHotspot.pos.clone().project(camera);
+    const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+
+    if (screenPos.z < 1.0) {
+      worldHotspotPrompt.style.left = `${x}px`;
+      worldHotspotPrompt.style.top = `${y}px`;
+      hotspotActionText.innerText = activeHotspot.label;
+      worldHotspotPrompt.classList.add('visible');
+    } else {
+      worldHotspotPrompt.classList.remove('visible');
+    }
   } else {
-    activeHotspot = null;
-    promptElem.classList.remove('visible');
+    worldHotspotPrompt.classList.remove('visible');
   }
 }
 
 function handleInteraction() {
   if (!activeHotspot) return;
 
-  if (activeHotspot === 'desk' || activeHotspot === 'butterfly') {
+  playCameraClick();
+  showThought(activeHotspot.thought);
+
+  if (activeHotspot.id === 'desk') {
+    cinematicFocus = activeHotspot;
     openJournal();
-  } else if (activeHotspot === 'turntable') {
+  } else if (activeHotspot.id === 'corkboard') {
+    cinematicFocus = activeHotspot;
+    if (btnToggleLedger && ledgerDrawer) {
+      ledgerDrawer.classList.add('active');
+    }
+  } else if (activeHotspot.id === 'guitar') {
+    cinematicFocus = activeHotspot;
+    playAcousticChords();
+  } else if (activeHotspot.id === 'bed') {
+    cinematicFocus = activeHotspot;
+    playAcousticNote(293.66);
+  } else if (activeHotspot.id === 'turntable') {
+    cinematicFocus = activeHotspot;
     toggleAudio();
-  } else if (activeHotspot === 'window') {
+  } else if (activeHotspot.id === 'window') {
+    cinematicFocus = activeHotspot;
     toggleWeather();
+  } else if (activeHotspot.id === 'butterfly') {
+    cinematicFocus = activeHotspot;
+    openJournal();
   }
+}
+
+function exitCinematicFocus() {
+  cinematicFocus = null;
+  if (introspectionBox) introspectionBox.classList.remove('visible');
 }
 
 function openJournal() {
@@ -1344,26 +1521,27 @@ function openJournal() {
 function closeJournal() {
   playAcousticNote(220);
   journalModal.classList.remove('active');
+  exitCinematicFocus();
 }
 
 if (btnCloseJournal) btnCloseJournal.addEventListener('click', closeJournal);
 
 // ============================================================================
-// CLIMA Y ESTADOS DEL MUNDO (GOLDEN HOUR VS TORMENTA)
+// CLIMA Y ESTADOS DEL MUNDO (DORADO · TORMENTA · CREPÚSCULO)
 // ============================================================================
 
-let isStormy = false;
+let weatherMode = 0; // 0: Atardecer Dorado, 1: Tormenta de Dudas, 2: Crepúsculo de Blackwell
 
 function toggleWeather() {
-  isStormy = !isStormy;
-  setWorldState(isStormy);
+  weatherMode = (weatherMode + 1) % 3;
+  setWorldState(weatherMode);
 }
 
 if (btnWeather) btnWeather.addEventListener('click', toggleWeather);
 
-function setWorldState(storm) {
-  playAcousticNote(storm ? 180 : 392);
-  if (storm) {
+function setWorldState(mode) {
+  if (mode === 1) {
+    // Tormenta de Dudas
     sunLight.color.setHex(0x38bdf8);
     sunLight.intensity = 1.2;
     hemiLight.color.setHex(0x334155);
@@ -1374,7 +1552,22 @@ function setWorldState(storm) {
     lightShaft.material.opacity = 0.08;
     if (weatherIcon) weatherIcon.innerText = '🌧️';
     if (weatherText) weatherText.innerText = 'Tormenta de Dudas';
+    playAcousticNote(180);
+  } else if (mode === 2) {
+    // Crepúsculo de Blackwell
+    sunLight.color.setHex(0x818cf8);
+    sunLight.intensity = 1.6;
+    hemiLight.color.setHex(0x1e1b4b);
+    hemiLight.groundColor.setHex(0x090514);
+    scene.background.setHex(0x130e24);
+    scene.fog.color.setHex(0x130e24);
+    lightShaft.material.color.setHex(0xa855f7);
+    lightShaft.material.opacity = 0.15;
+    if (weatherIcon) weatherIcon.innerText = '🌙';
+    if (weatherText) weatherText.innerText = 'Crepúsculo de Blackwell';
+    playAcousticNote(260);
   } else {
+    // Atardecer Dorado
     sunLight.color.setHex(0xf59e0b);
     sunLight.intensity = 3.8;
     hemiLight.color.setHex(0xffecd6);
@@ -1385,6 +1578,7 @@ function setWorldState(storm) {
     lightShaft.material.opacity = 0.12;
     if (weatherIcon) weatherIcon.innerText = '☀️';
     if (weatherText) weatherText.innerText = 'Atardecer Dorado';
+    playAcousticNote(392);
   }
 }
 
@@ -1483,20 +1677,45 @@ if (btnCloseLedger && ledgerDrawer) {
   });
 }
 
-// Rewind (Bitemporal asOf query)
-if (btnRewind) {
-  btnRewind.addEventListener('click', () => {
-    playAcousticNote(440);
-    const snapshotPast = ledger.asOf('2026-11-03T10:00:00-03:00');
-    setWorldState(false);
-    alert(
-      `⏪ REWIND TEMPORAL EJECUTADO (asOf: 2026-11-03 10:00)\n\n` +
-      `El ledger ha retrocedido en el tiempo de forma inmutable:\n` +
-      `• Compromisos activos en ese instante: ${snapshotPast.commitments.length} (sin conflicto)\n` +
-      `• El santuario 3D vuelve al estado previo a la decisión.`
-    );
-  });
+// Rewind con búfer histórico y rebobinado físico del avatar
+const historyBuffer = [];
+let isRewinding = false;
+
+function executeRewind() {
+  if (isRewinding || historyBuffer.length < 5) return;
+  isRewinding = true;
+  playRewindSound();
+  if (rewindOverlay) {
+    rewindOverlay.classList.add('active');
+  }
+  showThought('⏪ El tiempo se dobla hacia atrás... antes de que existiera el conflicto.');
+
+  const rewindInterval = setInterval(() => {
+    if (historyBuffer.length > 0) {
+      const past = historyBuffer.pop();
+      avatar.position.x = past.x;
+      avatar.position.y = past.y;
+      avatar.position.z = past.z;
+      avatar.rotation.y = past.rotY;
+
+      // Movimiento inverso de extremidades al rebobinar
+      walkCycle -= 0.35;
+      leftLegPivot.rotation.x = Math.sin(walkCycle) * 0.65;
+      rightLegPivot.rotation.x = -Math.sin(walkCycle) * 0.65;
+      leftArmPivot.rotation.x = -Math.sin(walkCycle) * 0.5;
+      rightArmPivot.rotation.x = Math.sin(walkCycle) * 0.5;
+    } else {
+      clearInterval(rewindInterval);
+      isRewinding = false;
+      if (rewindOverlay) rewindOverlay.classList.remove('active');
+      setWorldState(0);
+      showThought('✨ Tiempo restablecido. El santuario ha vuelto a su equilibrio.');
+    }
+  }, 18);
 }
+
+if (btnRewind) btnRewind.addEventListener('click', executeRewind);
+if (btnQuickRewind) btnQuickRewind.addEventListener('click', executeRewind);
 
 // BOTONES DE ELECCIÓN EN EL DIARIO
 const choiceA = document.getElementById('choice-a');
@@ -1508,12 +1727,8 @@ if (choiceA) {
       verifiedAt: new Date().toISOString(),
     });
     renderLedgerUI();
-    setWorldState(true);
-    alert(
-      `⚡ SENDA A SELLADA EN EL LEDGER\n\n` +
-      `Se ha añadido el bloque #${ledger.size} con hash criptográfico SHA-256.\n` +
-      `Consecuencia: Tu tiempo colapsa y se desata una tormenta en el santuario 3D.`
-    );
+    setWorldState(1); // Tormenta
+    showThought('⚡ Senda A sellada: Tu tiempo colapsa y una tormenta se cierne sobre Arcadia.');
     closeJournal();
   });
 }
@@ -1527,23 +1742,20 @@ if (choiceB) {
       verifiedAt: new Date().toISOString(),
     });
     renderLedgerUI();
-    setWorldState(false);
-    alert(
-      `✨ SENDA B SELLADA EN EL LEDGER\n\n` +
-      `Se ha añadido el bloque #${ledger.size} con hash criptográfico SHA-256.\n` +
-      `Consecuencia: Asistencia protegida, calma mental y luz dorada en el santuario 3D.`
-    );
+    setWorldState(0); // Atardecer Dorado
+    showThought('✨ Senda B sellada: Asistencia protegida. El atardecer dorado permanece.');
     closeJournal();
   });
 }
 
 // ============================================================================
-// AUDIO PROCEDURAL INDIE (WEB AUDIO CON ACORDES ACÚSTICOS)
+// AUDIO SINTETIZADO INDIE (WEB AUDIO CON FOLEY, AGUJA Y PISADAS)
 // ============================================================================
 
 let audioCtx = null;
 let isAudioPlaying = false;
 let audioTimer = null;
+let tonearmTargetY = 0.1; // 0.1 reposo, 0.45 tocando el vinilo
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1564,6 +1776,52 @@ function playAcousticNote(freq = 220) {
   osc.stop(audioCtx.currentTime + 1.6);
 }
 
+function playAcousticChords() {
+  const notes = [146.83, 220.0, 293.66, 369.99, 440.0];
+  notes.forEach((n, idx) => {
+    setTimeout(() => {
+      playAcousticNote(n);
+      spawnMusicNote();
+    }, idx * 110);
+  });
+}
+
+function playVinylCrackle() {
+  initAudio();
+  if (!audioCtx) return;
+  const bufferSize = Math.floor(audioCtx.sampleRate * 0.12);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.05;
+    if (Math.random() < 0.004) data[i] += (Math.random() - 0.5) * 0.8;
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+  noise.connect(gain);
+  gain.connect(audioCtx.destination);
+  noise.start();
+}
+
+function playFootstep(isRug = false) {
+  initAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = isRug ? 'sine' : 'triangle';
+  osc.frequency.setValueAtTime(isRug ? 85 : 130, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(32, audioCtx.currentTime + 0.06);
+  gain.gain.setValueAtTime(isRug ? 0.06 : 0.09, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.06);
+}
+
 function playCameraClick() {
   initAudio();
   if (!audioCtx) return;
@@ -1572,7 +1830,7 @@ function playCameraClick() {
   osc.type = 'square';
   osc.frequency.setValueAtTime(800, audioCtx.currentTime);
   osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
-  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
   osc.connect(gain);
   gain.connect(audioCtx.destination);
@@ -1580,18 +1838,36 @@ function playCameraClick() {
   osc.stop(audioCtx.currentTime + 0.08);
 }
 
+function playRewindSound() {
+  initAudio();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.8);
+  gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.9);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.9);
+}
+
 function toggleAudio() {
   initAudio();
   if (isAudioPlaying) {
     clearInterval(audioTimer);
     isAudioPlaying = false;
+    tonearmTargetY = 0.1; // Retirar aguja
     const aText = document.getElementById('audio-text');
     if (aText) aText.innerText = 'Música Indie (Pausada)';
   } else {
     isAudioPlaying = true;
+    tonearmTargetY = 0.45; // Colocar aguja sobre el disco
+    playVinylCrackle();
     const aText = document.getElementById('audio-text');
     if (aText) aText.innerText = 'Sonando: Syd Matters · Obstacles';
-    // Progresión acústica clásica de Life is Strange
     const chords = [220, 261.63, 329.63, 392.0, 329.63, 261.63, 293.66, 349.23];
     let step = 0;
     playAcousticNote(chords[0]);
@@ -1605,10 +1881,12 @@ function toggleAudio() {
 if (btnAudio) btnAudio.addEventListener('click', toggleAudio);
 
 // ============================================================================
-// BUCLE DE ANIMACIÓN Y FÍSICA CINEMÁTICA
+// BUCLE DE ANIMACIÓN Y MOTOR DE FÍSICAS (INERCIA, DESLIZAMIENTO & RIGGING)
 // ============================================================================
 
+const velocity = new THREE.Vector3();
 let walkCycle = 0;
+let lastFootstepCycle = 0;
 const animClock = new THREE.Clock();
 
 function animate() {
@@ -1617,8 +1895,9 @@ function animate() {
   const delta = animClock.getDelta();
   const time = animClock.getElapsedTime();
 
-  // 1. ROTACIÓN DEL VINILO
-  vinylDisc.rotation.y += 0.035;
+  // 1. ROTACIÓN DEL VINILO Y BRAZO DEL TOCADISCOS
+  vinylDisc.rotation.y += isAudioPlaying ? 0.055 : 0.02;
+  tonearm.rotation.y = THREE.MathUtils.lerp(tonearm.rotation.y, tonearmTargetY, 0.04);
 
   // 2. ALETEO SUAVE DE LA MARIPOSA AZUL
   leftWing.rotation.y = Math.sin(time * 16) * 0.75;
@@ -1627,7 +1906,7 @@ function animate() {
   butterflyGroup.position.x = -1.2 + Math.cos(time * 1.3) * 0.85;
   butterflyGroup.position.z = 0.2 + Math.sin(time * 1.6) * 0.85;
 
-  // 3. MOVIMIENTO DE MOTAS DE POLVO EN EL HAZ DE LUZ
+  // 3. MOVIMIENTO DE MOTAS DE POLVO EN LOS RAYOS DE SOL
   const dustPos = dustParticles.geometry.attributes.position.array;
   for (let i = 1; i < dustCount * 3; i += 3) {
     dustPos[i] -= 0.003;
@@ -1635,57 +1914,166 @@ function animate() {
   }
   dustParticles.geometry.attributes.position.needsUpdate = true;
 
-  // 4. MOVIMIENTO DEL AVATAR CON TECLADO
-  const moveVector = new THREE.Vector3();
-  if (keys.w) moveVector.z -= 1;
-  if (keys.s) moveVector.z += 1;
-  if (keys.a) moveVector.x -= 1;
-  if (keys.d) moveVector.x += 1;
-
-  const isMoving = moveVector.lengthSq() > 0;
-
-  if (isMoving && (!journalModal || !journalModal.classList.contains('active'))) {
-    moveVector.normalize();
-    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngleY);
-
-    const speed = 3.4 * delta;
-    avatar.position.x += moveVector.x * speed;
-    avatar.position.z += moveVector.z * speed;
-
-    avatar.position.x = Math.max(-5.2, Math.min(5.2, avatar.position.x));
-    avatar.position.z = Math.max(-5.2, Math.min(5.2, avatar.position.z));
-
-    const targetAngle = Math.atan2(moveVector.x, moveVector.z);
-    avatar.rotation.y = THREE.MathUtils.lerp(avatar.rotation.y, targetAngle, 0.18);
-
-    // Animación de caminata
-    walkCycle += delta * 13;
-    leftLeg.rotation.x = Math.sin(walkCycle) * 0.65;
-    rightLeg.rotation.x = -Math.sin(walkCycle) * 0.65;
-    leftArm.rotation.x = -Math.sin(walkCycle) * 0.5;
-    rightArm.rotation.x = Math.sin(walkCycle) * 0.5;
-    avatar.position.y = Math.abs(Math.sin(walkCycle)) * 0.06;
-  } else {
-    // Idle suave
-    leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.1);
-    rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.1);
-    leftArm.rotation.x = Math.sin(time * 2) * 0.06;
-    rightArm.rotation.x = -Math.sin(time * 2) * 0.06;
-    avatar.position.y = Math.sin(time * 2) * 0.02;
+  // 4. ACTUALIZACIÓN DE NOTAS MUSICALES FLOTANTES
+  for (let i = activeNotes.length - 1; i >= 0; i--) {
+    const n = activeNotes[i];
+    n.sprite.position.y += n.vy;
+    n.sprite.position.x += n.vx + Math.sin(time * 3 + n.wobble) * 0.002;
+    n.life -= delta * 0.65;
+    n.sprite.material.opacity = Math.max(0, n.life);
+    if (n.life <= 0) {
+      musicalNotesGroup.remove(n.sprite);
+      n.sprite.geometry.dispose();
+      n.sprite.material.dispose();
+      activeNotes.splice(i, 1);
+    }
   }
 
-  // 5. CÁMARA TERCERA PERSONA CINEMÁTICA
-  const targetCamX = avatar.position.x + Math.sin(cameraAngleY) * cameraDistance;
-  const targetCamZ = avatar.position.z + Math.cos(cameraAngleY) * cameraDistance;
-  const targetCamY = avatar.position.y + 3.2;
+  // 5. REGISTRAR HISTORIAL DE MOVIMIENTO PARA EL REWIND
+  if (!isRewinding) {
+    historyBuffer.push({
+      x: avatar.position.x,
+      y: avatar.position.y,
+      z: avatar.position.z,
+      rotY: avatar.rotation.y
+    });
+    if (historyBuffer.length > 240) historyBuffer.shift();
+  }
 
-  camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, 0.08);
-  camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, 0.08);
-  camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, 0.08);
-  camera.lookAt(avatar.position.x, avatar.position.y + 1.25, avatar.position.z);
+  // 6. MOVIMIENTO FÍSICO DEL AVATAR CON INERCIA, SPRINT Y COLISIONES
+  const inputVector = new THREE.Vector3();
+  if (keys.w) inputVector.z -= 1;
+  if (keys.s) inputVector.z += 1;
+  if (keys.a) inputVector.x -= 1;
+  if (keys.d) inputVector.x += 1;
 
-  // 6. PROXIMIDAD A HOTSPOTS
-  checkProximity();
+  const isInputActive =
+    inputVector.lengthSq() > 0 &&
+    !isRewinding &&
+    (!journalModal || !journalModal.classList.contains('active'));
+
+  if (isInputActive) {
+    exitCinematicFocus();
+    inputVector.normalize();
+    inputVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngleY);
+
+    const maxSpeed = keys.shift ? 5.2 : 3.4;
+    const accel = 22.0 * delta;
+    velocity.x = THREE.MathUtils.lerp(velocity.x, inputVector.x * maxSpeed, accel);
+    velocity.z = THREE.MathUtils.lerp(velocity.z, inputVector.z * maxSpeed, accel);
+
+    // Rotación suave del avatar en la dirección del movimiento
+    const targetAngle = Math.atan2(inputVector.x, inputVector.z);
+    avatar.rotation.y = lerpAngle(avatar.rotation.y, targetAngle, 0.24);
+
+    // Inclinación corporal (banking) al virar
+    avatar.rotation.z = THREE.MathUtils.lerp(avatar.rotation.z, (keys.a ? 0.08 : keys.d ? -0.08 : 0), 0.12);
+  } else if (!isRewinding) {
+    velocity.x = THREE.MathUtils.lerp(velocity.x, 0, 16.0 * delta);
+    velocity.z = THREE.MathUtils.lerp(velocity.z, 0, 16.0 * delta);
+    avatar.rotation.z = THREE.MathUtils.lerp(avatar.rotation.z, 0, 0.16);
+  }
+
+  const currentSpeed = velocity.length();
+
+  // Resolución de colisiones con deslizamiento de superficie
+  if (currentSpeed > 0.01 && !isRewinding) {
+    const nextX = avatar.position.x + velocity.x * delta;
+    const nextZ = avatar.position.z + velocity.z * delta;
+
+    if (!checkCollision(nextX, avatar.position.z)) {
+      avatar.position.x = nextX;
+    } else {
+      velocity.x = 0;
+    }
+
+    if (!checkCollision(avatar.position.x, nextZ)) {
+      avatar.position.z = nextZ;
+    } else {
+      velocity.z = 0;
+    }
+
+    // Animación de extremidades con articulaciones anatómicas reales
+    const strideFactor = keys.shift ? 4.6 : 3.2;
+    walkCycle += delta * (currentSpeed * strideFactor);
+
+    const swingAmp = keys.shift ? 0.88 : 0.65;
+    leftLegPivot.rotation.x = Math.sin(walkCycle) * swingAmp;
+    rightLegPivot.rotation.x = -Math.sin(walkCycle) * swingAmp;
+
+    leftArmPivot.rotation.x = -Math.sin(walkCycle) * (swingAmp * 0.8);
+    rightArmPivot.rotation.x = Math.sin(walkCycle) * (swingAmp * 0.8);
+    leftArmPivot.rotation.z = 0.08;
+    rightArmPivot.rotation.z = -0.08;
+
+    // Torso sway e inclinación de carrera
+    upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, keys.shift ? 0.14 : 0.02, 0.1);
+    upperBodyGroup.rotation.y = Math.sin(walkCycle) * 0.08;
+
+    // Rebote vertical rítmico del cuerpo
+    hipsGroup.position.y = 0.72 + Math.abs(Math.sin(walkCycle * 2)) * (keys.shift ? 0.06 : 0.04);
+    headGroup.rotation.y = -Math.PI / 2 - upperBodyGroup.rotation.y * 0.5;
+
+    // Pisadas sonoras sincronizadas al toque del pie
+    const footstepPhase = Math.sin(walkCycle);
+    if ((footstepPhase > 0.88 && lastFootstepCycle <= 0.88) || (footstepPhase < -0.88 && lastFootstepCycle >= -0.88)) {
+      const isOverRug = Math.abs(avatar.position.x - 0.2) < 1.8 && Math.abs(avatar.position.z - 0.4) < 1.4;
+      playFootstep(isOverRug);
+    }
+    lastFootstepCycle = footstepPhase;
+  } else if (!isRewinding) {
+    // Modo reposo (Idle) con respiración orgánica y micro-movimientos
+    leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, 0, 0.14);
+    rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, 0, 0.14);
+    leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, 0, 0.14);
+    rightArmPivot.rotation.x = THREE.MathUtils.lerp(rightArmPivot.rotation.x, 0, 0.14);
+
+    upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, 0, 0.14);
+    upperBodyGroup.rotation.y = THREE.MathUtils.lerp(upperBodyGroup.rotation.y, 0, 0.1);
+
+    // Respiración natural en reposo
+    upperBodyGroup.position.y = 0.72 + Math.sin(time * 2.2) * 0.015;
+    leftArmPivot.rotation.z = 0.06 + Math.sin(time * 2.2) * 0.02;
+    rightArmPivot.rotation.z = -0.06 - Math.sin(time * 2.2) * 0.02;
+    headGroup.rotation.y = -Math.PI / 2 + Math.sin(time * 0.8) * 0.05;
+  }
+
+  // 7. CÁMARA CINEMÁTICA CON ENFOQUE DINÁMICO Y LÍMITES DE PARED
+  let targetCamX, targetCamY, targetCamZ, lookTargetX, lookTargetY, lookTargetZ;
+
+  if (cinematicFocus) {
+    targetCamX = cinematicFocus.camPos.x;
+    targetCamY = cinematicFocus.camPos.y;
+    targetCamZ = cinematicFocus.camPos.z;
+
+    lookTargetX = cinematicFocus.camLook.x;
+    lookTargetY = cinematicFocus.camLook.y;
+    lookTargetZ = cinematicFocus.camLook.z;
+  } else {
+    const horizontalDist = cameraDistance * Math.cos(cameraPitch);
+    targetCamX = avatar.position.x + Math.sin(cameraAngleY) * horizontalDist;
+    targetCamZ = avatar.position.z + Math.cos(cameraAngleY) * horizontalDist;
+    targetCamY = avatar.position.y + 1.2 + cameraDistance * Math.sin(cameraPitch);
+
+    // Evitar que la cámara traspase los muros de la habitación
+    targetCamX = Math.max(-5.2, Math.min(5.2, targetCamX));
+    targetCamZ = Math.max(-5.2, Math.min(6.2, targetCamZ));
+    targetCamY = Math.max(1.6, Math.min(5.4, targetCamY));
+
+    lookTargetX = avatar.position.x;
+    lookTargetY = avatar.position.y + 1.25;
+    lookTargetZ = avatar.position.z;
+  }
+
+  camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, 0.09);
+  camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, 0.09);
+  camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, 0.09);
+
+  const desiredLook = new THREE.Vector3(lookTargetX, lookTargetY, lookTargetZ);
+  camera.lookAt(desiredLook);
+
+  // 8. PROXIMIDAD A HOTSPOTS Y MARCADORES EN PANTALLA
+  updateHotspotsProximity();
 
   renderer.render(scene, camera);
 }

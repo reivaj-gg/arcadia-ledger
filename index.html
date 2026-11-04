@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arcadia · The Verifiable Spatial Ledger</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
 
     * {
       margin: 0;
@@ -39,6 +39,29 @@
       z-index: 5;
       box-shadow: inset 0 0 140px rgba(10, 7, 5, 0.75), inset 0 0 40px rgba(245, 158, 11, 0.08);
       mix-blend-mode: multiply;
+    }
+
+    /* EFECTO DE REBOBINADO TEMPORAL (REWIND TIME-WARP) */
+    #rewind-fx-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: radial-gradient(circle at center, transparent 30%, rgba(245, 158, 11, 0.25) 70%, rgba(56, 189, 248, 0.4) 100%);
+      mix-blend-mode: screen;
+    }
+
+    #rewind-fx-overlay.active {
+      opacity: 1;
+      animation: rewindDistortion 0.8s infinite linear;
+    }
+
+    @keyframes rewindDistortion {
+      0% { filter: hue-rotate(0deg) contrast(1.2); transform: scale(1); }
+      50% { filter: hue-rotate(180deg) contrast(1.5); transform: scale(1.02); }
+      100% { filter: hue-rotate(360deg) contrast(1.2); transform: scale(1); }
     }
 
     /* UI OVERLAY ESTILO JUEGO NARRATIVO */
@@ -144,40 +167,102 @@
       box-shadow: 0 6px 16px rgba(0,0,0,0.4);
     }
 
-    /* Prompt de interacción 3D flotante */
-    #interaction-prompt {
+    /* MARCADOR 3D FLOTANTE PROYECTADO EN PANTALLA */
+    #world-hotspot-prompt {
       position: absolute;
-      bottom: 110px;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
+      transform: translate(-50%, -100%);
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      background: rgba(26, 20, 15, 0.96);
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #world-hotspot-prompt.visible {
+      opacity: 1;
+      transform: translate(-50%, -120%);
+      pointer-events: auto;
+    }
+
+    .hotspot-pill {
+      background: rgba(20, 15, 11, 0.95);
       border: 2px solid #f59e0b;
       color: #fbbf24;
-      padding: 12px 26px;
+      padding: 9px 18px;
       border-radius: 9999px;
       font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 25px rgba(245, 158, 11, 0.45);
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 25px rgba(245, 158, 11, 0.45);
       display: flex;
       align-items: center;
       gap: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      animation: hotspotFloat 2s infinite ease-in-out;
     }
 
-    #interaction-prompt.visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
+    .hotspot-pill:hover {
+      background: rgba(35, 25, 18, 0.98);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.8), 0 0 30px rgba(56, 189, 248, 0.5);
+      transform: scale(1.05);
     }
 
-    .key-badge {
+    @keyframes hotspotFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .key-badge-circle {
       background: #f59e0b;
-      color: #0f0e0c;
-      padding: 3px 9px;
-      border-radius: 7px;
-      font-weight: 800;
+      color: #1c130b;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       font-size: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* CAJA DE MONÓLOGO INTERNO DE MAX */
+    #introspection-box {
+      position: absolute;
+      bottom: 95px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(18, 14, 10, 0.92);
+      border-left: 4px solid #f59e0b;
+      padding: 14px 24px;
+      border-radius: 12px;
+      color: #fef3c7;
+      font-family: 'Caveat', cursive;
+      font-size: 22px;
+      max-width: 650px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    #introspection-box.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     /* Controles de juego inferiores */
@@ -338,6 +423,20 @@
   <!-- OVERLAY ANALÓGICO CINEMÁTICO -->
   <div class="vignette-overlay"></div>
 
+  <!-- EFECTO REWIND VISUAL -->
+  <div id="rewind-fx-overlay"></div>
+
+  <!-- MARCADOR FLOTANTE 3D SOBRE EL OBJETO CERCANO -->
+  <div id="world-hotspot-prompt">
+    <div class="hotspot-pill">
+      <span class="key-badge-circle">E</span>
+      <span id="hotspot-action-text">Interactuar</span>
+    </div>
+  </div>
+
+  <!-- MONÓLOGO INTERNO NARRATIVO -->
+  <div id="introspection-box"></div>
+
   <!-- OVERLAY DE LA EXPERIENCIA -->
   <div id="ui-layer">
     
@@ -355,6 +454,11 @@
 
       <!-- BOTONES DE CONTROL DE CLIMA, AUDIO Y LEDGER -->
       <div style="display:flex;align-items:center;gap:12px;" class="interactive">
+        <button id="btn-quick-rewind" class="btn-action" style="color:#f59e0b;border-color:rgba(245,158,11,0.5);">
+          <span>⏪</span>
+          <span>Rebobinar (Rewind [R])</span>
+        </button>
+
         <div id="btn-toggle-ledger" class="ledger-badge">
           <span>⛓️</span>
           <span>Ledger: <strong id="hud-ledger-count">5</strong> eventos · <span id="hud-chain-status" style="color:#10b981;">✓ Validado</span></span>
@@ -372,19 +476,17 @@
       </div>
     </div>
 
-    <!-- PROMPT FLOTANTE CUANDO TE ACERCAS A UN OBJETO -->
-    <div id="interaction-prompt">
-      <span class="key-badge">E</span>
-      <span id="prompt-action-text">Interactuar</span>
-    </div>
-
     <!-- BARRA INFERIOR DE CONTROLES -->
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="controls-pill">
         <span>🎮 <strong>[W][A][S][D]</strong> Caminar</span>
-        <span>🖱️ <strong>[Click Izq + Arrastrar]</strong> Rotar Cámara</span>
+        <span>⚡ <strong>[Shift]</strong> Correr</span>
+        <span>🖱️ <strong>[Click 3D]</strong> Interactuar</span>
+        <span>🔄 <strong>[Arrastrar]</strong> Cámara 360°</span>
         <span>🔍 <strong>[Rueda]</strong> Zoom</span>
-        <span>✨ <strong>[E]</strong> Abrir Diario / Interactuar</span>
+        <span>✨ <strong>[E]</strong> Interactuar</span>
+        <span>⏪ <strong>[R]</strong> Rebobinar</span>
+        <span>ESC <strong>[Cámara Libre]</strong></span>
       </div>
 
       <div style="background:rgba(22,17,13,0.85);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(14px);border-radius:14px;padding:9px 18px;font-size:11px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;">
