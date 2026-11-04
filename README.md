@@ -187,9 +187,9 @@ Open [http://localhost:3000/](http://localhost:3000/) in your browser.
 
 - **[W][A][S][D]**: Walk through the 3D sanctuary with articulated anatomical avatar physics and floor foley.
 - **[Shift]**: Sprint mode (5.2 m/s forward acceleration, leaning body posture, accelerated footstep cadence).
-- **[Click 3D / Mouse Drag]**: Raycast directly onto any furniture item (Guitar, Bed, Turntable, Desk, Corkboard, Window, Butterfly) or drag for 360° orbital cinematic camera.
+- **[Click 3D / Mouse Drag]**: Raycast directly onto any furniture item (Armchair, Bookshelf, Desk, Corkboard, Guitar, Bed, Turntable, Window, Butterfly) or drag for 360° orbital cinematic camera.
 - **[E] Contextual Interaction**:
-  - **Desk**: Open Max Caulfield's Decision Journal with SAM 3.1 mask overlay, Muse Voice transcript, and causal branch resolution.
+  - **Desk**: Open Max's Decision Journal with SAM 3.1 mask overlay, Muse Voice transcript, and causal branch resolution.
   - **Corkboard (Evidence Wall)**: Cinematic camera focus on red string connections between WhatsApp and voice memo, auto-opening the SHA-256 Ledger.
   - **Acoustic Guitar**: Fingerpicking indie arpeggios (Syd Matters · *Obstacles*) with 3D floating musical notes (♪ ♫) rising from the soundhole.
   - **Turntable**: Physical tonearm movement onto spinning vinyl with authentic needle drop crackle audio.
