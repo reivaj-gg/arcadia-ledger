@@ -35,6 +35,28 @@ const hudLedgerCount = document.getElementById('hud-ledger-count');
 const hudChainStatus = document.getElementById('hud-chain-status');
 const btnRewind = document.getElementById('btn-rewind');
 
+// Interacción & Posturas Cinematográficas
+const actionExitHint = document.getElementById('action-exit-hint');
+const actionExitIcon = document.getElementById('action-exit-icon');
+const actionExitText = document.getElementById('action-exit-text');
+const btnToggleView = document.getElementById('btn-toggle-view');
+
+// Modal de Onboarding & Misión
+const onboardingModal = document.getElementById('onboarding-modal');
+const btnOnboarding = document.getElementById('btn-onboarding');
+const btnCloseOnboarding = document.getElementById('btn-close-onboarding');
+const btnStartGame = document.getElementById('btn-start-game');
+
+// Modal de Tocadiscos & Carga de Música Personalizada
+const musicModal = document.getElementById('music-modal');
+const btnMusicManager = document.getElementById('btn-music-manager');
+const btnCloseMusic = document.getElementById('btn-close-music');
+const btnBrowseMusic = document.getElementById('btn-browse-music');
+const customMusicFile = document.getElementById('custom-music-file');
+const customAudioPlayer = document.getElementById('custom-audio-player');
+const loadedFileName = document.getElementById('loaded-file-name');
+const musicBtnLabel = document.getElementById('music-btn-label');
+
 // RENDERER
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -44,21 +66,26 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.25;
 
-// SCENE & ATMOSPHERE
+// SCENE & ATMOSPHERE · LIFE IS STRANGE GOLDEN HOUR SANCTUARY
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x24160e);
-scene.fog = new THREE.FogExp2(0x382214, 0.024);
+scene.background = new THREE.Color(0xfbf6ee);
+scene.fog = new THREE.FogExp2(0xf7ede2, 0.007);
 
 // CAMERA
 const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 4.2, 7.2);
 
-// LIGHTS
-const hemiLight = new THREE.HemisphereLight(0xffecd6, 0x422618, 1.4);
+// LIGHTS · AMBIENTE CÁLIDO LIFE IS STRANGE
+const hemiLight = new THREE.HemisphereLight(0xfff6ea, 0x8a5b3a, 1.85);
 scene.add(hemiLight);
 
-const sunLight = new THREE.DirectionalLight(0xf59e0b, 3.8);
-sunLight.position.set(-7, 7, -3.5);
+const sunLight = new THREE.DirectionalLight(0xf59e0b, 4.5);
+sunLight.position.set(-6.5, 6.5, -4.5);
+
+// Luz de relleno cálida interior para que las paredes y detalles luzcan acogedores
+const roomFillLight = new THREE.PointLight(0xfff1e0, 1.4, 16, 1.2);
+roomFillLight.position.set(0, 3.8, 0);
+scene.add(roomFillLight);
 sunLight.castShadow = true;
 sunLight.shadow.mapSize.width = 2048;
 sunLight.shadow.mapSize.height = 2048;
@@ -91,7 +118,7 @@ function createWoodFloorTexture() {
   c.width = 1024;
   c.height = 1024;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#6e472a';
+  ctx.fillStyle = '#8a5833';
   ctx.fillRect(0, 0, 1024, 1024);
 
   const plankHeight = 128;
@@ -123,7 +150,8 @@ function createWallTexture() {
   c.width = 512;
   c.height = 512;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#dfd3c0';
+  // Estuco / yeso cálido color crema suave estilo cómic
+  ctx.fillStyle = '#f5efe4';
   ctx.fillRect(0, 0, 512, 512);
 
   for (let i = 0; i < 6000; i++) {
@@ -351,6 +379,102 @@ function createCorkboardTexture() {
   ctx.fillStyle = '#b91c1c';
   ctx.font = 'bold 11px monospace';
   ctx.fillText('! CONFLICT !', 215, 140);
+
+  return new THREE.CanvasTexture(c);
+}
+
+function createJavierFaceTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 512;
+  const ctx = c.getContext('2d');
+
+  // Piel cálida oliva/trigueña (Javier Quilumba) con sombreado suave
+  ctx.fillStyle = '#dfb896';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Rubor / tono cálido natural en pómulos (centrado en la cara)
+  ctx.fillStyle = 'rgba(196, 115, 85, 0.25)';
+  ctx.beginPath();
+  ctx.arc(195, 275, 34, 0, Math.PI * 2);
+  ctx.arc(317, 275, 34, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ojos expresivos estilo cómic Life is Strange (proporción frontal perfecta)
+  [[205, 225], [307, 225]].forEach(([x, y]) => {
+    // Esclerótica blanca limpia con contorno
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Iris café espresso / castaño oscuro
+    ctx.fillStyle = '#2c1810';
+    ctx.beginPath();
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupila tinta negra
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Brillo / catchlight blanco brillante
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x - 5, y - 5, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Contorno de tinta cómic del párpado
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.arc(x, y - 2, 23, Math.PI * 1.08, Math.PI * 1.92);
+    ctx.stroke();
+
+    // Pliegue párpado superior
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(x, y - 10, 18, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.stroke();
+  });
+
+  // Cejas estilizadas oscuras, definidas y con personalidad (Javier)
+  ctx.strokeStyle = '#18181b';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(175, 192);
+  ctx.quadraticCurveTo(205, 178, 235, 190);
+  ctx.moveTo(277, 190);
+  ctx.quadraticCurveTo(307, 178, 337, 192);
+  ctx.stroke();
+
+  // Sombra y contorno de nariz estilo cómic
+  ctx.strokeStyle = '#854d0e';
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(254, 218);
+  ctx.lineTo(252, 256);
+  ctx.lineTo(264, 260);
+  ctx.stroke();
+
+  // Sonrisa confiada y sutil de desarrollador indie
+  ctx.strokeStyle = '#451a03';
+  ctx.lineWidth = 4.5;
+  ctx.beginPath();
+  ctx.arc(256, 292, 22, 0.15, Math.PI - 0.15);
+  ctx.stroke();
+
+  // Línea sutil bajo el mentón
+  ctx.strokeStyle = 'rgba(69, 26, 3, 0.3)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(256, 335, 14, 0.2, Math.PI - 0.2);
+  ctx.stroke();
 
   return new THREE.CanvasTexture(c);
 }
@@ -1674,29 +1798,96 @@ function spawnMusicNote() {
 }
 
 // ============================================================================
-// AVATAR ESTILIZADO DE MAX (ARTICULACIONES Y PIVOTES REALES)
+// AVATAR DE JAVIER QUILUMBA (ESTILO CÓMIC LIFE IS STRANGE · ARTICULADO)
 // ============================================================================
 
 const avatar = new THREE.Group();
 avatar.position.set(0, 0, 1.2);
 scene.add(avatar);
 
-// Caderas (base para piernas)
+// Estados de acción y posturas cinematográficas
+let avatarActionState = 'standing'; // 'standing' | 'sitting_armchair' | 'lying_bed' | 'playing_guitar'
+let isFirstPerson = false;
+
+function setActionState(state) {
+  avatarActionState = state;
+  if (!actionExitHint) return;
+
+  if (state === 'sitting_armchair') {
+    if (actionExitIcon) actionExitIcon.innerText = '🛋️';
+    if (actionExitText) actionExitText.innerText = 'Descansando en el sillón vintage · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    actionExitHint.classList.add('visible');
+  } else if (state === 'lying_bed') {
+    if (actionExitIcon) actionExitIcon.innerText = '🛏️';
+    if (actionExitText) actionExitText.innerText = 'Recostado en la cama · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    actionExitHint.classList.add('visible');
+  } else if (state === 'playing_guitar') {
+    if (actionExitIcon) actionExitIcon.innerText = '🎸';
+    if (actionExitText) actionExitText.innerText = 'Tocando la guitarra acústica · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    actionExitHint.classList.add('visible');
+  } else {
+    actionExitHint.classList.remove('visible');
+  }
+}
+
+function exitActionState() {
+  if (avatarActionState === 'standing') return;
+  const prevState = avatarActionState;
+  avatarActionState = 'standing';
+  isFirstPerson = false;
+  headGroup.visible = true;
+
+  // Reposicionar al avatar de pie con seguridad fuera de los colisionadores
+  if (prevState === 'sitting_armchair') {
+    avatar.position.set(-2.3, 0, 2.3);
+    avatar.rotation.set(0, -Math.PI / 2, 0);
+  } else if (prevState === 'lying_bed') {
+    avatar.position.set(-2.8, 0, -3.2);
+    avatar.rotation.set(0, 0, 0);
+  } else if (prevState === 'playing_guitar') {
+    avatar.position.set(-4.8, 0, -1.2);
+  }
+
+  hipsGroup.position.set(0, 0.72, 0);
+  leftLegPivot.rotation.set(0, 0, 0);
+  rightLegPivot.rotation.set(0, 0, 0);
+  leftArmPivot.rotation.set(0, 0, 0);
+  rightArmPivot.rotation.set(0, 0, 0);
+  upperBodyGroup.rotation.set(0, 0, 0);
+
+  if (actionExitHint) actionExitHint.classList.remove('visible');
+  exitCinematicFocus();
+}
+
+function togglePerspective() {
+  if (avatarActionState === 'standing') {
+    cameraDistance = cameraDistance > 4.5 ? 3.4 : 6.5;
+    return;
+  }
+  isFirstPerson = !isFirstPerson;
+  headGroup.visible = !isFirstPerson;
+  if (btnToggleView) {
+    btnToggleView.innerText = isFirstPerson ? '[V] Cambiar a 3ª Persona' : '[V] Cambiar a 1ª Persona';
+  }
+}
+if (btnToggleView) btnToggleView.addEventListener('click', togglePerspective);
+
+// Caderas (base articulada para piernas de Javier)
 const hipsGroup = new THREE.Group();
 hipsGroup.position.set(0, 0.72, 0);
 avatar.add(hipsGroup);
 
-const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8 });
+const jeansMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5f, roughness: 0.85 });
 const shoeMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
-const soleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+const soleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.4 });
 const legGeo = new THREE.CylinderGeometry(0.08, 0.07, 0.68, 16);
 
-// Pierna izquierda articulada en cadera
+// Pierna izquierda articulada
 const leftLegPivot = new THREE.Group();
 leftLegPivot.position.set(-0.16, 0, 0);
 hipsGroup.add(leftLegPivot);
 
-const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
+const leftLegMesh = new THREE.Mesh(legGeo, jeansMat);
 leftLegMesh.position.y = -0.34;
 leftLegMesh.castShadow = true;
 leftLegPivot.add(leftLegMesh);
@@ -1709,12 +1900,12 @@ const soleL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
 soleL.position.set(0, -0.74, 0.05);
 leftLegPivot.add(soleL);
 
-// Pierna derecha articulada en cadera
+// Pierna derecha articulada
 const rightLegPivot = new THREE.Group();
 rightLegPivot.position.set(0.16, 0, 0);
 hipsGroup.add(rightLegPivot);
 
-const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
+const rightLegMesh = new THREE.Mesh(legGeo, jeansMat);
 rightLegMesh.position.y = -0.34;
 rightLegMesh.castShadow = true;
 rightLegPivot.add(rightLegMesh);
@@ -1727,53 +1918,56 @@ const soleR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.04, 0.29), soleMat);
 soleR.position.set(0, -0.74, 0.05);
 rightLegPivot.add(soleR);
 
-// Torso / Cuerpo Superior
+// Torso / Cuerpo Superior de Javier (Chaqueta Tech Azul Marino + Camiseta Gris)
 const upperBodyGroup = new THREE.Group();
 upperBodyGroup.position.set(0, 0.72, 0);
 avatar.add(upperBodyGroup);
 
-const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
-const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.66, 0.32), hoodieMat);
+const jacketMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.75 });
+const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.68, 0.34), jacketMat);
 bodyMesh.position.y = 0.42;
 bodyMesh.castShadow = true;
 upperBodyGroup.add(bodyMesh);
 
-// Cordoncillos
-const cordMat = new THREE.MeshBasicMaterial({ color: 0xf1f5f9 });
-const cord1 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
-cord1.position.set(-0.08, 0.62, 0.17);
-upperBodyGroup.add(cord1);
-const cord2 = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2), cordMat);
-cord2.position.set(0.08, 0.62, 0.17);
-upperBodyGroup.add(cord2);
+// Cuello de camiseta interior gris/blanca que asoma
+const innerCollarMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.8 });
+const innerCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.08, 16), innerCollarMat);
+innerCollar.position.set(0, 0.76, 0);
+upperBodyGroup.add(innerCollar);
 
-// Bolso bandolera de Max
+// Cremallera metálica frontal estilizada
+const zipMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+const zipper = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.62, 0.02), zipMat);
+zipper.position.set(0, 0.42, 0.18);
+upperBodyGroup.add(zipper);
+
+// Bolso bandolera de cuero vintage de desarrollador (Javier)
 const bagMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(0.38, 0.42, 0.16),
-  new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.6 })
+  new THREE.BoxGeometry(0.38, 0.44, 0.16),
+  new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.65 })
 );
 bagMesh.position.set(0.24, 0.33, 0);
 bagMesh.rotation.z = -0.15;
 upperBodyGroup.add(bagMesh);
 
 const strap = new THREE.Mesh(
-  new THREE.BoxGeometry(0.05, 0.75, 0.34),
-  new THREE.MeshStandardMaterial({ color: 0x78350f })
+  new THREE.BoxGeometry(0.05, 0.75, 0.36),
+  new THREE.MeshStandardMaterial({ color: 0x451a03 })
 );
 strap.position.set(0.02, 0.46, 0);
 strap.rotation.z = -0.4;
 upperBodyGroup.add(strap);
 
-// Brazos articulados en los hombros
-const armGeo = new THREE.CylinderGeometry(0.07, 0.065, 0.54, 16);
-const handMat = new THREE.MeshStandardMaterial({ color: 0xfbd0be, roughness: 0.8 });
+// Brazos articulados
+const armGeo = new THREE.CylinderGeometry(0.075, 0.07, 0.54, 16);
+const handMat = new THREE.MeshStandardMaterial({ color: 0xdfb896, roughness: 0.75 });
 const handGeo = new THREE.SphereGeometry(0.055, 12, 12);
 
 const leftArmPivot = new THREE.Group();
-leftArmPivot.position.set(-0.34, 0.68, 0);
+leftArmPivot.position.set(-0.35, 0.68, 0);
 upperBodyGroup.add(leftArmPivot);
 
-const leftArmMesh = new THREE.Mesh(armGeo, hoodieMat);
+const leftArmMesh = new THREE.Mesh(armGeo, jacketMat);
 leftArmMesh.position.y = -0.27;
 leftArmPivot.add(leftArmMesh);
 
@@ -1782,10 +1976,10 @@ leftHand.position.y = -0.54;
 leftArmPivot.add(leftHand);
 
 const rightArmPivot = new THREE.Group();
-rightArmPivot.position.set(0.34, 0.68, 0);
+rightArmPivot.position.set(0.35, 0.68, 0);
 upperBodyGroup.add(rightArmPivot);
 
-const rightArmMesh = new THREE.Mesh(armGeo, hoodieMat);
+const rightArmMesh = new THREE.Mesh(armGeo, jacketMat);
 rightArmMesh.position.y = -0.27;
 rightArmPivot.add(rightArmMesh);
 
@@ -1793,36 +1987,52 @@ const rightHand = new THREE.Mesh(handGeo, handMat);
 rightHand.position.y = -0.54;
 rightArmPivot.add(rightHand);
 
-// Cabeza y cabello
+// Cabeza y Cabello Estilizado de Javier Quilumba
 const headGroup = new THREE.Group();
 headGroup.position.set(0, 0.82, 0);
 upperBodyGroup.add(headGroup);
 
-const faceTex = createMaxFaceTexture();
+const faceTex = createJavierFaceTexture();
+// Cabeza con textura expresiva de Javier Quilumba orientada al frente (+Z)
 const headMesh = new THREE.Mesh(
   new THREE.SphereGeometry(0.26, 24, 24),
-  new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.7 })
+  new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.68 })
 );
 headMesh.position.set(0, 0.12, 0);
-headMesh.rotation.y = -Math.PI / 2;
+headMesh.rotation.y = -Math.PI / 2; // Centra la textura (u=0.5) exactamente al frente (+Z)
 headMesh.castShadow = true;
 headGroup.add(headMesh);
 
-const hairMat = new THREE.MeshStandardMaterial({ color: 0x5a3217, roughness: 0.85 });
-const hairMain = new THREE.Mesh(new THREE.SphereGeometry(0.29, 20, 20), hairMat);
-hairMain.position.set(0, 0.18, -0.06);
-hairMain.scale.set(1.06, 1.12, 1.18);
-headGroup.add(hairMain);
+// Cabello estilizado desarrollador (Javier Quilumba): Nuca, laterales y tupé sin tapar la cara
+const hairMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
 
-const bangL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.1), hairMat);
-bangL.position.set(-0.2, 0.08, 0.14);
-bangL.rotation.z = -0.15;
-headGroup.add(bangL);
+// Casquete posterior y nuca (detrás de la cabeza)
+const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.255, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
+hairBack.position.set(0, 0.16, -0.06);
+hairBack.rotation.x = -0.35;
+headGroup.add(hairBack);
 
-const bangR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.26, 0.1), hairMat);
-bangR.position.set(0.2, 0.08, 0.14);
-bangR.rotation.z = 0.15;
-headGroup.add(bangR);
+// Tupé superior / quiff moderno con volumen cómic (sobre la frente sin tapar los ojos)
+const hairQuiff = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.14, 0.24), hairMat);
+hairQuiff.position.set(0, 0.34, 0.06);
+hairQuiff.rotation.x = -0.28;
+headGroup.add(hairQuiff);
+
+// Mechón delantero con estilo
+const hairFringe = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.12), hairMat);
+hairFringe.position.set(0.04, 0.28, 0.18);
+hairFringe.rotation.z = -0.12;
+hairFringe.rotation.x = -0.15;
+headGroup.add(hairFringe);
+
+// Patillas perfiladas
+const sideburnL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.1), hairMat);
+sideburnL.position.set(-0.25, 0.08, -0.02);
+headGroup.add(sideburnL);
+
+const sideburnR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.18, 0.1), hairMat);
+sideburnR.position.set(0.25, 0.08, -0.02);
+headGroup.add(sideburnR);
 
 // ============================================================================
 // SISTEMA DE FÍSICAS: COLISIONADORES SÓLIDOS & DESLIZAMIENTO
@@ -1888,14 +2098,31 @@ window.addEventListener('keydown', (e) => {
   if (k === 'd' || k === 'arrowright') keys.d = true;
   if (e.key === 'Shift') keys.shift = true;
 
+  // Si el personaje está sentado/acostado y presiona movimiento o espacio, levantarse
+  if ((k === 'w' || k === 's' || k === 'a' || k === 'd' || k === ' ' || e.code === 'Space') && avatarActionState !== 'standing') {
+    exitActionState();
+  }
+
   if (k === 'e') {
     handleInteraction();
   }
   if (k === 'r') {
     executeRewind();
   }
+  if (k === 'v') {
+    togglePerspective();
+  }
+  if (k === 'h' || k === 'o') {
+    toggleOnboardingModal();
+  }
+  if (k === 'm') {
+    toggleMusicModal();
+  }
   if (e.key === 'Escape') {
     closeJournal();
+    closeOnboardingModal();
+    closeMusicModal();
+    exitActionState();
     exitCinematicFocus();
   }
 });
@@ -1914,9 +2141,9 @@ let clickStartX = 0;
 let clickStartY = 0;
 let prevMouseX = 0;
 let prevMouseY = 0;
-let cameraAngleY = -0.34;
-let cameraPitch = 0.30; // Inclinación vertical
-let cameraDistance = 6.5;
+let cameraAngleY = -0.15;
+let cameraPitch = 0.22; // Inclinación vertical
+let cameraDistance = 5.2;
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -2156,14 +2383,15 @@ function handleInteraction() {
       ledgerDrawer.classList.add('active');
     }
   } else if (activeHotspot.id === 'guitar') {
+    setActionState('playing_guitar');
     cinematicFocus = activeHotspot;
     playAcousticChords();
   } else if (activeHotspot.id === 'bed') {
+    setActionState('lying_bed');
     cinematicFocus = activeHotspot;
     playAcousticNote(293.66);
   } else if (activeHotspot.id === 'turntable') {
-    cinematicFocus = activeHotspot;
-    toggleAudio();
+    openMusicModal();
   } else if (activeHotspot.id === 'window') {
     cinematicFocus = activeHotspot;
     toggleWeather();
@@ -2177,6 +2405,7 @@ function handleInteraction() {
       ledgerDrawer.classList.add('active');
     }
   } else if (activeHotspot.id === 'armchair') {
+    setActionState('sitting_armchair');
     cinematicFocus = activeHotspot;
     playAcousticChords();
   }
@@ -2467,24 +2696,71 @@ let audioCtx = null;
 let isAudioPlaying = false;
 let audioTimer = null;
 let tonearmTargetY = 0.1; // 0.1 reposo, 0.45 tocando el vinilo
+let currentAcousticProgression = 0;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
+// Progresiones de acordes acústicos Indie Folk (Syd Matters, José González)
+const acousticChordsList = [
+  // 0: Syd Matters · Obstacles (Re Mayor 7 / La / Sim / Sol)
+  [
+    [146.83, 220.0, 293.66, 369.99, 440.0],
+    [220.0, 277.18, 329.63, 440.0, 554.37],
+    [123.47, 185.0, 246.94, 293.66, 369.99],
+    [98.0, 146.83, 196.0, 246.94, 293.66]
+  ],
+  // 1: Atardecer en Arcadia (Lam / Do / Sol / Re)
+  [
+    [110.0, 164.81, 220.0, 261.63, 329.63],
+    [130.81, 196.0, 261.63, 329.63, 392.0],
+    [98.0, 146.83, 196.0, 246.94, 293.66],
+    [146.83, 220.0, 293.66, 369.99, 440.0]
+  ],
+  // 2: Lluvia en la Ventana (Fa maj7 / Mi m7 / Rem7 / Do maj7)
+  [
+    [174.61, 220.0, 261.63, 329.63, 349.23],
+    [164.81, 196.0, 246.94, 329.63, 392.0],
+    [146.83, 174.61, 220.0, 261.63, 293.66],
+    [130.81, 164.81, 196.0, 246.94, 261.63]
+  ]
+];
+
 function playAcousticNote(freq = 220) {
   initAudio();
   if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
+
+  // Síntesis de cuerda pulsada con armónico fundamental y cuerpo acústico
+  const now = audioCtx.currentTime;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.6);
-  osc.connect(gain);
+  const filter = audioCtx.createBiquadFilter();
+
+  osc1.type = 'triangle';
+  osc1.frequency.setValueAtTime(freq, now);
+
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq * 2.01, now); // Armónico sutil
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(1800, now);
+  filter.frequency.exponentialRampToValueAtTime(320, now + 1.8);
+
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.linearRampToValueAtTime(0.24, now + 0.015); // Ataque de púa
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 2.2); // Resonancia acústica
+
+  osc1.connect(filter);
+  osc2.connect(filter);
+  filter.connect(gain);
   gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 1.6);
+
+  osc1.start(now);
+  osc2.start(now);
+  osc1.stop(now + 2.2);
+  osc2.stop(now + 2.2);
 }
 
 function playAcousticChords() {
@@ -2567,6 +2843,15 @@ function playRewindSound() {
 
 function toggleAudio() {
   initAudio();
+  if (customAudioPlayer && !customAudioPlayer.paused) {
+    customAudioPlayer.pause();
+    isAudioPlaying = false;
+    tonearmTargetY = 0.1;
+    const aText = document.getElementById('audio-text');
+    if (aText) aText.innerText = 'Música (Pausada)';
+    return;
+  }
+
   if (isAudioPlaying) {
     clearInterval(audioTimer);
     isAudioPlaying = false;
@@ -2577,19 +2862,141 @@ function toggleAudio() {
     isAudioPlaying = true;
     tonearmTargetY = 0.45; // Colocar aguja sobre el disco
     playVinylCrackle();
+
+    const trackNames = ['Syd Matters · Obstacles', 'Atardecer en Arcadia', 'Lluvia en la Ventana'];
+    const currentName = trackNames[currentAcousticProgression] || 'Indie Folk Acústico';
+
     const aText = document.getElementById('audio-text');
-    if (aText) aText.innerText = 'Sonando: Syd Matters · Obstacles';
-    const chords = [220, 261.63, 329.63, 392.0, 329.63, 261.63, 293.66, 349.23];
-    let step = 0;
-    playAcousticNote(chords[0]);
+    if (aText) aText.innerText = `Sonando: ${currentName}`;
+
+    const chordsSeq = acousticChordsList[currentAcousticProgression] || acousticChordsList[0];
+    let chordIdx = 0;
+
+    function playChordArpeggio(chord) {
+      chord.forEach((freq, i) => {
+        setTimeout(() => {
+          if (isAudioPlaying) {
+            playAcousticNote(freq);
+            spawnMusicNote();
+          }
+        }, i * 120);
+      });
+    }
+
+    playChordArpeggio(chordsSeq[0]);
     audioTimer = setInterval(() => {
-      step = (step + 1) % chords.length;
-      playAcousticNote(chords[step]);
-    }, 1050);
+      chordIdx = (chordIdx + 1) % chordsSeq.length;
+      playVinylCrackle();
+      playChordArpeggio(chordsSeq[chordIdx]);
+    }, 2400);
   }
 }
 
 if (btnAudio) btnAudio.addEventListener('click', toggleAudio);
+
+// ============================================================================
+// MANEJADORES DE MODALES: ONBOARDING / GUÍA Y REPRODUCTOR DE MÚSICA
+// ============================================================================
+
+function openOnboardingModal() {
+  playCameraClick();
+  if (onboardingModal) onboardingModal.classList.add('active');
+}
+
+function closeOnboardingModal() {
+  playAcousticNote(330);
+  if (onboardingModal) onboardingModal.classList.remove('active');
+}
+
+function toggleOnboardingModal() {
+  if (!onboardingModal) return;
+  if (onboardingModal.classList.contains('active')) closeOnboardingModal();
+  else openOnboardingModal();
+}
+
+if (btnOnboarding) btnOnboarding.addEventListener('click', openOnboardingModal);
+if (btnCloseOnboarding) btnCloseOnboarding.addEventListener('click', closeOnboardingModal);
+if (btnStartGame) btnStartGame.addEventListener('click', closeOnboardingModal);
+
+function openMusicModal() {
+  playCameraClick();
+  if (musicModal) musicModal.classList.add('active');
+}
+
+function closeMusicModal() {
+  playAcousticNote(293.66);
+  if (musicModal) musicModal.classList.remove('active');
+}
+
+function toggleMusicModal() {
+  if (!musicModal) return;
+  if (musicModal.classList.contains('active')) closeMusicModal();
+  else openMusicModal();
+}
+
+if (btnMusicManager) btnMusicManager.addEventListener('click', openMusicModal);
+if (btnCloseMusic) btnCloseMusic.addEventListener('click', closeMusicModal);
+
+if (btnBrowseMusic && customMusicFile) {
+  btnBrowseMusic.addEventListener('click', () => {
+    customMusicFile.click();
+  });
+}
+
+if (customMusicFile && customAudioPlayer) {
+  customMusicFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (isAudioPlaying) {
+      clearInterval(audioTimer);
+      isAudioPlaying = false;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    customAudioPlayer.src = objectUrl;
+    customAudioPlayer.play().then(() => {
+      isAudioPlaying = true;
+      tonearmTargetY = 0.45;
+      const cleanName = file.name.replace(/\.[^/.]+$/, '');
+      if (loadedFileName) loadedFileName.innerText = `▶ ${cleanName}`;
+      if (musicBtnLabel) musicBtnLabel.innerText = `🎵 ${cleanName.substring(0, 14)}`;
+      const audioHud = document.getElementById('audio-text');
+      if (audioHud) audioHud.innerText = `Sonando: ${cleanName}`;
+      showThought(`"Puse '${cleanName}' en el tocadiscos... la música perfecta para concentrarme."`);
+    }).catch(err => {
+      console.warn('Playback error', err);
+    });
+  });
+}
+
+// Opciones predefinidas de música
+const musicOptions = document.querySelectorAll('.music-option');
+musicOptions.forEach(opt => {
+  opt.addEventListener('click', () => {
+    musicOptions.forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+    const track = opt.dataset.track;
+
+    if (customAudioPlayer && !customAudioPlayer.paused) {
+      customAudioPlayer.pause();
+    }
+
+    if (track === 'obstacles') {
+      currentAcousticProgression = 0;
+      if (!isAudioPlaying) toggleAudio();
+      else showThought('"Syd Matters · Obstacles... el himno nostálgico de Arcadia."');
+    } else if (track === 'golden') {
+      currentAcousticProgression = 1;
+      if (!isAudioPlaying) toggleAudio();
+      else showThought('"Atardecer en Arcadia... acordes cálidos de reflexión."');
+    } else if (track === 'rain') {
+      currentAcousticProgression = 2;
+      if (!isAudioPlaying) toggleAudio();
+      else showThought('"Lluvia en la Ventana... la melancolía del tiempo detenido."');
+    }
+  });
+});
 
 // ============================================================================
 // BUCLE DE ANIMACIÓN Y MOTOR DE FÍSICAS (INERCIA, DESLIZAMIENTO & RIGGING)
@@ -2723,7 +3130,7 @@ function animate() {
 
     // Rebote vertical rítmico del cuerpo
     hipsGroup.position.y = 0.72 + Math.abs(Math.sin(walkCycle * 2)) * (keys.shift ? 0.06 : 0.04);
-    headGroup.rotation.y = -Math.PI / 2 - upperBodyGroup.rotation.y * 0.5;
+    headGroup.rotation.y = 0 - upperBodyGroup.rotation.y * 0.5;
 
     // Pisadas sonoras sincronizadas al toque del pie
     const footstepPhase = Math.sin(walkCycle);
@@ -2733,26 +3140,107 @@ function animate() {
     }
     lastFootstepCycle = footstepPhase;
   } else if (!isRewinding) {
-    // Modo reposo (Idle) con respiración orgánica y micro-movimientos
-    leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, 0, 0.14);
-    rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, 0, 0.14);
-    leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, 0, 0.14);
-    rightArmPivot.rotation.x = THREE.MathUtils.lerp(rightArmPivot.rotation.x, 0, 0.14);
+    if (avatarActionState === 'sitting_armchair') {
+      // POSTURA REALISTA: SENTADO EN EL SILLÓN VINTAGE
+      avatar.position.lerp(new THREE.Vector3(-3.4, 0.05, 2.3), 0.14);
+      avatar.rotation.y = lerpAngle(avatar.rotation.y, 0.82, 0.14);
 
-    upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, 0, 0.14);
-    upperBodyGroup.rotation.y = THREE.MathUtils.lerp(upperBodyGroup.rotation.y, 0, 0.1);
+      hipsGroup.position.set(0, 0.44, 0);
+      leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, -Math.PI / 2.1, 0.16);
+      rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, -Math.PI / 2.1, 0.16);
 
-    // Respiración natural en reposo
-    upperBodyGroup.position.y = 0.72 + Math.sin(time * 2.2) * 0.015;
-    leftArmPivot.rotation.z = 0.06 + Math.sin(time * 2.2) * 0.02;
-    rightArmPivot.rotation.z = -0.06 - Math.sin(time * 2.2) * 0.02;
-    headGroup.rotation.y = -Math.PI / 2 + Math.sin(time * 0.8) * 0.05;
+      // Brazos relajados sobre los reposabrazos del sillón
+      leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, -0.32, 0.14);
+      leftArmPivot.rotation.z = THREE.MathUtils.lerp(leftArmPivot.rotation.z, 0.22, 0.14);
+      rightArmPivot.rotation.x = THREE.MathUtils.lerp(rightArmPivot.rotation.x, -0.32, 0.14);
+      rightArmPivot.rotation.z = THREE.MathUtils.lerp(rightArmPivot.rotation.z, -0.22, 0.14);
+
+      upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, 0.08, 0.14);
+      upperBodyGroup.position.y = 0.72 + Math.sin(time * 1.8) * 0.008;
+      headGroup.rotation.y = 0 + Math.sin(time * 0.6) * 0.04;
+    } else if (avatarActionState === 'lying_bed') {
+      // POSTURA REALISTA: RECOSTADO EN LA CAMA
+      avatar.position.lerp(new THREE.Vector3(-4.5, 0.58, -3.2), 0.14);
+      avatar.rotation.x = THREE.MathUtils.lerp(avatar.rotation.x, -Math.PI / 2, 0.14);
+      avatar.rotation.y = THREE.MathUtils.lerp(avatar.rotation.y, 0, 0.14);
+      avatar.rotation.z = THREE.MathUtils.lerp(avatar.rotation.z, 0, 0.14);
+
+      hipsGroup.position.set(0, 0.72, 0);
+      leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, 0, 0.14);
+      rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, 0, 0.14);
+      leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, 0, 0.14);
+      rightArmPivot.rotation.x = THREE.MathUtils.lerp(rightArmPivot.rotation.x, 0, 0.14);
+
+      upperBodyGroup.rotation.x = 0;
+      upperBodyGroup.position.y = 0.72 + Math.sin(time * 1.5) * 0.006;
+      headGroup.rotation.y = 0;
+    } else if (avatarActionState === 'playing_guitar') {
+      // POSTURA REALISTA: TOCANDO GUITARRA
+      avatar.position.lerp(new THREE.Vector3(-5.0, 0, -1.2), 0.14);
+      avatar.rotation.y = lerpAngle(avatar.rotation.y, 1.2, 0.14);
+
+      hipsGroup.position.set(0, 0.72, 0);
+      leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, 0, 0.14);
+      rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, 0, 0.14);
+
+      // Brazo izquierdo sostiene el mástil, brazo derecho rasguea rítmicamente
+      leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, -0.65, 0.16);
+      leftArmPivot.rotation.z = THREE.MathUtils.lerp(leftArmPivot.rotation.z, 0.35, 0.16);
+
+      rightArmPivot.rotation.x = -0.45 + Math.sin(time * 5.0) * 0.22;
+      rightArmPivot.rotation.z = -0.25;
+
+      upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, 0.05, 0.14);
+      upperBodyGroup.position.y = 0.72 + Math.sin(time * 5.0) * 0.01;
+      headGroup.rotation.y = 0 + 0.15;
+    } else {
+      // MODO REPOSO (IDLE DE PIE) CON RESPIRACIÓN ORGÁNICA
+      leftLegPivot.rotation.x = THREE.MathUtils.lerp(leftLegPivot.rotation.x, 0, 0.14);
+      rightLegPivot.rotation.x = THREE.MathUtils.lerp(rightLegPivot.rotation.x, 0, 0.14);
+      leftArmPivot.rotation.x = THREE.MathUtils.lerp(leftArmPivot.rotation.x, 0, 0.14);
+      rightArmPivot.rotation.x = THREE.MathUtils.lerp(rightArmPivot.rotation.x, 0, 0.14);
+
+      upperBodyGroup.rotation.x = THREE.MathUtils.lerp(upperBodyGroup.rotation.x, 0, 0.14);
+      upperBodyGroup.rotation.y = THREE.MathUtils.lerp(upperBodyGroup.rotation.y, 0, 0.1);
+
+      // Respiración natural en reposo
+      upperBodyGroup.position.y = 0.72 + Math.sin(time * 2.2) * 0.015;
+      leftArmPivot.rotation.z = 0.06 + Math.sin(time * 2.2) * 0.02;
+      rightArmPivot.rotation.z = -0.06 - Math.sin(time * 2.2) * 0.02;
+      headGroup.rotation.y = 0 + Math.sin(time * 0.8) * 0.05;
+    }
   }
 
   // 7. CÁMARA CINEMÁTICA CON ENFOQUE DINÁMICO Y LÍMITES DE PARED
   let targetCamX, targetCamY, targetCamZ, lookTargetX, lookTargetY, lookTargetZ;
 
-  if (cinematicFocus) {
+  if (isFirstPerson && avatarActionState !== 'standing') {
+    // MODO PRIMERA PERSONA (POV DEL PROTAGONISTA)
+    if (avatarActionState === 'sitting_armchair') {
+      // Mirar hacia el centro cálido de la habitación: escritorio, ventana y haz de sol
+      targetCamX = avatar.position.x;
+      targetCamY = avatar.position.y + 1.05;
+      targetCamZ = avatar.position.z + 0.2;
+      lookTargetX = 0.5;
+      lookTargetY = 1.6;
+      lookTargetZ = -1.5;
+    } else if (avatarActionState === 'lying_bed') {
+      // Mirar hacia la ventana y las partículas de sol desde la almohada
+      targetCamX = avatar.position.x;
+      targetCamY = avatar.position.y + 0.52;
+      targetCamZ = avatar.position.z - 0.15;
+      lookTargetX = -2.5;
+      lookTargetY = 2.4;
+      lookTargetZ = -4.5;
+    } else {
+      targetCamX = avatar.position.x;
+      targetCamY = avatar.position.y + 1.25;
+      targetCamZ = avatar.position.z;
+      lookTargetX = avatar.position.x + Math.sin(avatar.rotation.y) * 4;
+      lookTargetY = avatar.position.y + 1.2;
+      lookTargetZ = avatar.position.z + Math.cos(avatar.rotation.y) * 4;
+    }
+  } else if (cinematicFocus) {
     targetCamX = cinematicFocus.camPos.x;
     targetCamY = cinematicFocus.camPos.y;
     targetCamZ = cinematicFocus.camPos.z;
