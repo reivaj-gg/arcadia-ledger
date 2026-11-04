@@ -4,7 +4,7 @@
 > *Category: Multimodal Systems & Autonomous Agents*  
 > *Author: Javier Quilumba*  
 > *Live Demo: [http://localhost:3000/](http://localhost:3000/)*  
-> *Test Suite: 105/105 Passing Tests · Conformance Harness: 3/3 Checks Green*
+> *Test Suite: 109/109 Passing Tests · Conformance Harness: 3/3 Checks Green*
 
 ---
 
@@ -111,7 +111,7 @@ Myidea/
 │   └── dev.mjs              # Concurrently launches Vite UI + Node API proxy
 ├── tests/
 │   ├── ledger.test.ts       # 28 tests: hash chain, bitemporal rewind, tampering detection
-│   ├── metaAdapter.test.ts  # 35 tests: WAV contract, SAM prompt grammar, key resolution
+│   ├── metaAdapter.test.ts  # 39 tests: WAV contract, SAM prompt grammar, key resolution
 │   ├── samParser.test.ts    # 20 tests: mask decode, contour tracing, simplification
 │   ├── server.test.ts       # 21 tests: API proxy security, local-only privacy guard
 │   └── e2e.test.ts          # Full end-to-end custody chain integration test
@@ -156,7 +156,7 @@ cp .env.example .env
 - `META_API_KEY` is accepted as a legacy alias and warns at boot; `MODEL_API_KEY` is the documented name.
 - The key is read by `server/index.ts` only. It must never carry a `VITE_` prefix, because Vite inlines those into the client bundle.
 
-### 3. Run All Tests (105/105 Passing)
+### 3. Run All Tests (109/109 Passing)
 ```bash
 npm test
 npx tsc --noEmit   # Node strips types without checking them; run both

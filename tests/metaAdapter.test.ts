@@ -321,6 +321,147 @@ test('mock: Spark returns a different draft for a screenshot than for audio', as
 });
 
 /* ------------------------------------------------------------------------- */
+/* Live extraction (Spark structured outputs)                                */
+/* ------------------------------------------------------------------------- */
+
+/** A well-formed structured output, with branches emitted out of order. */
+const SPARK_PAYLOAD = {
+  title: 'Design session for the landing page',
+  claimText: 'Mariana asked for the landing page design by Friday at 18:00.',
+  branches: [
+    {
+      pathName: 'B',
+      actionTitle: 'Renegotiate the deadline',
+      tradeOffs: ['Slower launch'],
+      deltaHours: -2,
+      deltaEnergy: -1,
+      riskLevel: 'medium',
+    },
+    {
+      pathName: 'A',
+      actionTitle: 'Deliver on Friday',
+      tradeOffs: ['Two late nights'],
+      deltaHours: 4,
+      deltaEnergy: 5,
+      riskLevel: 'high',
+    },
+  ],
+  validFrom: '2026-11-04T12:00:00.000Z',
+  timeWindow: { start: '2026-11-04T12:00:00.000Z', end: '2026-11-06T21:00:00.000Z' },
+  proposedBox: [100, 200, 300, 400],
+  reasoning: 'The message names the deliverable and the deadline in one sentence.',
+};
+
+function chatResponse(content: string): Response {
+  return new Response(
+    JSON.stringify({ choices: [{ message: { content } }] }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
+}
+
+test('live: Spark structured output is validated and branches are ordered A then B', async () => {
+  let sentBody = '';
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: (_url, init) => {
+      sentBody = typeof init?.body === 'string' ? init.body : '';
+      return Promise.resolve(chatResponse(JSON.stringify(SPARK_PAYLOAD)));
+    },
+  });
+
+  const result = await adapter.extractCausalCommitment('text', {
+    evidenceId: 'ev-live-extract',
+    kind: 'screenshot',
+    capturedAt: '2026-11-04T11:00:00.000Z',
+  });
+
+  // The request must ask for a strict schema, not a free-form JSON object.
+  const sent = JSON.parse(sentBody) as {
+    response_format?: { type?: string; json_schema?: { strict?: boolean } };
+  };
+  assert.equal(sent.response_format?.type, 'json_schema');
+  assert.equal(sent.response_format?.json_schema?.strict, true);
+
+  assert.deepEqual(
+    result.draft.branches.map((branch) => branch.pathName),
+    ['A', 'B'],
+    'branches are ordered by path, not by the order the model emitted them',
+  );
+  assert.deepEqual(result.proposedBox, [100, 200, 300, 400]);
+  assert.equal(result.receipt.mock, false);
+  assert.equal(result.receipt.model, MODEL.spark);
+});
+
+test('live: two branches with the same pathName are refused, not silently reordered', async () => {
+  const duplicated = {
+    ...SPARK_PAYLOAD,
+    branches: [
+      { ...SPARK_PAYLOAD.branches[0], pathName: 'A' },
+      { ...SPARK_PAYLOAD.branches[1], pathName: 'A' },
+    ],
+  };
+
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: () => Promise.resolve(chatResponse(JSON.stringify(duplicated))),
+  });
+
+  await assert.rejects(
+    () =>
+      adapter.extractCausalCommitment('text', {
+        evidenceId: 'ev-live-extract',
+        kind: 'screenshot',
+        capturedAt: '2026-11-04T11:00:00.000Z',
+      }),
+    (error: unknown) => error instanceof MetaAdapterError && error.code === 'invalid_response',
+  );
+});
+
+test('live: a proposed box outside 0..1000 is refused instead of clamped', async () => {
+  const outOfRange = { ...SPARK_PAYLOAD, proposedBox: [100, 200, 1200, 400] };
+
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: () => Promise.resolve(chatResponse(JSON.stringify(outOfRange))),
+  });
+
+  await assert.rejects(
+    () =>
+      adapter.extractCausalCommitment('text', {
+        evidenceId: 'ev-live-extract',
+        kind: 'screenshot',
+        capturedAt: '2026-11-04T11:00:00.000Z',
+      }),
+    (error: unknown) => error instanceof MetaAdapterError && error.code === 'invalid_response',
+  );
+});
+
+test('live: non-JSON content is an invalid response, never a guess', async () => {
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: () => Promise.resolve(chatResponse('Sure! Here is the commitment:')),
+  });
+
+  await assert.rejects(
+    () =>
+      adapter.extractCausalCommitment('text', {
+        evidenceId: 'ev-live-extract',
+        kind: 'screenshot',
+        capturedAt: '2026-11-04T11:00:00.000Z',
+      }),
+    (error: unknown) => error instanceof MetaAdapterError && error.code === 'invalid_response',
+  );
+});
+
+/* ------------------------------------------------------------------------- */
 /* Failure policy                                                            */
 /* ------------------------------------------------------------------------- */
 
