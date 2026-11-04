@@ -1053,11 +1053,24 @@ export class MetaAdapter {
     const record = json as { turns?: unknown; transcript?: unknown };
     const turns = record.turns;
 
-    if (Array.isArray(turns) && turns.length > 0) {
+    if (Array.isArray(turns)) {
       const parsed: AudioTurn[] = [];
       for (const raw of turns) {
-        if (typeof raw !== 'object' || raw === null) continue;
+        if (typeof raw !== 'object' || raw === null) {
+          throw new MetaAdapterError(
+            'invalid_response',
+            'ASR returned a turn that is not an object.',
+          );
+        }
+
         const turn = raw as Record<string, unknown>;
+
+        // Silence is a real answer. A turn with no transcript carries no
+        // utterance, so it contributes nothing to the evidence; skipping it is
+        // not the same as dropping a spoken turn.
+        const text = typeof turn.transcript === 'string' ? turn.transcript : '';
+        if (text.trim().length === 0) continue;
+
         // A missing speaker label is not speaker A. Attributing an utterance to
         // the wrong person is worse than admitting the label is unknown, so the
         // turn is preserved with an explicit 'unknown' rather than dropped (a
@@ -1070,11 +1083,29 @@ export class MetaAdapter {
           speaker,
           startMs: turn.startMs,
           endMs: turn.endMs,
-          text: turn.transcript,
+          text,
         });
-        if (candidate.success) parsed.push(candidate.data);
+
+        if (!candidate.success) {
+          // A spoken turn with unusable bounds is malformed. Silently dropping
+          // it would turn a broken response into "nobody said that", which is
+          // exactly the kind of quiet lie this adapter must never tell.
+          throw new MetaAdapterError(
+            'invalid_response',
+            `ASR returned a turn with invalid bounds (startMs=${String(turn.startMs)}, ` +
+              `endMs=${String(turn.endMs)}). The utterance cannot be anchored.`,
+          );
+        }
+
+        parsed.push(candidate.data);
       }
+
       if (parsed.length > 0) return parsed;
+
+      // An explicit `turns: []`, or a list whose every entry is silence, is a
+      // valid "no speech" result. It is not a missing response, so it must not
+      // be reported as one.
+      return [];
     }
 
     // PUSH_TO_TALK returns no turns array. Synthesize a single turn covering

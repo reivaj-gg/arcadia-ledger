@@ -4,7 +4,7 @@
 > *Category: Multimodal Systems & Autonomous Agents*  
 > *Author: Javier Quilumba*  
 > *Live Demo: [http://localhost:3000/](http://localhost:3000/)*  
-> *Test Suite: 109/109 Passing Tests · Conformance Harness: 3/3 Checks Green*
+> *Test Suite: 114/114 Passing Tests · Conformance Harness: 3/3 Checks Green*
 
 ---
 
@@ -108,12 +108,14 @@ Myidea/
 │   └── main.js              # Three.js 3D Sanctuary, procedural audio & spatial timeline
 ├── scripts/
 │   ├── eval.ts              # Conformance harness: round-trip, audio, ledger invariants
+│   ├── smoke.ts             # One live call per Meta model; writes SMOKE_RESULTS.md
 │   └── dev.mjs              # Concurrently launches Vite UI + Node API proxy
 ├── tests/
 │   ├── ledger.test.ts       # 28 tests: hash chain, bitemporal rewind, tampering detection
-│   ├── metaAdapter.test.ts  # 39 tests: WAV contract, SAM prompt grammar, key resolution
+│   ├── metaAdapter.test.ts  # 42 tests: WAV contract, SAM prompt grammar, key resolution
 │   ├── samParser.test.ts    # 20 tests: mask decode, contour tracing, simplification
 │   ├── server.test.ts       # 21 tests: API proxy security, local-only privacy guard
+│   ├── smokeMedia.test.ts   # 2 tests: generated PNG/WAV satisfy the wire contract
 │   └── e2e.test.ts          # Full end-to-end custody chain integration test
 ├── EVAL_RESULTS.md          # Generated conformance report
 └── package.json             # Pure Node 24 + TypeScript (Zero Python dependency)
@@ -156,7 +158,7 @@ cp .env.example .env
 - `META_API_KEY` is accepted as a legacy alias and warns at boot; `MODEL_API_KEY` is the documented name.
 - The key is read by `server/index.ts` only. It must never carry a `VITE_` prefix, because Vite inlines those into the client bundle.
 
-### 3. Run All Tests (109/109 Passing)
+### 3. Run All Tests (114/114 Passing)
 ```bash
 npm test
 npx tsc --noEmit   # Node strips types without checking them; run both
@@ -167,7 +169,17 @@ npx tsc --noEmit   # Node strips types without checking them; run both
 npm run eval
 ```
 
-### 5. Start the 3D Sanctuary & Dev Server
+### 5. Live Smoke Test (one call per model)
+```bash
+npm run smoke -- --check   # local only: validates the generated PNG/WAV, no credits
+npm run smoke              # one real call to Spark, SAM and Muse Voice
+```
+- Refuses to run without `MODEL_API_KEY`; it never falls back to fixtures.
+- Fails if any receipt says `mock: true`, because a smoke test that served a fixture answers the wrong question.
+- Writes `SMOKE_RESULTS.md` with latency, tokens, cost and request id per call.
+- The image is synthetic and the audio is a tone, so this proves the wire contract, not recognition quality.
+
+### 6. Start the 3D Sanctuary & Dev Server
 ```bash
 npm run dev
 ```

@@ -196,6 +196,18 @@ test('mock: transcription returns turn-level timestamps, never word-level', asyn
   assert.match(result.fullText, /clase de cálculo/);
 });
 
+function liveAsrAdapter(body: string): MetaAdapter {
+  return new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: () =>
+      Promise.resolve(
+        new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      ),
+  });
+}
+
 test('live: transcription sends a multipart request part and keeps an unlabelled turn', async () => {
   const body = JSON.stringify({
     audioDurationMs: 2_400,
@@ -235,6 +247,59 @@ test('live: transcription sends a multipart request part and keeps an unlabelled
   assert.equal(result.turns[1]?.speaker, 'unknown', 'absence of a label is not speaker A');
   assert.equal(result.turns[1]?.text, 'Send it by Friday.');
   assert.equal(result.audioDurationMs, 2_400);
+});
+
+test('live: an empty turns array is a valid no-speech result', async () => {
+  const adapter = liveAsrAdapter(JSON.stringify({ audioDurationMs: 1_200, turns: [] }));
+
+  const result = await adapter.transcribeAudio(wav());
+
+  assert.deepEqual(result.turns, [], 'no speech is an answer, not a failure');
+  assert.equal(result.fullText, '');
+  assert.equal(result.receipt.mock, false);
+  assert.equal(result.audioDurationMs, 1_200);
+});
+
+test('live: silence-only turns are dropped without inventing an utterance', async () => {
+  const adapter = liveAsrAdapter(
+    JSON.stringify({
+      audioDurationMs: 3_000,
+      turns: [
+        { speaker: 'A', startMs: 0, endMs: 1_000, transcript: '' },
+        // A turn with no transcript field at all is silence too, not a spoken
+        // utterance whose text went missing.
+        { speaker: 'A', startMs: 1_000, endMs: 3_000 },
+      ],
+    }),
+  );
+
+  const result = await adapter.transcribeAudio(wav());
+
+  assert.deepEqual(result.turns, []);
+  assert.equal(result.fullText, '');
+});
+
+test('live: a spoken turn with invalid bounds fails instead of disappearing', async () => {
+  const adapter = liveAsrAdapter(
+    JSON.stringify({
+      audioDurationMs: 2_000,
+      turns: [
+        {
+          speaker: 'A',
+          startMs: 900,
+          endMs: 400,
+          transcript: 'The deadline moved to Friday.',
+        },
+      ],
+    }),
+  );
+
+  await assert.rejects(adapter.transcribeAudio(wav()), (error: unknown) => {
+    assert.ok(error instanceof MetaAdapterError);
+    assert.equal(error.code, 'invalid_response');
+    assert.match(error.message, /invalid bounds/);
+    return true;
+  });
 });
 
 test('mock: segmentation refines the proposed box to a mask', async () => {
