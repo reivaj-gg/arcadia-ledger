@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local secrets — the Model API key lives here and nowhere else
+.env
+.env.local
+
+# Runtime logs
+*.log
+
+# OS noise
+.DS_Store
+Thumbs.db
