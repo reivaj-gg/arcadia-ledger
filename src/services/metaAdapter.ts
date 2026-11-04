@@ -45,6 +45,12 @@ import {
 import type { EvidenceSensitivity, EvidenceType } from '../domain/schema.ts';
 
 import {
+  buildObjectPrompt as buildOfficialObjectPrompt,
+  ObjectPromptError,
+  recordsOfKind,
+} from '@meta-sam/parser';
+
+import {
   MOCK_CLASS_ANCHOR_TURN,
   MOCK_CLASS_DRAFT,
   MOCK_DILEMMA_DRAFT,
@@ -53,6 +59,12 @@ import {
   MOCK_SEGMENTATION_CONFIDENCE,
   MOCK_TRANSCRIPTION_TURNS,
 } from './fixtures.ts';
+import {
+  boxFromBounds,
+  decodeMaskGeometry,
+  parseSegmentationText,
+  type MaskGeometry,
+} from './samParser.ts';
 
 /* ------------------------------------------------------------------------- */
 /* Constants                                                                 */
@@ -179,8 +191,12 @@ export type SegmentationResult =
       matched: true;
       box: PixelBoundingBox;
       confidence: number;
-      maskToken: string;
       maskEncoding: 'one_bit' | 'lossless';
+      /**
+       * The decoded mask: raster summary plus source-pixel contours. `null` only
+       * in mock mode, where no mask exists and inventing one would be a lie.
+       */
+      geometry: MaskGeometry | null;
       receipt: ModelCallReceipt;
     }
   | {
@@ -401,9 +417,14 @@ export function inspectWav(bytes: Uint8Array): WavInfo {
 /**
  * Build the SAM 3.1 box prompt in media pixels.
  *
- * Grammar: `<0f><objectId><|box;x1=..;y1=..;x2=..;y2=..;w=..;h=..|>`
- * `x2`/`y2` are inclusive, so they clamp to `width - 1` / `height - 1`.
- * Coordinates must stay inside the media or the API answers `400`.
+ * The formatting is delegated to `@meta-sam/parser`'s `buildObjectPrompt`
+ * instead of being hand-assembled here. The grammar is small but the off-by-one
+ * is not: our domain box is half-open, while the wire's `x2`/`y2` are
+ * **inclusive**. The official builder takes a half-open box and writes
+ * `x2 = right - 1`, which is the conversion we would otherwise get wrong by one
+ * pixel on every request.
+ *
+ * @param box Domain box: `[ymin, xmin, ymax, xmax]`, normalized `0..1000`.
  */
 export function buildObjectPrompt(
   box: PixelBoundingBox,
@@ -418,110 +439,30 @@ export function buildObjectPrompt(
   const [ymin, xmin, ymax, xmax] = box;
 
   const toPxX = (value: number): number =>
-    Math.min(width - 1, Math.max(0, Math.round((value / COORD_SPACE_MAX) * width)));
+    Math.min(width, Math.max(0, Math.round((value / COORD_SPACE_MAX) * width)));
   const toPxY = (value: number): number =>
-    Math.min(height - 1, Math.max(0, Math.round((value / COORD_SPACE_MAX) * height)));
+    Math.min(height, Math.max(0, Math.round((value / COORD_SPACE_MAX) * height)));
 
-  const x1 = toPxX(xmin);
-  const y1 = toPxY(ymin);
-  // A box needs at least one pixel of width/height to be a location.
-  const x2 = Math.min(width - 1, Math.max(x1 + 1, toPxX(xmax)));
-  const y2 = Math.min(height - 1, Math.max(y1 + 1, toPxY(ymax)));
+  const left = Math.min(width - 1, toPxX(xmin));
+  const top = Math.min(height - 1, toPxY(ymin));
+  // A zero-area box is not a location. Widen to one pixel before the builder
+  // sees it, because the builder correctly rejects an empty box.
+  const right = Math.min(width, Math.max(left + 1, toPxX(xmax)));
+  const bottom = Math.min(height, Math.max(top + 1, toPxY(ymax)));
 
-  return `<0f>${objectId}<|box;x1=${x1};y1=${y1};x2=${x2};y2=${y2};w=${width};h=${height}|>`;
-}
-
-export interface SegmentationRecord {
-  frame: number;
-  objectId: number;
-  box: PixelBoundingBox;
-  /** `null` when the model did not report one. We never invent confidence. */
-  confidence: number | null;
-  maskToken: string | null;
-  maskEncoding: 'one_bit' | 'lossless' | null;
-}
-
-const SEGMENT_RECORD_RE = /<(\d+)f>(\d+)<\|box;([^|]*)\|>(?:<\|mask;([^|]*)\|>)?/g;
-
-function parseTokenParams(raw: string): Map<string, string> {
-  const params = new Map<string, string>();
-  for (const part of raw.split(';')) {
-    const separator = part.indexOf('=');
-    if (separator <= 0) continue;
-    params.set(part.slice(0, separator), part.slice(separator + 1));
-  }
-  return params;
-}
-
-function maskEncodingFromData(data: string): 'one_bit' | 'lossless' | null {
-  // Wire shape: `x,y,<marker>payload` where `~` is lossless and `!` is one_bit.
-  const parts = data.split(',');
-  const marker = parts.length >= 3 ? (parts[2] ?? '').charAt(0) : '';
-  if (marker === '~') return 'lossless';
-  if (marker === '!') return 'one_bit';
-  return null;
-}
-
-/**
- * Parse the special-token text SAM 3.1 streams back.
- *
- * We parse the geometry ourselves because Phase 1 only needs the box, the
- * confidence and an opaque mask reference. Decoding the mask raster is a
- * Phase 2 concern and should use the official client library
- * (`@meta-sam/parser`), not a hand-rolled bit unpacker.
- */
-export function parseSegmentationOutput(
-  text: string,
-  width: number,
-  height: number,
-): SegmentationRecord[] {
-  const records: SegmentationRecord[] = [];
-  SEGMENT_RECORD_RE.lastIndex = 0;
-
-  for (
-    let match = SEGMENT_RECORD_RE.exec(text);
-    match !== null;
-    match = SEGMENT_RECORD_RE.exec(text)
-  ) {
-    const frame = Number(match[1]);
-    const objectId = Number(match[2]);
-    const params = parseTokenParams(match[3] ?? '');
-    const maskRaw = match[4] ?? null;
-
-    const x1 = Number(params.get('x1'));
-    const y1 = Number(params.get('y1'));
-    const x2 = Number(params.get('x2'));
-    const y2 = Number(params.get('y2'));
-
-    if (![x1, y1, x2, y2].every((value) => Number.isFinite(value))) continue;
-
-    const toNormX = (value: number): number =>
-      Math.min(1000, Math.max(0, Math.round((value / width) * 1000)));
-    const toNormY = (value: number): number =>
-      Math.min(1000, Math.max(0, Math.round((value / height) * 1000)));
-
-    const normY1 = toNormY(y1);
-    const normX1 = toNormX(x1);
-    const normY2 = Math.min(1000, Math.max(normY1 + 1, toNormY(y2)));
-    const normX2 = Math.min(1000, Math.max(normX1 + 1, toNormX(x2)));
-
-    const confidenceRaw = params.get('c');
-    const confidence = confidenceRaw === undefined ? null : Number(confidenceRaw);
-
-    const maskParams = maskRaw === null ? null : parseTokenParams(maskRaw);
-    const maskData = maskParams?.get('data') ?? null;
-
-    records.push({
-      frame: Number.isFinite(frame) ? frame : 0,
-      objectId: Number.isFinite(objectId) ? objectId : 0,
-      box: [normY1, normX1, normY2, normX2],
-      confidence: confidence !== null && Number.isFinite(confidence) ? confidence : null,
-      maskToken: maskRaw,
-      maskEncoding: maskData === null ? null : maskEncodingFromData(maskData),
+  try {
+    return buildOfficialObjectPrompt({
+      size: { width, height },
+      objects: [{ id: objectId, prompts: [{ box: { left, top, right, bottom } }] }],
     });
+  } catch (error) {
+    // The builder rejects non-integers and out-of-media coordinates. Both mean
+    // the caller handed us a box that cannot describe this image.
+    if (error instanceof ObjectPromptError) {
+      throw new MetaAdapterError('unsupported_media', `Cannot encode the box prompt: ${error.message}`);
+    }
+    throw error;
   }
-
-  return records;
 }
 
 function toBase64(bytes: Uint8Array): string {
@@ -822,8 +763,11 @@ export class MetaAdapter {
         matched: true,
         box: MOCK_REFINED_BOX,
         confidence: MOCK_SEGMENTATION_CONFIDENCE,
-        maskToken: '<mock-mask:one_bit>',
         maskEncoding: 'one_bit',
+        // The mock has no real mask, and a fabricated contour would end up in a
+        // hash-chained ledger as if it had been observed. Null is the honest
+        // value; the UI draws the box instead.
+        geometry: null,
         receipt: this.mockReceipt('segment', MODEL.sam, startedAt, startMs, PRICING.samPerImage),
       };
     }
@@ -860,8 +804,13 @@ export class MetaAdapter {
 
     const json: unknown = await response.json();
     const text = extractOutputText(json);
-    const records = parseSegmentationOutput(text, size.width, size.height);
-    const match = records.find((record) => record.frame === 0 && record.objectId === 1);
+
+    // The official parser is the authority on this grammar. It reports
+    // malformed tokens as diagnostics instead of throwing, so a partially
+    // corrupt line still yields whatever it could parse.
+    const parsed = await parseSegmentationText(text);
+    const boxes = recordsOfKind(parsed.records, 'box');
+    const match = boxes.find((record) => (record.frame?.frameIndex ?? 0) === 0 && record.objectId === '1');
 
     if (match === undefined) {
       // Zero matches is a normal result, not an error: the concept is absent.
@@ -874,13 +823,32 @@ export class MetaAdapter {
       };
     }
 
+    const maskRecord = recordsOfKind(parsed.records, 'mask').find(
+      (record) => record.objectId === match.objectId,
+    );
+
+    // A mask we cannot decode must not become a box we pretend was refined. If
+    // decoding fails we keep the box and report no geometry, rather than
+    // substituting a rectangle for a shape nobody measured.
+    let geometry: MaskGeometry | null = null;
+    if (maskRecord !== undefined) {
+      try {
+        geometry = decodeMaskGeometry(maskRecord, {
+          mediaWidth: size.width,
+          mediaHeight: size.height,
+        });
+      } catch {
+        geometry = null;
+      }
+    }
+
     return {
       matched: true,
-      box: match.box,
+      box: boxFromBounds(match, size.width, size.height),
       // 0 means "the model did not report one". We never fabricate confidence.
       confidence: match.confidence ?? 0,
-      maskToken: match.maskToken ?? '',
-      maskEncoding: match.maskEncoding ?? 'one_bit',
+      maskEncoding: maskRecord?.mask.encoding ?? 'one_bit',
+      geometry,
       receipt: this.buildReceipt('segment', MODEL.sam, startedAt, startMs, json, {
         costUsd: PRICING.samPerImage,
         requestId: response.headers.get('x-request-id'),

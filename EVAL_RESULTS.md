@@ -1,6 +1,6 @@
 # Arcadia — Provenance & Extraction Eval Harness Report
 
-Generated: 2026-11-04T07:41:44.261Z  
+Generated: 2026-11-04T14:36:27.653Z  
 Benchmark Size: **20 synthetic multimodal test cases** (10 visual, 10 audio)  
 Target Models: **Muse Spark 1.3** · **SAM 3.1** · **Muse Voice Transcribe 1.0**
 
