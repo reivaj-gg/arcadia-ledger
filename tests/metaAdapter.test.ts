@@ -24,6 +24,7 @@ import {
   readImageSize,
 } from '../src/services/metaAdapter.ts';
 import { boxFromBounds, parseSegmentationText } from '../src/services/samParser.ts';
+import { readWav } from '../src/services/audioContract.ts';
 import { recordsOfKind } from '@meta-sam/parser';
 import {
   MOCK_CLASS_DRAFT,
@@ -78,25 +79,44 @@ interface WavOptions {
   bitsPerSample?: number;
   durationMs?: number;
   /**
-   * When false the header declares `durationMs` but no samples are written.
-   * `inspectWav` derives duration from the header, which is exactly the
-   * contract the endpoint uses, so this keeps the long-audio test cheap.
+   * When false the header declares `durationMs` but no samples are written,
+   * which makes the file truncated rather than long. Used to test exactly that.
    */
   allocateData?: boolean;
+  /** WAVE format tag. Defaults to 1 (PCM). */
+  formatTag?: number;
+  /** Write a 40-byte WAVE_FORMAT_EXTENSIBLE fmt chunk carrying `formatTag` as its sub-format. */
+  extensible?: boolean;
+  /** Override the declared data size, e.g. 0xFFFFFFFF or a size larger than the file. */
+  declaredDataSize?: number;
+  /** Insert a LIST chunk between fmt and data, the way most editors do. */
+  withListChunk?: boolean;
 }
 
+/**
+ * Build a WAV byte-for-byte, with enough knobs to reproduce the malformed files
+ * that real recorders produce. The header is written by hand rather than by a
+ * library because the point of these tests is the header.
+ */
 function wav(options: WavOptions = {}): Uint8Array {
   const sampleRate = options.sampleRate ?? 24_000;
   const channels = options.channels ?? 1;
   const bitsPerSample = options.bitsPerSample ?? 16;
   const durationMs = options.durationMs ?? 1_000;
   const allocateData = options.allocateData ?? true;
+  const formatTag = options.formatTag ?? 1;
+  const extensible = options.extensible ?? false;
 
   const bytesPerSample = bitsPerSample / 8;
   const byteRate = sampleRate * channels * bytesPerSample;
-  const dataSize = Math.round((byteRate * durationMs) / 1_000);
+  const computedDataSize = Math.round((byteRate * durationMs) / 1_000);
 
-  const buffer = new ArrayBuffer(44 + (allocateData ? dataSize : 0));
+  const fmtSize = extensible ? 40 : 16;
+  const listSize = options.withListChunk === true ? 12 : 0;
+  const declaredDataSize = options.declaredDataSize ?? computedDataSize;
+  const allocatedDataSize = allocateData ? computedDataSize : 0;
+
+  const buffer = new ArrayBuffer(12 + 8 + fmtSize + listSize + 8 + allocatedDataSize);
   const bytes = new Uint8Array(buffer);
   const view = new DataView(buffer);
 
@@ -107,20 +127,44 @@ function wav(options: WavOptions = {}): Uint8Array {
   };
 
   tag(0, 'RIFF');
-  view.setUint32(4, 36 + dataSize, true);
+  view.setUint32(4, buffer.byteLength - 8, true);
   tag(8, 'WAVE');
 
-  tag(12, 'fmt ');
-  view.setUint32(16, 16, true); // PCM chunk size
-  view.setUint16(20, 1, true); // PCM format
-  view.setUint16(22, channels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, byteRate, true);
-  view.setUint16(32, channels * bytesPerSample, true);
-  view.setUint16(34, bitsPerSample, true);
+  let offset = 12;
 
-  tag(36, 'data');
-  view.setUint32(40, dataSize, true);
+  tag(offset, 'fmt ');
+  view.setUint32(offset + 4, fmtSize, true);
+  const fmt = offset + 8;
+  view.setUint16(fmt, extensible ? 0xfffe : formatTag, true);
+  view.setUint16(fmt + 2, channels, true);
+  view.setUint32(fmt + 4, sampleRate, true);
+  view.setUint32(fmt + 8, byteRate, true);
+  view.setUint16(fmt + 12, channels * bytesPerSample, true);
+  view.setUint16(fmt + 14, bitsPerSample, true);
+
+  if (extensible) {
+    view.setUint16(fmt + 16, 22, true); // cbSize
+    view.setUint16(fmt + 18, bitsPerSample, true); // valid bits
+    view.setUint32(fmt + 20, 0, true); // channel mask
+    // SubFormat GUID, whose first two bytes carry the real format tag.
+    view.setUint16(fmt + 24, formatTag, true);
+    bytes.set(
+      [0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71],
+      fmt + 26,
+    );
+  }
+
+  offset += 8 + fmtSize;
+
+  if (listSize > 0) {
+    tag(offset, 'LIST');
+    view.setUint32(offset + 4, 4, true);
+    tag(offset + 8, 'INFO');
+    offset += listSize;
+  }
+
+  tag(offset, 'data');
+  view.setUint32(offset + 4, declaredDataSize, true);
 
   return bytes;
 }
@@ -456,12 +500,86 @@ test('wav: a non-RIFF container is rejected with the ffmpeg recipe in the messag
 });
 
 test('wav: audio beyond the 10 minute cap is rejected locally', () => {
-  const tooLong = wav({ sampleRate: 16_000, durationMs: 11 * 60 * 1_000, allocateData: false });
+  // A complete 11-minute file: the samples must actually be there, otherwise the
+  // file is truncated and that is a different (and more urgent) complaint.
+  const tooLong = wav({ sampleRate: 16_000, durationMs: 11 * 60 * 1_000 });
 
   assert.throws(
     () => inspectWav(tooLong),
     (error: unknown) => error instanceof MetaAdapterError && error.code === 'audio_too_long',
   );
+});
+
+test('wav: a truncated data chunk is refused instead of transcribed', () => {
+  // The header claims 30 seconds; the file carries none. Deriving duration from
+  // the declared size would report a file that does not exist.
+  const truncated = wav({ sampleRate: 16_000, durationMs: 30_000, allocateData: false });
+
+  assert.throws(
+    () => inspectWav(truncated),
+    (error: unknown) =>
+      error instanceof MetaAdapterError &&
+      error.code === 'invalid_audio' &&
+      /truncated/.test(error.message),
+  );
+});
+
+test('wav: a partially truncated file reports the bytes that survived', () => {
+  const inspection = readWav(wav({ sampleRate: 16_000, durationMs: 2_000, allocateData: false }));
+
+  assert.equal(inspection.truncated, true);
+  assert.equal(inspection.dataBytes, 0);
+  assert.equal(inspection.declaredDataBytes, 64_000);
+});
+
+test('wav: a 16-bit float file is rejected, since the bit depth alone looks fine', () => {
+  // Format tag 3 is IEEE float. It has the same 16-bit container as PCM, which
+  // is exactly why a bits-only check would wave it through.
+  const float = wav({ formatTag: 3 });
+
+  assert.throws(
+    () => inspectWav(float),
+    (error: unknown) =>
+      error instanceof MetaAdapterError &&
+      error.code === 'invalid_audio' &&
+      /PCM/.test(error.message),
+  );
+});
+
+test('wav: WAVE_FORMAT_EXTENSIBLE with a PCM sub-format is accepted', () => {
+  // Recorders emit EXTENSIBLE for perfectly ordinary mono 24 kHz audio. Rejecting
+  // it would refuse valid evidence for a header detail that does not matter.
+  const extensible = wav({ extensible: true, formatTag: 1 });
+
+  const info = inspectWav(extensible);
+  assert.equal(info.sampleRate, 24_000);
+  assert.equal(info.channels, 1);
+  assert.equal(info.bitsPerSample, 16);
+});
+
+test('wav: WAVE_FORMAT_EXTENSIBLE with a float sub-format is still rejected', () => {
+  const extensibleFloat = wav({ extensible: true, formatTag: 3 });
+
+  assert.throws(
+    () => inspectWav(extensibleFloat),
+    (error: unknown) => error instanceof MetaAdapterError && error.code === 'invalid_audio',
+  );
+});
+
+test('wav: a LIST chunk between fmt and data is skipped, not parsed as audio', () => {
+  const withList = wav({ withListChunk: true });
+
+  const info = inspectWav(withList);
+  assert.equal(info.durationMs, 1_000);
+});
+
+test('wav: a streaming 0xFFFFFFFF data size is read as "until end of file"', () => {
+  const streaming = wav({ sampleRate: 24_000, durationMs: 1_000, declaredDataSize: 0xffffffff });
+
+  const inspection = readWav(streaming);
+  assert.equal(inspection.truncated, false);
+  assert.equal(inspection.dataBytes, 48_000);
+  assert.equal(inspection.durationMs, 1_000);
 });
 
 test('wav: the published limits are the ones enforced', () => {

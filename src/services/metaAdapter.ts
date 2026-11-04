@@ -51,6 +51,11 @@ import {
 } from '@meta-sam/parser';
 
 import {
+  ASR_CONTRACT,
+  AudioContractError,
+  inspectAsrWav,
+} from './audioContract.ts';
+import {
   MOCK_CLASS_ANCHOR_TURN,
   MOCK_CLASS_DRAFT,
   MOCK_DILEMMA_DRAFT,
@@ -87,13 +92,7 @@ export const PRICING = {
 } as const;
 
 /** Hard API limits, enforced locally so we fail before spending a request. */
-export const ASR_LIMITS = {
-  maxBytes: 32 * 1024 * 1024,
-  maxDurationMs: 10 * 60 * 1000,
-  sampleRates: [16_000, 24_000] as const,
-  channels: 1,
-  bitsPerSample: 16,
-} as const;
+export const ASR_LIMITS = ASR_CONTRACT;
 
 /* ------------------------------------------------------------------------- */
 /* Errors                                                                    */
@@ -336,82 +335,23 @@ export interface WavInfo {
  * paid round-trip into an immediate, actionable error.
  */
 export function inspectWav(bytes: Uint8Array): WavInfo {
-  if (bytes.length > ASR_LIMITS.maxBytes) {
-    throw new MetaAdapterError(
-      'payload_too_large',
-      `Audio exceeds 32 MB (${bytes.length} bytes). Split the recording.`,
-    );
-  }
-
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const tag = (offset: number): string =>
-    String.fromCharCode(
-      bytes[offset] ?? 0,
-      bytes[offset + 1] ?? 0,
-      bytes[offset + 2] ?? 0,
-      bytes[offset + 3] ?? 0,
-    );
-
-  if (bytes.length < 44 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') {
-    throw new MetaAdapterError(
-      'invalid_audio',
-      'Audio must be a RIFF/WAVE container. Convert with: ffmpeg -i in.m4a -ac 1 -ar 24000 -c:a pcm_s16le out.wav',
-    );
-  }
-
-  let offset = 12;
-  let sampleRate = 0;
-  let channels = 0;
-  let bitsPerSample = 0;
-  let byteRate = 0;
-  let dataSize = 0;
-
-  while (offset + 8 <= bytes.length) {
-    const chunkId = tag(offset);
-    const chunkSize = view.getUint32(offset + 4, true);
-    const body = offset + 8;
-
-    if (chunkId === 'fmt ') {
-      channels = view.getUint16(body + 2, true);
-      sampleRate = view.getUint32(body + 4, true);
-      byteRate = view.getUint32(body + 8, true);
-      bitsPerSample = view.getUint16(body + 14, true);
-    } else if (chunkId === 'data') {
-      dataSize = chunkSize;
+  try {
+    const inspection = inspectAsrWav(bytes);
+    return {
+      sampleRate: inspection.format.sampleRate,
+      channels: inspection.format.channels,
+      bitsPerSample: inspection.format.bitsPerSample,
+      durationMs: inspection.durationMs,
+    };
+  } catch (error) {
+    // The contract module is deliberately independent of the adapter, so its
+    // error codes are mirrored rather than shared. Rethrowing keeps the public
+    // error surface of this class unchanged.
+    if (error instanceof AudioContractError) {
+      throw new MetaAdapterError(error.code, error.message);
     }
-
-    // Chunks are word-aligned.
-    offset = body + chunkSize + (chunkSize % 2);
+    throw error;
   }
-
-  if (channels !== ASR_LIMITS.channels) {
-    throw new MetaAdapterError('invalid_audio', `Audio must be mono, got ${channels} channels.`);
-  }
-  if (!(ASR_LIMITS.sampleRates as readonly number[]).includes(sampleRate)) {
-    throw new MetaAdapterError(
-      'invalid_audio',
-      `Audio must be 16 kHz or 24 kHz, got ${sampleRate} Hz.`,
-    );
-  }
-  if (bitsPerSample !== ASR_LIMITS.bitsPerSample) {
-    throw new MetaAdapterError(
-      'invalid_audio',
-      `Audio must be 16-bit PCM, got ${bitsPerSample}-bit.`,
-    );
-  }
-  if (byteRate <= 0) {
-    throw new MetaAdapterError('invalid_audio', 'WAV header has an invalid byte rate.');
-  }
-
-  const durationMs = Math.round((dataSize / byteRate) * 1000);
-  if (durationMs > ASR_LIMITS.maxDurationMs) {
-    throw new MetaAdapterError(
-      'audio_too_long',
-      `Audio is ${Math.round(durationMs / 1000)}s; the endpoint caps at 600s. Split it.`,
-    );
-  }
-
-  return { sampleRate, channels, bitsPerSample, durationMs };
 }
 
 /**
