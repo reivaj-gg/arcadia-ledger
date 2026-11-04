@@ -1058,8 +1058,16 @@ export class MetaAdapter {
       for (const raw of turns) {
         if (typeof raw !== 'object' || raw === null) continue;
         const turn = raw as Record<string, unknown>;
+        // A missing speaker label is not speaker A. Attributing an utterance to
+        // the wrong person is worse than admitting the label is unknown, so the
+        // turn is preserved with an explicit 'unknown' rather than dropped (a
+        // dropped turn reads as "nobody ever said it").
+        const speaker =
+          typeof turn.speaker === 'string' && turn.speaker.trim().length > 0
+            ? turn.speaker
+            : 'unknown';
         const candidate = AudioTurn.safeParse({
-          speaker: typeof turn.speaker === 'string' ? turn.speaker : 'A',
+          speaker,
           startMs: turn.startMs,
           endMs: turn.endMs,
           text: turn.transcript,

@@ -196,6 +196,47 @@ test('mock: transcription returns turn-level timestamps, never word-level', asyn
   assert.match(result.fullText, /clase de cálculo/);
 });
 
+test('live: transcription sends a multipart request part and keeps an unlabelled turn', async () => {
+  const body = JSON.stringify({
+    audioDurationMs: 2_400,
+    turns: [
+      { speaker: 'B', startMs: 0, endMs: 1_200, transcript: 'I can take the design.' },
+      // No speaker label. It must not be attributed to A by default.
+      { startMs: 1_200, endMs: 2_400, transcript: 'Send it by Friday.' },
+    ],
+  });
+
+  let sentForm: FormData | null = null;
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: (_url, init) => {
+      sentForm = init?.body instanceof FormData ? init.body : null;
+      return Promise.resolve(
+        new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      );
+    },
+  });
+
+  const result = await adapter.transcribeAudio(wav());
+
+  assert.ok(sentForm !== null, 'the ASR request must be multipart/form-data');
+  const requestPart = (sentForm as FormData).get('request');
+  assert.ok(requestPart instanceof Blob, 'the JSON request part must be a Blob');
+  const requestJson = JSON.parse(await (requestPart as Blob).text()) as Record<string, unknown>;
+  assert.equal(requestJson.mode, 'DIARIZATION');
+  assert.equal(requestJson.audioEncoding, 'WAV');
+  assert.equal(requestJson.model, MODEL.asr);
+  assert.ok((sentForm as FormData).get('audio') instanceof Blob);
+
+  assert.equal(result.turns.length, 2);
+  assert.equal(result.turns[0]?.speaker, 'B');
+  assert.equal(result.turns[1]?.speaker, 'unknown', 'absence of a label is not speaker A');
+  assert.equal(result.turns[1]?.text, 'Send it by Friday.');
+  assert.equal(result.audioDurationMs, 2_400);
+});
+
 test('mock: segmentation refines the proposed box to a mask', async () => {
   const adapter = new MetaAdapter({ mock: true });
   const result = await adapter.segmentRegion(png(720, 1280), MOCK_REFINED_BOX);
