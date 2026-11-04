@@ -1,61 +1,90 @@
-# Arcadia — Provenance & Extraction Eval Harness Report
+# Arcadia — Conformance Harness Report
 
-Generated: 2026-11-04T14:36:27.653Z  
-Benchmark Size: **20 synthetic multimodal test cases** (10 visual, 10 audio)  
-Target Models: **Muse Spark 1.3** · **SAM 3.1** · **Muse Voice Transcribe 1.0**
+Generated: 2026-11-04T14:48:11.164Z
 
-## 📊 Summary Scorecard
+## What this report is
 
-| Metric | Measured Value | Target Benchmark | Status |
+This harness measures **pipeline behaviour**, not model quality. Every number
+below is computed by running the real code on synthetic inputs. No value is an
+estimate of how well Muse Spark, SAM 3.1 or Muse Voice Transcribe perform on real
+media — that requires a Model API key, real screenshots and real recordings.
+
+An earlier revision of this file compared hand-written predictions against
+hand-written ground truth and reported the result as accuracy. That number was
+arithmetic without measurement, and it has been removed.
+
+## Summary
+
+| Check | Measured | Threshold | Status |
 |---|---|---|---|
-| **Overall Extraction Accuracy** | **100.0%** | $\ge 95.0\%$ | **PASS ✓** |
-| **Mean SAM 3.1 Localization (IoU)** | **95.42%** | $\ge 85.0\%$ | **PASS ✓** |
-| **Muse Voice Turn Bracketing Precision** | **99.44%** | $\ge 95.0\%$ | **PASS ✓** |
-| **Average End-to-End Latency** | **366.1 ms** | $< 500\text{ ms}$ | **PASS ✓** |
-| **Average Verification Cost** | **\$0.0020 USD** | $< \$0.01\text{ USD}$ | **PASS ✓** |
+| Coordinate round-trip, mean IoU | 99.96% | ≥ 85% | PASS |
+| Coordinate round-trip, worst case | 99.63% | ≥ 85% | PASS |
+| Audio contract verdicts | 10/10 | 10/10 | PASS |
+| Ledger hash chain verifies | yes, 6 events | yes | PASS |
+| Ledger rejects tampering | yes | yes | PASS |
+| Ledger detects planted conflict | yes | yes | PASS |
+| Bitemporal rewind sees both commitments | 2 | 2 | PASS |
 
----
+## 1. Coordinate round-trip
 
-## 🖼️ 1. Visual Evidence Benchmarks (Muse Spark $\to$ SAM 3.1)
+A domain box is encoded into a SAM 3.1 prompt by `buildObjectPrompt`, parsed back
+out of the token grammar by `parseSegmentationText`, and converted back to a
+domain box. IoU is between the box that went in and the box that came out.
 
-| ID | Name | Category | SAM 3.1 IoU | Extraction | Latency | Est. Cost |
-|---|---|---|---|---|---|---|
-| `VIS-01` | WhatsApp Gig Offer | Freelance Chat | **95.6%** | ✓ Correct | 342 ms | \$0.0035 |
-| `VIS-02` | Slack Contract Amendment | Client Agreement | **96.1%** | ✓ Correct | 318 ms | \$0.0034 |
-| `VIS-03` | Invoice Milestone 2 | Billing Receipt | **97.9%** | ✓ Correct | 365 ms | \$0.0036 |
-| `VIS-04` | Telegram Code Review Deadline | Team Chat | **92.9%** | ✓ Correct | 295 ms | \$0.0031 |
-| `VIS-05` | Email Retainer Renewal | Email | **95.5%** | ✓ Correct | 380 ms | \$0.0038 |
-| `VIS-06` | Discord Workshop RSVP | Community | **95.5%** | ✓ Correct | 288 ms | \$0.0030 |
-| `VIS-07` | Upwork Project Milestone | Platform Contract | **96.5%** | ✓ Correct | 340 ms | \$0.0035 |
-| `VIS-08` | SMS Bank Transfer Notice | Payment SMS | **92.6%** | ✓ Correct | 260 ms | \$0.0028 |
-| `VIS-09` | Notion Task Deadline | Project Management | **95.9%** | ✓ Correct | 310 ms | \$0.0032 |
-| `VIS-10` | Sublease Deposit Agreement | Personal Agreement | **95.6%** | ✓ Correct | 355 ms | \$0.0036 |
+This is the check that catches the off-by-one: the domain box is half-open while
+the wire's `x2`/`y2` are inclusive, so an encoder that forgets to subtract one
+loses a row and a column on every request.
 
----
+| ID | Case | Media | IoU | Prompt |
+|---|---|---|---|---|
+| `VIS-01` | WhatsApp gig offer | 720×1280 | 100.00% | `<0f>1<\|box;x1=24;y1=232;x2=519;y2=427;w=720;h=1280\|>` |
+| `VIS-02` | Slack amendment | 1080×1920 | 100.00% | `<0f>1<\|box;x1=54;y1=230;x2=733;y2=498;w=1080;h=1920\|>` |
+| `VIS-03` | Invoice milestone | 1240×1754 | 100.00% | `<0f>1<\|box;x1=124;y1=526;x2=1115;y2=964;w=1240;h=1754\|>` |
+| `VIS-04` | Code review deadline | 720×1280 | 99.63% | `<0f>1<\|box;x1=58;y1=576;x2=445;y2=741;w=720;h=1280\|>` |
+| `VIS-05` | Retainer renewal | 1920×1080 | 100.00% | `<0f>1<\|box;x1=77;y1=227;x2=1573;y2=442;w=1920;h=1080\|>` |
+| `VIS-06` | Workshop RSVP | 720×1280 | 100.00% | `<0f>1<\|box;x1=43;y1=192;x2=359;y2=357;w=720;h=1280\|>` |
+| `VIS-07` | Upwork milestone | 1000×1000 | 100.00% | `<0f>1<\|box;x1=250;y1=400;x2=749;y2=599;w=1000;h=1000\|>` |
+| `VIS-08` | Bank transfer notice | 390×844 | 100.00% | `<0f>1<\|box;x1=0;y1=0;x2=151;y2=100;w=390;h=844\|>` |
+| `VIS-09` | Notion task deadline | 2560×1440 | 100.00% | `<0f>1<\|box;x1=2304;y1=1008;x2=2533;y2=1050;w=2560;h=1440\|>` |
+| `VIS-10` | Sublease deposit | 800×1000 | 100.00% | `<0f>1<\|box;x1=80;y1=100;x2=719;y2=899;w=800;h=1000\|>` |
 
-## 🎙️ 2. Audio Evidence Benchmarks (Muse Voice Transcribe 1.0)
+## 2. Audio contract verdicts
 
-| ID | Name | Category | Speaker Diarization | Turn Precision | Latency | Est. Cost |
-|---|---|---|---|---|---|---|
-| `AUD-01` | Calculus Class Attendance Note | Personal Dilemma | Spk A (100%) | **100.0%** | 420 ms | \$0.0006 |
-| `AUD-02` | Team Standup Blockers | Meeting | Spk B (100%) | **96.9%** | 460 ms | \$0.0007 |
-| `AUD-03` | Doctor Appointment Reminder | Voice Memo | Spk A (100%) | **100.0%** | 390 ms | \$0.0005 |
-| `AUD-04` | Mentor Session Booking | Call Excerpt | Spk B (100%) | **99.6%** | 410 ms | \$0.0006 |
-| `AUD-05` | Equipment Return Commitment | Voice Memo | Spk A (100%) | **100.0%** | 380 ms | \$0.0005 |
-| `AUD-06` | Study Group Meetup | Group Audio | Spk C (100%) | **98.4%** | 450 ms | \$0.0006 |
-| `AUD-07` | Gym Subscription Freeze | Call Excerpt | Spk A (100%) | **100.0%** | 395 ms | \$0.0005 |
-| `AUD-08` | Podcast Recording Schedule | Voice Memo | Spk A (100%) | **99.5%** | 405 ms | \$0.0006 |
-| `AUD-09` | Family Dinner Confirmation | Family Audio | Spk B (100%) | **100.0%** | 375 ms | \$0.0005 |
-| `AUD-10` | Hackathon Video Submission Deadline | Personal Memo | Spk A (100%) | **100.0%** | 385 ms | \$0.0005 |
+Ten synthetic WAV files, each with a known correct answer, through the real
+`inspectWav`. The point is that invalid audio is refused **locally**, before a
+paid round-trip that would only return a bare `400`.
 
----
+| ID | Case | Expected | Actual | Status |
+|---|---|---|---|---|
+| `AUD-01` | Mono 24 kHz PCM | accept | accept | ok |
+| `AUD-02` | Mono 16 kHz PCM | accept | accept | ok |
+| `AUD-03` | Ten minutes exactly | accept | accept | ok |
+| `AUD-04` | EXTENSIBLE PCM | accept | accept | ok |
+| `AUD-05` | Stereo 24 kHz | reject | reject | ok |
+| `AUD-06` | 44.1 kHz | reject | reject | ok |
+| `AUD-07` | 8-bit PCM | reject | reject | ok |
+| `AUD-08` | IEEE float 16-bit | reject | reject | ok |
+| `AUD-09` | Eleven minutes | reject | reject | ok |
+| `AUD-10` | Truncated data chunk | reject | reject | ok |
 
-## 🔬 Methodology & Provenance Invariants
+## 3. Ledger invariants
 
-1. **Pixel Box IoU:** Intersection-over-union computed across normalized 0..1000 space:
-   $$\text{IoU}(A, B) = \frac{\text{Area}(A \cap B)}{\text{Area}(A \cup B)}$$
-   Boxes with $\text{IoU} \ge 0.85$ are considered high-fidelity pixel provenance anchors.
+A real `EventLedger` with two commitments whose valid ranges overlap by one
+hour. The harness checks that the chain verifies, that a substituted evidence id
+is rejected on import, that the overlap is found exactly once, and that the
+projection taken before reconciliation still shows the earlier state.
 
-2. **Audio Turn Bracketing:** Evaluates turn-level boundaries ($[\text{startMs}, \text{endMs}]$) returned in DIARIZATION mode. As documented by Meta, Muse Voice does not emit word-level timestamps; claims are grounded at turn level.
+| Invariant | Result |
+|---|---|
+| Chain verifies | true (6 events) |
+| Tampering rejected | true |
+| Planted conflict detected | true |
+| Rewind before reconciliation | 2 commitment(s), status `proposed` |
 
-3. **Reproducibility:** Run `npm run eval` locally to reproduce this scorecard.
+## Reproduce
+
+```
+npm install
+npm test      # 100+ unit and integration tests
+npm run eval  # regenerates this file
+```
