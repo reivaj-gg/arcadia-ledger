@@ -173,11 +173,17 @@ npm run dev
 ```
 Open [http://localhost:3000/](http://localhost:3000/) in your browser.
 
-- **[W][A][S][D]**: Walk through the 3D room.
-- **[Mouse Drag]**: 360° orbital cinematic camera.
-- **[E] Proximity**: Open the sketchbook at the desk to inspect the SAM 3.1 pixel mask, audio turns, and SHA-256 receipts.
-- **[Rewind Button]**: Test bitemporal time travel and state rollback.
-- **[⛓️ Ledger Badge]**: Toggle live cryptographic block inspector.
+- **[W][A][S][D]**: Walk through the 3D sanctuary with articulated anatomical avatar physics and floor foley.
+- **[Shift]**: Sprint mode (5.2 m/s forward acceleration, leaning body posture, accelerated footstep cadence).
+- **[Click 3D / Mouse Drag]**: Raycast directly onto any furniture item (Guitar, Bed, Turntable, Desk, Corkboard, Window, Butterfly) or drag for 360° orbital cinematic camera.
+- **[E] Contextual Interaction**:
+  - **Desk**: Open Max Caulfield's Decision Journal with SAM 3.1 mask overlay, Muse Voice transcript, and causal branch resolution.
+  - **Corkboard (Evidence Wall)**: Cinematic camera focus on red string connections between WhatsApp and voice memo, auto-opening the SHA-256 Ledger.
+  - **Acoustic Guitar**: Fingerpicking indie arpeggios (Syd Matters · *Obstacles*) with 3D floating musical notes (♪ ♫) rising from the soundhole.
+  - **Turntable**: Physical tonearm movement onto spinning vinyl with authentic needle drop crackle audio.
+  - **Window**: Cycle through 3 distinct atmospheric states: *Atardecer Dorado* ☀️, *Tormenta de Dudas* 🌧️, and *Crepúsculo de Blackwell* 🌙.
+- **[R] / Rewind**: Physical time-travel replay (avatar desands past 240 frames backwards with chromatic aberration warp and reverse audio stretch).
+- **[⛓️ Ledger Badge]**: Toggle live cryptographic block inspector and audit hash continuity.
 
 ---
 
