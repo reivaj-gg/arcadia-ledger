@@ -810,7 +810,13 @@ export class MetaAdapter {
     // corrupt line still yields whatever it could parse.
     const parsed = await parseSegmentationText(text);
     const boxes = recordsOfKind(parsed.records, 'box');
-    const match = boxes.find((record) => (record.frame?.frameIndex ?? 0) === 0 && record.objectId === '1');
+
+    // We prompt with object id 1, so that is the answer we want. If the model
+    // echoes a different id but returned exactly one object, that object is
+    // unambiguously the one we asked about; with two or more we refuse to guess,
+    // because anchoring a claim to the wrong region is worse than no anchor.
+    const requested = boxes.find((record) => record.objectId === '1');
+    const match = requested ?? (boxes.length === 1 ? boxes[0] : undefined);
 
     if (match === undefined) {
       // Zero matches is a normal result, not an error: the concept is absent.

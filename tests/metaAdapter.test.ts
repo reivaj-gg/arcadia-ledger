@@ -271,6 +271,14 @@ test('policy: 429 is classified as rate_limited so callers can back off', async 
 /* SAM 3.1 prompt grammar                                                    */
 /* ------------------------------------------------------------------------- */
 
+/**
+ * A real lossless mask token, lifted from the Meta docs example. The official
+ * parser rejects a box token that has no mask (`malformed_record`), so any
+ * fixture that needs a box record must carry one.
+ */
+const DOC_MASK =
+  "<|mask;x=0;y=0;data=27,60,~!!!!M!0c[0o91w?q1!pIH4pPRVp2B3'7`e.ioeAf6-k/#Xd8%dX9x(|>";
+
 test('sam: the box prompt uses the documented token grammar in media pixels', () => {
   const prompt = buildObjectPrompt([100, 200, 300, 400], 1000, 1000);
   // The domain box is half-open (xmax 400 excludes 400), while the wire's x2 is
@@ -292,31 +300,42 @@ test('sam: a degenerate box still yields at least one pixel of area', () => {
 });
 
 test('sam: the parsed box converts media pixels back into normalized space', async () => {
-  const result = await parseSegmentationText('<0f>1<|box;x1=10;y1=20;x2=30;y2=40;c=0.95|>');
+  // A box token alone is `malformed_record` in the official parser: the mask is
+  // what makes the object complete. So every fixture below carries a real one.
+  const text = `<0f>0<|box;x1=10;y1=20;x2=30;y2=40;c=0.95;w=100;h=200|>${DOC_MASK}`;
+  const result = await parseSegmentationText(text);
   const [record] = recordsOfKind(result.records, 'box');
 
   assert.ok(record !== undefined);
-  assert.equal(record.objectId, '1');
+  assert.equal(record.objectId, '0');
   assert.equal(record.confidence, 0.95);
 
   // Wire corners are inclusive, the parsed box is half-open: right = 30 + 1.
   assert.equal(record.right, 31);
+  assert.equal(record.bottom, 41);
   assert.deepEqual(boxFromBounds(record, 100, 200), [100, 100, 205, 310]);
 });
 
-test('sam: an absent confidence stays null instead of being invented', async () => {
-  const result = await parseSegmentationText('<0f>2<|box;x1=1;y1=1;x2=2;y2=2|>');
+test('sam: an absent confidence stays undefined instead of being invented', async () => {
+  const text = `<0f>0<|box;x1=1;y1=1;x2=2;y2=2;w=100;h=200|>${DOC_MASK}`;
+  const result = await parseSegmentationText(text);
   const [record] = recordsOfKind(result.records, 'box');
 
   assert.ok(record !== undefined);
   assert.equal(record.confidence, undefined, 'absence is not zero');
 });
 
-test('sam: prose without tokens yields no records rather than a wrong box', async () => {
+test('sam: prose becomes a text record, never a box', async () => {
   const result = await parseSegmentationText('I could not find that object.');
 
-  assert.equal(result.records.length, 0);
-  assert.deepEqual(result.diagnostics, []);
+  assert.equal(recordsOfKind(result.records, 'box').length, 0);
+  assert.equal(recordsOfKind(result.records, 'mask').length, 0);
+
+  // The prose is preserved rather than discarded: a refusal from the model is
+  // evidence too, and the UI shows it instead of an empty canvas.
+  const [text] = recordsOfKind(result.records, 'text');
+  assert.ok(text !== undefined);
+  assert.match(text.text, /could not find/);
 });
 
 /* ------------------------------------------------------------------------- */
