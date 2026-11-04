@@ -4,7 +4,7 @@
 > *Category: Multimodal Systems & Autonomous Agents*  
 > *Author: Javier Quilumba*  
 > *Live Demo: [http://localhost:3000/](http://localhost:3000/)*  
-> *Test Suite: 76/76 Passing Tests · Eval Benchmark: 20/20 Cases Verified*
+> *Test Suite: 104/104 Passing Tests · Conformance Harness: 3/3 Checks Green*
 
 ---
 
@@ -18,7 +18,7 @@ Current AI productivity tools summarize conversations and calendar events using 
 1. Every claim is anchored to **pixel-level segmentations** from **SAM 3.1** and **turn-level speech utterances** from **Muse Voice Transcribe 1.0**.
 2. Claims are sealed into an **append-only bitemporal ledger** linked by a **SHA-256 cryptographic hash chain** (genesis block `0000...`).
 3. If an agreement changes, history is never rewritten with `UPDATE`: a new event is signed, and **Rewind (`asOf`)** allows exact time-travel reconstruction of what was true at any instant in the past.
-4. Spatially visualized in a nostalgic, interactive **3D WebGL sanctuary** (Three.js) where the **Z-axis encodes time** ($Z < 0$ history, $Z = 0$ present desk, $Z > 0$ causal branches).
+4. Spatially visualized in an interactive **3D WebGL sanctuary** (Three.js), where commitments occupy positions in the room and the ledger's bitemporal **Rewind** is exposed as an in-scene control.
 
 ---
 
@@ -67,23 +67,23 @@ Arcadia pairs Meta's flagship models in an explicit, complementary pipeline docu
 ```
 
 1. **Muse Spark 1.3 (Scene Interpretation):** Reads multimodal evidence, reasons over intent, extracts verifiable structured commitments, and proposes approximate bounding coordinates in normalized `0..1000` space.
-2. **SAM 3.1 (Pixel-Perfect Precision):** Receives Spark's box prompt through the token grammar `<|box;x1=..;y1=..;x2=..;y2=..|>` and refines it into a sub-pixel segmentation mask (`one_bit` encoding, confidence $\ge 95\%$).
+2. **SAM 3.1 (Pixel-Perfect Precision):** Receives Spark's box prompt through the token grammar `<|box;x1=..;y1=..;x2=..;y2=..|>` and refines it into a segmentation mask (`one_bit` or `lossless` encoding). Confidence is reported only when the model returns it; absence is never rendered as zero.
 3. **Muse Voice Transcribe 1.0 (Utterance Grounding):** Ingests mono 16-bit PCM WAV (16 kHz / 24 kHz) and outputs speaker diarization with exact turn boundaries (`startMs`/`endMs`), grounding spoken promises without hallucinated word timestamps.
 4. **Local-Only Privacy Policy:** Sensitive evidence marked `sensitivity: 'local-only'` is hard-blocked by adapter middleware and never leaves the local machine.
 
 ---
 
-## 📊 Quantitative Evaluation Scorecard (Eval Harness)
+## 📊 Conformance Harness (What Is Actually Measured)
 
-To guarantee engineering excellence, Arcadia includes a reproducible **20-case quantitative benchmark** (`scripts/eval.ts`):
+Arcadia ships a reproducible harness (`npm run eval`) that measures **pipeline behaviour**, not model quality. Every number is computed by running the real code on synthetic inputs; the report in `EVAL_RESULTS.md` states this in its first paragraph.
 
-| Evaluation Metric | Measured Result | Benchmark Target | Verdict |
-|---|---|---|---|
-| **Overall Extraction Accuracy** | **100.0%** | $\ge 95.0\%$ | **PASS ✓** |
-| **Mean SAM 3.1 Localization (IoU)** | **95.42%** | $\ge 85.0\%$ | **PASS ✓** |
-| **Muse Voice Turn Bracketing Precision** | **99.44%** | $\ge 95.0\%$ | **PASS ✓** |
-| **Average Verification Latency** | **366.1 ms** | $< 500\text{ ms}$ | **PASS ✓** |
-| **Average Batch Verification Cost** | **\$0.0019 USD** | $< \$0.01\text{ USD}$ | **PASS ✓** |
+| Check | What It Proves | Threshold |
+|---|---|---|
+| **Coordinate round-trip IoU** (10 cases) | A domain box survives encode → wire grammar → parse → decode without losing a row or column. This is the check that catches the half-open vs. inclusive off-by-one. | worst case ≥ 85% |
+| **Audio contract verdicts** (10 cases) | Ten synthetic WAVs with known correct answers, through the real validator: stereo, 44.1 kHz, 8-bit, IEEE float, 11-minute and truncated files are refused locally before a paid round-trip. | 10/10 |
+| **Ledger invariants** | Hash chain verifies, a substituted evidence id is rejected on import, a planted one-hour overlap is detected exactly once, and the bitemporal rewind sees both commitments before reconciliation. | all four |
+
+**What this harness does not do:** it does not score Muse Spark, SAM 3.1 or Muse Voice Transcribe against real media. That requires a Model API key, real screenshots and real recordings, and the demo video is the evidence for it. An earlier revision compared hand-written predictions against hand-written ground truth and printed a hardcoded PASS; that number was arithmetic without measurement and has been removed.
 
 *Reproduce anytime by running `npm run eval`.*
 
@@ -94,25 +94,28 @@ To guarantee engineering excellence, Arcadia includes a reproducible **20-case q
 ```
 Myidea/
 ├── server/
-│   ├── index.ts             # Secure Node proxy (isolates META_API_KEY from client)
-│   └── policy.ts            # Local-only privacy gate, auth resolution & error mapping
+│   ├── index.ts             # Secure Node proxy (isolates MODEL_API_KEY from client)
+│   └── policy.ts            # Local-only privacy gate, key resolution & error mapping
 ├── src/
 │   ├── domain/
 │   │   ├── schema.ts        # Pure Zod contracts (PixelBoundingBox, AudioTurn, DomainEvent)
 │   │   └── ledger.ts        # Immutable EventLedger, SHA-256 hash chaining, Rewind asOf()
 │   ├── services/
 │   │   ├── metaAdapter.ts   # Multimodal adapter for Spark 1.3, SAM 3.1 & Muse Voice
+│   │   ├── samParser.ts     # Official mask decode -> source-pixel contours & domain box
+│   │   ├── audioContract.ts # WAV/ASR contract enforced before any byte is uploaded
 │   │   └── fixtures.ts      # Deterministic, self-contained SVG & turn fixtures
 │   └── main.js              # Three.js 3D Sanctuary, procedural audio & spatial timeline
 ├── scripts/
-│   ├── eval.ts              # 20-case quantitative evaluation benchmark harness
+│   ├── eval.ts              # Conformance harness: round-trip, audio, ledger invariants
 │   └── dev.mjs              # Concurrently launches Vite UI + Node API proxy
 ├── tests/
 │   ├── ledger.test.ts       # 28 tests: hash chain, bitemporal rewind, tampering detection
-│   ├── metaAdapter.test.ts  # 26 tests: WAV validator, SAM token parser, rate limiter
+│   ├── metaAdapter.test.ts  # 34 tests: WAV contract, SAM prompt grammar, key resolution
+│   ├── samParser.test.ts    # 20 tests: mask decode, contour tracing, simplification
 │   ├── server.test.ts       # 21 tests: API proxy security, local-only privacy guard
 │   └── e2e.test.ts          # Full end-to-end custody chain integration test
-├── EVAL_RESULTS.md          # Generated benchmark results
+├── EVAL_RESULTS.md          # Generated conformance report
 └── package.json             # Pure Node 24 + TypeScript (Zero Python dependency)
 ```
 
@@ -125,16 +128,16 @@ Myidea/
 | **Meta Model Count** | **Super-compliant** | Uses **3 Meta models** (Muse Spark 1.3, SAM 3.1, Muse Voice Transcribe 1.0). |
 | **Banned: Mental Health Chatbot** | **Zero Risk** | Arcadia has no mood tracking, emotion gauges, or mental health advice. It is purely an agreement auditor. |
 | **Banned: Generic RAG** | **Zero Risk** | Does not use vector databases or naive embedding searches. Claims are linked via formal cryptographic anchors. |
-| **Banned: Simple Image Analyzer** | **Zero Risk** | Implements the full bidirectional Spark $\to$ SAM $\to$ Ledger handshake. |
+| **Banned: Simple Image Analyzer** | **Zero Risk** | Implements the full Spark $\to$ SAM $\to$ Ledger handshake: the box proposes, the mask measures, the ledger seals. |
 | **Data Privacy** | **Enforced** | Local-only evidence never crosses the network; verified by unit test `policy: local-only evidence never reaches the network`. |
-| **Public Video Demo** | **Ready** | 3-minute structured walkthrough covering the 3 scenarios. |
+| **Public Video Demo** | **In preparation** | 3-minute structured walkthrough, recorded after the feature freeze. |
 
 ---
 
 ## 🚀 Quickstart & Local Reproduction
 
 ### Prerequisites
-- Node.js 20+ (Node 24 recommended, built-in TypeScript strip types)
+- Node.js 24+ (the test suite runs `.ts` files through Node's native type stripping, so older releases will not execute them)
 - npm 10+
 
 ### 1. Installation
@@ -144,17 +147,27 @@ cd arcadia-ledger
 npm install
 ```
 
-### 2. Run All Tests (76/76 Passing)
+### 2. Configure the environment
+```bash
+cp .env.example .env
+```
+- Leave `MODEL_API_KEY` empty and `MOCK_MODE=true` to run entirely on deterministic fixtures with zero network calls.
+- Set `MODEL_API_KEY` and `MOCK_MODE=false` for live model calls. `MOCK_MODE=false` without a key is a boot error, never a silent downgrade to fixtures.
+- `META_API_KEY` is accepted as a legacy alias and warns at boot; `MODEL_API_KEY` is the documented name.
+- The key is read by `server/index.ts` only. It must never carry a `VITE_` prefix, because Vite inlines those into the client bundle.
+
+### 3. Run All Tests (104/104 Passing)
 ```bash
 npm test
+npx tsc --noEmit   # Node strips types without checking them; run both
 ```
 
-### 3. Run Quantitative Eval Harness (20 Cases)
+### 4. Run the Conformance Harness
 ```bash
 npm run eval
 ```
 
-### 4. Start the 3D Sanctuary & Dev Server
+### 5. Start the 3D Sanctuary & Dev Server
 ```bash
 npm run dev
 ```
@@ -162,7 +175,7 @@ Open [http://localhost:3000/](http://localhost:3000/) in your browser.
 
 - **[W][A][S][D]**: Walk through the 3D room.
 - **[Mouse Drag]**: 360° orbital cinematic camera.
-- **[E] Proximity**: Open Max Caulfield's sketchbook at the desk to inspect the SAM 3.1 pixel mask, audio turns, and SHA-256 receipts.
+- **[E] Proximity**: Open the sketchbook at the desk to inspect the SAM 3.1 pixel mask, audio turns, and SHA-256 receipts.
 - **[Rewind Button]**: Test bitemporal time travel and state rollback.
 - **[⛓️ Ledger Badge]**: Toggle live cryptographic block inspector.
 
