@@ -120,7 +120,9 @@ test('e2e: evidence -> Spark -> SAM -> hash chain -> conflict -> rewind', async 
 
   // The refined box is strictly tighter or equal — it is geometry, not a guess.
   assert.deepEqual(segmentation.box, MOCK_REFINED_BOX);
-  assert.ok(segmentation.confidence > 0.9);
+  // Mock mode reports a confidence, so this assertion is about the mock fixture;
+  // the narrowing keeps the type honest without inventing a fallback.
+  assert.ok(segmentation.confidence !== null && segmentation.confidence > 0.9);
 
   /* --------------------------------------------------------------------- */
   /* Step 4 — seal the first commitment, anchored to that mask             */

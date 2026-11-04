@@ -206,7 +206,7 @@ test('mock: segmentation refines the proposed box to a mask', async () => {
   assert.deepEqual(result.box, MOCK_REFINED_BOX);
   assert.equal(result.maskEncoding, 'one_bit');
   assert.equal(result.geometry, null, 'the mock has no mask, so it claims no geometry');
-  assert.ok(result.confidence > 0.9);
+  assert.ok(result.confidence !== null && result.confidence > 0.9);
   assert.equal(result.receipt.model, MODEL.sam);
 });
 
@@ -248,6 +248,10 @@ test('live: segmentation returns the decoded mask geometry, not just a box', asy
   assert.ok(geometry.raster.coverage > 0.9);
   assert.ok(geometry.contours.length >= 1);
   assert.deepEqual(geometry.box, [683, 659, 763, 847]);
+
+  // The served token has no `c=` field, so the model reported no confidence.
+  // It must stay null: 0 would claim a measurement that never happened.
+  assert.equal(result.confidence, null);
 });
 
 test('mock: Spark returns a different draft for a screenshot than for audio', async () => {

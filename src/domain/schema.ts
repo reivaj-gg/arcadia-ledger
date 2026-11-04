@@ -151,8 +151,12 @@ export const ProvenanceAnchor = z
     evidenceId: z.string().min(1),
     box: PixelBoundingBox.optional(),
     audioTurn: AudioTurn.optional(),
-    /** Model-reported confidence in [0, 1]. Never invented by the UI. */
-    confidence: z.number().min(0).max(1),
+    /**
+     * Model-reported confidence in [0, 1], or `null` when the model did not
+     * report one. Never invented by the UI, and never defaulted to 0: a mask the
+     * model is 0% sure about and a mask it never scored are different facts.
+     */
+    confidence: z.number().min(0).max(1).nullable(),
   })
   .strict()
   .superRefine((anchor, ctx) => {

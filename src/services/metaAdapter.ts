@@ -189,7 +189,12 @@ export type SegmentationResult =
   | {
       matched: true;
       box: PixelBoundingBox;
-      confidence: number;
+      /**
+       * `null` when the model did not report one. Absence is not zero: a mask the
+       * model is 0% sure about and a mask it never scored are different facts,
+       * and a provenance ledger must not collapse them.
+       */
+      confidence: number | null;
       maskEncoding: 'one_bit' | 'lossless';
       /**
        * The decoded mask: raster summary plus source-pixel contours. `null` only
@@ -791,8 +796,9 @@ export class MetaAdapter {
     return {
       matched: true,
       box: boxFromBounds(match, size.width, size.height),
-      // 0 means "the model did not report one". We never fabricate confidence.
-      confidence: match.confidence ?? 0,
+      // The model reports confidence only when asked and able. Absence stays
+      // null: writing 0 would claim a measurement nobody made.
+      confidence: match.confidence ?? null,
       maskEncoding: maskRecord?.mask.encoding ?? 'one_bit',
       geometry,
       receipt: this.buildReceipt('segment', MODEL.sam, startedAt, startMs, json, {
