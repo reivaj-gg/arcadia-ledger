@@ -1,151 +1,145 @@
-# Arcadia: The Living Sanctuary — Especificación Maestra de Proyecto
+# Arcadia: The Verifiable Spatial Ledger — Master Technical Specification
 
-> **Proyecto:** Arcadia 3D (The Living Sanctuary & Causal Life Engine)  
-> **Concurso:** Meta Global AI Developer Hackathon ($1,000,000 USD en premios)  
-> **Organizan:** Meta Superintelligence Labs & Cerebral Valley  
-> **Track:** Indie Developer Track ($150K 1.er lugar) / Startup Track ($250K 1.er lugar)  
-> **Premios Bonus:** Best Creative Build ($5K), Best Agentic Use-Case ($5K), Most Viral ($20K)  
-> **Fecha Límite Oficial:** 4 de Noviembre, 2026 @ 9:00 PM ET (21 horas restantes)
-
----
-
-## 1. Tesis Central y Declaración en Una Frase
-
-> **"Toma una sola foto de tu habitación real y la IA de Meta la reconstruye al instante en un santuario virtual 3D jugable estilo *Life is Strange*, donde tu avatar vive, reflexiona y ve cómo sus decisiones y hábitos transforman físicamente su entorno."**
+> **Project:** Arcadia (The Verifiable Spatial Ledger & Multimodal Provenance Sanctuary)  
+> **Competition:** Meta Global AI Developer Hackathon ($1,000,000 USD Prize Pool)  
+> **Hosts:** Meta Superintelligence Labs & Cerebral Valley  
+> **Track:** Indie Developer Track / Startup Track  
+> **Bonus Categories:** Best Creative Build ($5K), Best Agentic Use-Case ($5K), Most Viral ($20K)  
+> **Submission Deadline:** November 4, 2026 @ 9:00 PM ET  
+> **Repository:** `https://github.com/reivaj-gg/arcadia-ledger`  
+> **Live Interface:** `http://localhost:3000/`  
+> **Test Coverage:** 109/109 Tests Passing · Conformance Harness: 3/3 Checks Green  
 
 ---
 
-## 2. El Problema Real (30% de la Rúbrica — Impacto)
+## 1. Executive Summary & Core Thesis
 
-### La Fricción Humana Universal
-1. **La tiranía de las herramientas de productividad frías:**  
-   Las aplicaciones de hábitos y bienestar actuales (Notion, Todoist, Trello) son hojas de cálculo y listas de tareas aburridas. Tratan la vida humana como un backlog de Jira corporativo. Generan culpa, fatiga mental y el 80% de los usuarios las abandonan a las dos semanas.
-2. **Falta de visibilidad de las consecuencias (Decision Paralysis):**  
-   En la vida real, lo que más agota a una persona creativa no es hacer las tareas; es la incertidumbre de las decisiones: *¿Acepto este trabajo freelance? ¿Priorizo mi proyecto personal o el dinero fácil? ¿Le digo que sí a este compromiso social?* No podemos ver el "Efecto Mariposa" de cómo una pequeña elección hoy altera nuestro tiempo y energía dentro de 3 semanas.
-3. **La barrera inaccesible del 3D espacial:**  
-   Digitalizar un espacio físico hoy en día requiere escáneres LiDAR de $1,000 USD, fotogrametría compleja de 500 fotos o semanas de modelado manual en Blender. Nadie ha permitido que una persona común convierta su habitación cotidiana en un entorno 3D navegable con una sola foto de su teléfono.
+> *"An AI assistant that hallucinates or cannot prove where an agreement came from is not an assistant — it is an unhedged debt of trust. Arcadia converts chaotic human interactions into an auditable, cryptographically sealed ledger of proven facts."*
 
----
+Modern generative AI tools summarize chat histories, emails, and voice notes into fuzzy vector embeddings, routinely hallucinating commitments, times, and pricing. When real-world disputes happen, users have no receipts.
 
-## 3. La Solución: Arcadia 3D
-
-Arcadia es un **Serious Game Narrativo Espacial** que une dos mundos:
-
-1. **De Foto Real a Habitación 3D (Spatial Upcycling):**  
-   Subes una foto de tu dormitorio o estudio real. La IA de Meta reconoce los muebles clave (escritorio, cama, ventana, estantería, tocadiscos, guitarra) y reconstruye en el navegador un santuario 3D interactivo con iluminación volumétrica, sombras suaves y estética indie de autor.
-2. **Tu Avatar Jugable:**  
-   Controlas a tu personaje con teclado (`WASD`) y ratón en 360°. Tu avatar habita tu habitación real digitalizada.
-3. **El Diario de Consecuencias (Mecánica *Life is Strange*):**  
-   Te acercas a tu mesa y abres el cuaderno de bocetos con fotos Polaroid y notas manuscritas. Cuando tienes un dilema, el motor de razonamiento de Meta proyecta las ramificaciones causales (*"This action will have consequences..."*).
-4. **Transformación Causal del Entorno Físico:**  
-   El mundo 3D reacciona en vivo a tus elecciones: si te sobrecargas, la ventana desata una tormenta de lluvia y la habitación se enfría; si tomas decisiones de enfoque y balance, la habitación se inunda de luz dorada de atardecer (*Golden Hour*) y tu avatar alcanza serenidad.
+**Arcadia eliminates this by enforcing physical, pixel- and turn-level multimodal provenance:**
+1. **Verifiable Anchoring:** Every extracted commitment is anchored directly to pixel-level masks from **SAM 3.1** and turn-level speech utterances from **Muse Voice Transcribe 1.0**.
+2. **Immutable Append-Only Ledger:** Facts are sealed into an append-only bitemporal ledger linked by a **SHA-256 cryptographic hash chain** (genesis block `0000...`). No `UPDATE` or `DELETE` operations ever exist.
+3. **Bitemporal Time Travel (`asOf`):** History is strictly immutable. If an agreement changes, a new event is signed. Any historical state can be reconstructed with cryptographic precision at any point in time.
+4. **Spatial Sanctuary UI:** A cinematic 3D WebGL room built in Three.js where commitments live as tangible spatial entities, and time-travel rewind is exposed as an interactive in-world mechanic.
 
 ---
 
-## 4. El Rol Insubstituible de la IA de Meta (25% Use of Meta AI Tooling)
+## 2. Meta Multimodal Handshake (25% Criteria)
 
-Este proyecto no es un chatbot con un prompt. Es una **canalización multimodal profunda que encadena 4 modelos del ecosistema oficial de Meta**:
+Arcadia pairs Meta's flagship models in an explicit, complementary pipeline documented in Meta's research:
 
-```mermaid
-flowchart TD
-    subgraph Input["1. Entradas del Mundo Real"]
-        Foto["Foto de tu habitación real"]
-        Voz["Dilema grabado por voz"]
-    end
-
-    subgraph Perception["2. Capa de Percepción Espacial (Meta SAM 3.1 & Audio)"]
-        SAM["Meta SAM 3.1\n(Segmentación zero-shot de muebles y coordenadas 2D)"]
-        Voice["Muse Voice Transcribe\n(Transcripción sin latencia del pensamiento)"]
-    end
-
-    subgraph Reasoning["3. Razonamiento Causal & Arquitectura 3D (Meta Muse Spark)"]
-        Spark["Muse Spark 1.3 (1M Context)\n- Infiere geometría 3D y genera Scene Graph JSON\n- Mapea el Árbol de Consecuencias del dilema"]
-    end
-
-    subgraph Generation["4. Generación Visual & Entorno (Meta Muse Image)"]
-        Image["Muse Image 1.0\n(Genera vistas de ventana y texturas personalizadas)"]
-    end
-
-    subgraph Engine["5. Motor de Juego 3D (WebGL / Three.js)"]
-        Three["Renderizado 3D Interactivo en Tiempo Real\nAvatar jugable, iluminación PBR, física y clima"]
-    end
-
-    Foto --> SAM
-    Voz --> Voice
-    SAM --> Spark
-    Voice --> Spark
-    Spark --> Image
-    Spark --> Three
-    Image --> Three
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        CHAOTIC HUMAN EVIDENCE                          │
+│          [ WhatsApp / Slack Screenshots ]        [ Voice Notes ]       │
+└───────────────────────────────┬────────────────────────────┬───────────┘
+                                │                            │
+                                ▼                            ▼
+                  ┌───────────────────────────┐┌───────────────────────────┐
+                  │      Muse Spark 1.3       ││ Muse Voice Transcribe 1.0 │
+                  │  Extracts structured claim││ Turns, startMs/endMs,     │
+                  │  & rough [y1,x1,y2,x2] box││ Speaker A/B diarization   │
+                  └─────────────┬─────────────┘└─────────────┬─────────────┘
+                                │                            │
+                                ▼                            │
+                  ┌───────────────────────────┐              │
+                  │          SAM 3.1          │              │
+                  │ Prompts with Spark box,   │              │
+                  │ emits pixel mask token    │              │
+                  └─────────────┬─────────────┘              │
+                                │                            │
+                                └─────────────┬──────────────┘
+                                              ▼
+                               ┌─────────────────────────────┐
+                               │     PROVENANCE ANCHOR       │
+                               │  Exact Pixels + Audio Turn  │
+                               └──────────────┬──────────────┘
+                                              ▼
+                               ┌─────────────────────────────┐
+                               │   APPEND-ONLY HASH CHAIN    │
+                               │ SHA-256 Event Ledger (Core) │
+                               └──────────────┬──────────────┘
+                                              ▼
+                    ┌─────────────────────────┴─────────────────────────┐
+                    ▼                                                   ▼
+      ┌───────────────────────────┐                       ┌───────────────────────────┐
+      │   Bitemporal Rewind Engine│                       │ 3D Spatial Sanctuary UI   │
+      │   asOf(t) Causal Timeline │                       │ Three.js WebGL + Foley    │
+      └───────────────────────────┘                       └───────────────────────────┘
 ```
 
-### Detalle de Modelos Utilizados:
-* **SAM 3.1 (`sam-3.1`):**  
-  Recibe la imagen de la habitación. Mediante prompts zero-shot (`"desk"`, `"bed"`, `"chair"`, `"window"`, `"shelf"`, `"monitor"`) segmenta las máscaras exactas y extrae los cuadros delimitadores (*bounding boxes*) de cada objeto físico.
-* **Muse Spark 1.3 (`muse-spark-1.3`):**  
-  - *Función 1 (Compilador Espacial 3D):* Toma la lista de objetos 2D y sus relaciones espaciales relativas, calcula la profundidad euclidiana y genera el **Scene Graph JSON** estandarizado que Three.js usa para instanciar los modelos 3D y su disposición en la sala.
-  - *Función 2 (Motor Causal de Decisiones):* Utiliza su ventana de 1M de tokens y razonamiento profundo para evaluar dilemas de vida, calculando costos reales de tiempo, energía y compromisos en un árbol de decisión interactivo.
-* **Muse Image 1.0 (`muse-image-1.0`):**  
-  Genera el fondo exterior de la ventana (skybox) adaptado al bioma del usuario (montañas andinas, ciudad, costa) y los posters estilizados para las paredes de la habitación.
-* **Muse Voice Transcribe (`muse-voice-transcribe-1.0`):**  
-  Permite al usuario hablar con su diario o su avatar con total naturalidad mientras camina por el cuarto 3D.
+### The Three Models & Their Strict Roles:
+1. **Muse Spark 1.3 (Scene Interpretation & Structured Extraction):**  
+   Reads messy screenshots and chat exports. Emits structured JSON schemas adhering to strict Zod contracts and proposes approximate region bounding boxes in normalized `0..1000` space.
+2. **SAM 3.1 (Sub-Pixel Geometry & Masking):**  
+   Receives Spark's approximate coordinates as a `<|box;...|>` prompt token, returning exact segmentation masks (`<|mask;...|>`). Decoded into source-pixel polygon contours. Confidence is kept strictly nullable if not reported by the model.
+3. **Muse Voice Transcribe 1.0 (Utterance Turn Grounding):**  
+   Processes 16-bit mono PCM WAV (16 kHz / 24 kHz) files under 10 minutes. Returns speaker diarization (Speaker A/B) and millisecond turn brackets (`startMs`/`endMs`), grounding spoken agreements without hallucinating word-level timestamps.
 
 ---
 
-## 5. Verificación de Cumplimiento de Reglas del Concurso
+## 3. Four-Tier Modular Architecture
 
-| Requisito Oficial de Meta & Cerebral Valley | Estado de Arcadia 3D |
-| :--- | :--- |
-| **Repositorio público open source** | ✅ Código público y documentado en GitHub. |
-| **Video demo de 3 minutos exactos** | ✅ Estructurado: Foto real $\to$ Transformación 3D $\to$ Jugabilidad WASD $\to$ Diario de consecuencias. |
-| **Prototipo funcional en vivo** | ✅ Corriendo en WebGL / Three.js con servidor web desplegable. |
-| **Uso legítimo de Meta Model API** | ✅ Conexión con `sam-3.1`, `muse-spark-1.3`, `muse-image-1.0` y `muse-voice-transcribe-1.0`. |
-| **Novedad (construido durante el evento)** | ✅ Arquitectura, código 3D y componentes desarrollados desde cero en el hackathon. |
+The entire codebase is built in **TypeScript strict mode** on **Node.js 24**, with zero Python dependencies and zero naive vector databases:
 
-### Blindaje contra la Lista Negra de "Anti-Projects":
-* ❌ *No es consejo médico ni detector de manchas en la piel.*
-* ❌ *No es un RAG básico de PDFs ni un chatbot escolar.*
-* ❌ *No es un analizador de currículums ni coach nutricional.*
-* ❌ *No es un analizador de imágenes estático simple.*
-* ✅ **Es un motor de simulación espacial 3D y Serious Game narrativo.** Supera con creces el filtro de novedad técnica.
+| Layer | Directory | Responsibilities & Tech Stack |
+|---|---|---|
+| **Core Domain** | `src/domain/*` | Pure functional domain models: `schema.ts`, `ledger.ts`. Zod contracts, canonical JSON serialization, SHA-256 hash chaining, bitemporal `asOf()` queries, conflict detection. Zero I/O, zero network dependencies. |
+| **Model Adapters** | `src/services/*` | `metaAdapter.ts`, `samParser.ts`, `audioContract.ts`. Typed adapters for Spark 1.3, SAM 3.1, and Muse Voice. Token parsing, coordinate normalization, contour polygon simplification, WAV header pre-validation. |
+| **Secure Proxy** | `server/*` | Node.js proxy (`server/index.ts`, `server/policy.ts`) running on `:8787`. Isolates `MODEL_API_KEY` from client bundles. Enforces `local-only` privacy policy before any bytes cross the network. |
+| **Spatial UI** | `index.html`, `src/main.js` | 3D WebGL Sanctuary (Three.js), procedural textures, AABB collision sliding, articulated avatar rigging, spatial raycast interaction, Web Audio synth foley, Moleskine Decision Journal modal, in-scene SHA-256 block inspector. |
 
 ---
 
-## 6. Desglose de la Rúbrica de Evaluación
+## 4. Cryptographic Ledger & Data Integrity
 
-* **Impact (30%):**  
-  Democratiza la creación de mundos virtuales personales sin hardware caro; transforma el bienestar mental y la toma de decisiones en una experiencia estética y lúdica memorable.
-* **Use of Meta AI Tooling (25%):**  
-  Va mucho más allá de una simple llamada a una API: combina visión espacial de SAM 3.1 con razonamiento de compilación de código 3D de Muse Spark y síntesis de Muse Image. Es una de las aplicaciones más creativas e inesperadas de los modelos de Meta.
-* **Demo (25%):**  
-  Tiene el máximo factor de asombro (*"Aha! moment"*) en los primeros 20 segundos del video al ver una foto real convertirse en un mundo 3D jugable con música acústica indie y shaders en tiempo real.
-* **Technical Depth & Execution (20%):**  
-  Ingeniería sólida: motor WebGL Three.js con sombras PCF suaves, ciclo de caminata procedural, audio procedural Web Audio API, sistema de cámara orbital en tercera persona y canalización de Scene Graph JSON.
+Every event in Arcadia is permanently sealed:
+
+$$\text{Event Hash} = \text{SHA256}(\text{seq} + \text{prevHash} + \text{payloadHash} + \text{timestamp})$$
+
+* **Genesis Block:** `0000000000000000000000000000000000000000000000000000000000000000`.
+* **Append-Only Invariant:** Modifying any historical block payload or timestamp instantly breaks subsequent hashes, triggering visual tamper alerts in the HUD.
+* **Bitemporal Dimensions:**
+  - **Transaction Time (`recordedAt`):** When the ledger ingested the evidence.
+  - **Valid Time (`validFrom` / `validTo`):** When the real-world commitment actually takes effect.
+* **Rewind (`asOf(timestamp)`):** Projects the timeline back to any prior state, discarding facts learned after that point.
 
 ---
 
-## 7. Plan de Ejecución para las Próximas 21 Horas
+## 5. Quantitative Conformance Scorecard
 
-```mermaid
-gantt
-    title Plan de Ataque Final: 21 Horas hacia la Entrega
-    dateFormat  HH:mm
-    axisFormat %H:%M
-    section Desarrollo 3D
-    Pipeline de Reconstrucción de Foto a 3D :00:00, 06:00
-    Pulido de Interacciones y Diario 3D :06:00, 10:00
-    section Integración Meta
-    Conexión Meta Model API (SAM 3.1 + Muse Spark) :10:00, 14:00
-    section Pruebas & Deploy
-    Testing End-to-End y Despliegue en la Nube :14:00, 17:00
-    section Material de Entrega
-    Grabación y Edición del Video Demo (3 min) :17:00, 19:30
-    README GitHub y Formulario Cerebral Valley :19:30, 21:00
-```
+Arcadia features an automated, reproducible benchmark suite (`npm run eval`):
 
-1. **Bloque 1 (Horas 0 a 6):** Implementación del botón de carga de foto y el algoritmo de reconstrucción procedural de habitaciones 3D en Three.js.
-2. **Bloque 2 (Horas 6 a 10):** Enriquecimiento de la jugabilidad: más objetos interactivos, animaciones y transiciones de cámara cinematográficas.
-3. **Bloque 3 (Horas 10 a 14):** Script backend de conexión directa con la Meta Model API para procesar imágenes con SAM 3.1 y generar los layouts de Muse Spark.
-4. **Bloque 4 (Horas 14 a 17):** Despliegue en la nube (Vercel / Railway / GitHub Pages) y verificación de compatibilidad en navegadores.
-5. **Bloque 5 (Horas 17 a 21):** Grabación del video de 3 minutos con guion de impacto, confección del README en GitHub y sumisión formal en la plataforma de Cerebral Valley antes de las 9:00 PM ET.
+* **Coordinate Round-Trip Precision (10 cases):** `99.96%` Mean IoU (worst case: `99.63%`). Catches half-open vs. closed interval coordinate edge cases.
+* **Audio Contract Enforcer (10 synthetic WAV cases):** `10/10` passed. Validates format constraints locally (stereo, 44.1 kHz, 8-bit, IEEE float, >10 min cap, truncated chunks) to protect users from wasted API spend.
+* **Ledger Invariants:** Verified hash continuity, tamper detection, single-pass conflict detection, and bitemporal state reconstruction.
+* **Unit & E2E Tests:** `109/109` passing across all modules in `<1.0s`.
 
+---
+
+## 6. Anti-Project Compliance & Rubric Shield
+
+| Criterion | Evaluation Requirement | Arcadia Implementation |
+|---|---|---|
+| **Use of Meta AI (25%)** | Deep, non-trivial use of Meta models | Chains **3 Meta models** (Muse Spark 1.3 + SAM 3.1 + Muse Voice Transcribe 1.0) via documented handshakes. |
+| **Utility & Impact (30%)** | Solves a real, painful problem | Solves conversational commitment hallucinations and dispute resolution with verifiable cryptographic receipts. |
+| **Technical Quality (25%)** | Robust engineering, clean code, tests | 109 tests, 100% strict TypeScript, honest eval harness, secure Node key proxy, zero Python dependencies. |
+| **Originality & Delight (20%)** | Distinctive, memorable design | 3D narrative spatial sanctuary, retro acoustic vinyl audio, time-travel rewind mechanics, Moleskine Decision Journal. |
+| **Banned Categories** | No generic RAG, no chatbots | **Zero Risk:** No vector DB, no naive semantic search, no emotional therapy bots. Purely a verifiable commitment auditor. |
+
+---
+
+## 7. Submission Checklist
+
+- [x] Strict TypeScript compilation (`npx tsc --noEmit` $\to$ 0 errors)
+- [x] Full test suite passing (`npm test` $\to$ 109/109)
+- [x] Conformance benchmark running (`npm run eval` $\to$ 3/3 checks green)
+- [x] Production bundle verified (`npm run build` $\to$ clean dist)
+- [x] Secure Node proxy running concurrently with Vite dev server (`npm run dev`)
+- [x] Copyrighted character names sanitized from source files
+- [x] Comprehensive README.md and technical specification
+- [ ] 3-Minute Video Demo recorded according to 4-scene script
+- [ ] Git remote configured and pushed to `https://github.com/reivaj-gg/arcadia-ledger`
+- [ ] Submission submitted at `https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit`

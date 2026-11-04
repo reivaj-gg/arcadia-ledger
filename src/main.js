@@ -456,7 +456,7 @@ function createPosterTexture(title, band) {
   ctx.font = '14px "Patrick Hand", cursive';
   ctx.fillStyle = '#cbd5e1';
   ctx.fillText(title, 128, 300);
-  ctx.fillText('BLACKWELL MUSIC FESTIVAL · 2026', 128, 325);
+  ctx.fillText('ARCADIA MUSIC FESTIVAL · 2026', 128, 325);
 
   return new THREE.CanvasTexture(c);
 }
@@ -621,7 +621,7 @@ lightShaft.rotation.x = 0.9;
 lightShaft.rotation.z = -0.4;
 scene.add(lightShaft);
 
-// Cama de Max Caulfield
+// Cama de Max
 const bedGroup = new THREE.Group();
 bedGroup.position.set(-4.5, 0, -3.2);
 
@@ -1030,7 +1030,7 @@ function spawnMusicNote() {
 }
 
 // ============================================================================
-// AVATAR ESTILIZADO DE MAX CAULFIELD (ARTICULACIONES Y PIVOTES REALES)
+// AVATAR ESTILIZADO DE MAX (ARTICULACIONES Y PIVOTES REALES)
 // ============================================================================
 
 const avatar = new THREE.Group();
@@ -1530,7 +1530,7 @@ if (btnCloseJournal) btnCloseJournal.addEventListener('click', closeJournal);
 // CLIMA Y ESTADOS DEL MUNDO (DORADO · TORMENTA · CREPÚSCULO)
 // ============================================================================
 
-let weatherMode = 0; // 0: Atardecer Dorado, 1: Tormenta de Dudas, 2: Crepúsculo de Blackwell
+let weatherMode = 0; // 0: Atardecer Dorado, 1: Tormenta de Dudas, 2: Crepúsculo de Arcadia
 
 function toggleWeather() {
   weatherMode = (weatherMode + 1) % 3;
@@ -1554,7 +1554,7 @@ function setWorldState(mode) {
     if (weatherText) weatherText.innerText = 'Tormenta de Dudas';
     playAcousticNote(180);
   } else if (mode === 2) {
-    // Crepúsculo de Blackwell
+    // Crepúsculo de Arcadia
     sunLight.color.setHex(0x818cf8);
     sunLight.intensity = 1.6;
     hemiLight.color.setHex(0x1e1b4b);
@@ -1564,7 +1564,7 @@ function setWorldState(mode) {
     lightShaft.material.color.setHex(0xa855f7);
     lightShaft.material.opacity = 0.15;
     if (weatherIcon) weatherIcon.innerText = '🌙';
-    if (weatherText) weatherText.innerText = 'Crepúsculo de Blackwell';
+    if (weatherText) weatherText.innerText = 'Crepúsculo de Arcadia';
     playAcousticNote(260);
   } else {
     // Atardecer Dorado
