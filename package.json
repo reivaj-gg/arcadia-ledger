@@ -11,6 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test \"tests/**/*.test.ts\"",
+    "eval": "node scripts/eval.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
