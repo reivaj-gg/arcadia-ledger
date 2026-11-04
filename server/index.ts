@@ -1,14 +1,14 @@
 /**
  * Arcadia — Model API proxy
  * =========================
- * The only process allowed to hold `MODEL_API_KEY`.
+ * The only process allowed to hold the Model API key.
  *
  * Why this file exists
  * --------------------
  * A Vite app is a static bundle. Anything the client knows, the world knows.
  * So the browser never talks to `api.meta.ai`; it talks to `/api/*`, Vite
- * proxies that to this server in development, and a reverse proxy does the
- * same in production. The key stays in `process.env` and dies with the process.
+ * proxies that here in development, and a reverse proxy does the same in
+ * production. The key stays in `process.env` and dies with the process.
  *
  * Why `node:http` and not Express
  * -------------------------------
@@ -23,6 +23,9 @@
  * mock data is a demo that lies about what the models did — and the entire
  * thesis of Arcadia is that a claim must be traceable to the thing that
  * actually produced it.
+ *
+ * The rules themselves (key precedence, mock decision, privacy gate, error
+ * mapping) live in `./policy.ts` so they can be tested without a socket.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -30,14 +33,20 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { z } from 'zod';
 
 import { PixelBoundingBox } from '../src/domain/schema.ts';
+import type { EvidenceSensitivity } from '../src/domain/schema.ts';
 import {
   MetaAdapter,
-  MetaAdapterError,
   MODEL,
   PRICING,
-  PrivacyViolationError,
   type EvidenceContext,
 } from '../src/services/metaAdapter.ts';
+import {
+  HttpError,
+  localOnlyVerdict,
+  resolveApiKey,
+  resolveMockMode,
+  statusForError,
+} from './policy.ts';
 
 /* ------------------------------------------------------------------------- */
 /* Environment                                                               */
@@ -45,7 +54,7 @@ import {
 
 // `process.loadEnvFile` is native since Node 20.12 — no dotenv dependency.
 // It throws when the file is absent, which is a normal state (CI, fresh clone),
-// so the failure is swallowed and the process falls back to mock mode.
+// so the failure is swallowed and the defaults below decide the mode.
 try {
   process.loadEnvFile?.('.env');
 } catch {
@@ -54,11 +63,20 @@ try {
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? '127.0.0.1';
-const API_KEY = process.env.MODEL_API_KEY?.trim() ?? '';
 
-// `MOCK_MODE=false` is the only way to force live calls with no key present,
-// and that is a hard error rather than a silent downgrade.
-const MOCK_MODE = process.env.MOCK_MODE === 'true' || API_KEY.length === 0;
+const credentials = resolveApiKey(process.env);
+const modeDecision = resolveMockMode(process.env, credentials.key.length > 0);
+
+if (modeDecision.forceLive) {
+  throw new Error(
+    'MOCK_MODE=false requires MODEL_API_KEY. Refusing to start in a mode that would silently serve fixtures.',
+  );
+}
+
+if (credentials.warning !== null) {
+  // eslint-disable-next-line no-console
+  console.warn(`[arcadia] ${credentials.warning}`);
+}
 
 /**
  * Base64 inflates by ~4/3, and the ASR endpoint caps WAV at 32 MB, so the
@@ -72,28 +90,16 @@ const MAX_BODY_BYTES = 48 * 1024 * 1024;
 /* ------------------------------------------------------------------------- */
 
 const adapter = new MetaAdapter({
-  apiKey: API_KEY,
-  mock: MOCK_MODE,
+  apiKey: credentials.key,
+  mock: modeDecision.mode === 'mock',
   ...(process.env.META_BASE_URL === undefined ? {} : { baseUrl: process.env.META_BASE_URL }),
 });
+
+const isLive = !adapter.isMock;
 
 /* ------------------------------------------------------------------------- */
 /* HTTP plumbing                                                             */
 /* ------------------------------------------------------------------------- */
-
-class HttpError extends Error {
-  readonly status: number;
-  readonly code: string;
-  readonly details: unknown;
-
-  constructor(status: number, code: string, message: string, details?: unknown) {
-    super(message);
-    this.name = 'HttpError';
-    this.status = status;
-    this.code = code;
-    this.details = details ?? null;
-  }
-}
 
 function sendJson(res: ServerResponse, status: number, payload: unknown): void {
   const body = JSON.stringify(payload);
@@ -149,6 +155,71 @@ function decodeBase64(value: string, field: string): Uint8Array {
   return new Uint8Array(Buffer.from(normalised, 'base64'));
 }
 
+function parseOrThrow<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    throw new HttpError(
+      400,
+      'invalid_contract',
+      'Request did not satisfy its contract.',
+      result.error.issues.map((issue) => ({
+        path: issue.path.join('.'),
+        message: issue.message,
+      })),
+    );
+  }
+  return result.data;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Local-only middleware                                                     */
+/* ------------------------------------------------------------------------- */
+
+interface GuardedRoute<T extends z.ZodType> {
+  /** Human-readable name used in the refusal message and the log line. */
+  readonly operation: string;
+  readonly schema: T;
+  /** Where the policy flag lives inside the validated body. */
+  readonly sensitivityOf: (body: z.infer<T>) => EvidenceSensitivity | undefined;
+  readonly evidenceIdOf: (body: z.infer<T>) => string | undefined;
+  readonly handle: (body: z.infer<T>, res: ServerResponse) => Promise<void>;
+}
+
+/**
+ * Wraps a POST handler with the privacy gate.
+ *
+ * Order matters: parse -> decide -> decode. The refusal happens before the
+ * base64 payload is turned into bytes, so a blocked request costs one JSON
+ * parse and nothing else, and no evidence is ever materialised for a remote
+ * model it is not allowed to reach.
+ */
+function guarded<T extends z.ZodType>(
+  route: GuardedRoute<T>,
+): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
+  return async (req, res) => {
+    const body = parseOrThrow(route.schema, await readJsonBody(req));
+
+    const verdict = localOnlyVerdict(route.sensitivityOf(body), {
+      live: isLive,
+      operation: route.operation,
+      ...(route.evidenceIdOf(body) === undefined
+        ? {}
+        : { evidenceId: route.evidenceIdOf(body) as string }),
+    });
+
+    if (!verdict.allowed) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[arcadia] blocked local-only evidence from reaching ${route.operation} ` +
+          `(${route.evidenceIdOf(body) ?? 'unknown id'})`,
+      );
+      throw new HttpError(verdict.status, verdict.code, verdict.reason);
+    }
+
+    await route.handle(body, res);
+  };
+}
+
 /* ------------------------------------------------------------------------- */
 /* Request contracts                                                         */
 /* ------------------------------------------------------------------------- */
@@ -188,111 +259,70 @@ const ExtractBody = z
   })
   .strict();
 
-function parseOrThrow<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
-  const result = schema.safeParse(value);
-  if (!result.success) {
-    throw new HttpError(
-      400,
-      'invalid_contract',
-      'Request did not satisfy its contract.',
-      result.error.issues.map((issue) => ({
-        path: issue.path.join('.'),
-        message: issue.message,
-      })),
-    );
-  }
-  return result.data;
-}
+type TranscribeBody = z.infer<typeof TranscribeBody>;
+type SegmentBody = z.infer<typeof SegmentBody>;
+type ExtractBody = z.infer<typeof ExtractBody>;
 
 /* ------------------------------------------------------------------------- */
-/* Routes                                                                    */
+/* Handlers                                                                  */
 /* ------------------------------------------------------------------------- */
 
-async function handleTranscribe(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = parseOrThrow(TranscribeBody, await readJsonBody(req));
-  const audio = decodeBase64(body.audioBase64, 'audioBase64');
+const handleTranscribe = guarded<typeof TranscribeBody>({
+  operation: 'Muse Voice Transcribe',
+  schema: TranscribeBody,
+  sensitivityOf: (body) => body.sensitivity,
+  evidenceIdOf: (body) => body.evidenceId,
+  handle: async (body, res) => {
+    const audio = decodeBase64(body.audioBase64, 'audioBase64');
 
-  const result = await adapter.transcribeAudio(audio, {
-    ...(body.sensitivity === undefined ? {} : { sensitivity: body.sensitivity }),
-    ...(body.evidenceId === undefined ? {} : { evidenceId: body.evidenceId }),
-  });
+    const result = await adapter.transcribeAudio(audio, {
+      ...(body.sensitivity === undefined ? {} : { sensitivity: body.sensitivity }),
+      ...(body.evidenceId === undefined ? {} : { evidenceId: body.evidenceId }),
+    });
 
-  sendJson(res, 200, result);
-}
+    sendJson(res, 200, result);
+  },
+});
 
-async function handleSegment(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = parseOrThrow(SegmentBody, await readJsonBody(req));
-  const image = decodeBase64(body.imageBase64, 'imageBase64');
+const handleSegment = guarded<typeof SegmentBody>({
+  operation: 'SAM 3.1',
+  schema: SegmentBody,
+  sensitivityOf: (body) => body.sensitivity,
+  evidenceIdOf: (body) => body.evidenceId,
+  handle: async (body, res) => {
+    const image = decodeBase64(body.imageBase64, 'imageBase64');
 
-  const result = await adapter.segmentRegion(image, body.box, {
-    ...(body.sensitivity === undefined ? {} : { sensitivity: body.sensitivity }),
-    ...(body.evidenceId === undefined ? {} : { evidenceId: body.evidenceId }),
-  });
+    const result = await adapter.segmentRegion(image, body.box, {
+      ...(body.sensitivity === undefined ? {} : { sensitivity: body.sensitivity }),
+      ...(body.evidenceId === undefined ? {} : { evidenceId: body.evidenceId }),
+    });
 
-  sendJson(res, 200, result);
-}
+    sendJson(res, 200, result);
+  },
+});
 
-async function handleExtract(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = parseOrThrow(ExtractBody, await readJsonBody(req));
-
-  // `turns` cannot be supplied by the browser: they are model output, and a
-  // client that could inject them could forge an audio anchor. The client
-  // calls `/api/transcribe` first and passes the resulting turns back only
-  // for display; the anchor is rebuilt here from the transcript it sends.
-  const context: EvidenceContext = {
-    evidenceId: body.context.evidenceId,
-    kind: body.context.kind,
-    capturedAt: body.context.capturedAt,
-    ...(body.context.sensitivity === undefined ? {} : { sensitivity: body.context.sensitivity }),
-    ...(body.context.ocrText === undefined ? {} : { ocrText: body.context.ocrText }),
-    ...(body.context.note === undefined ? {} : { note: body.context.note }),
-  };
-
-  const result = await adapter.extractCausalCommitment(body.evidenceText, context);
-  sendJson(res, 200, result);
-}
-
-/* ------------------------------------------------------------------------- */
-/* Error mapping                                                             */
-/* ------------------------------------------------------------------------- */
-
-function statusForError(error: unknown): { status: number; code: string; details: unknown } {
-  if (error instanceof HttpError) {
-    return { status: error.status, code: error.code, details: error.details };
-  }
-
-  if (error instanceof PrivacyViolationError) {
-    // 403, not 500: the caller asked for something the policy forbids.
-    return {
-      status: 403,
-      code: 'privacy_violation',
-      details: { evidenceId: error.evidenceId, operation: error.operation },
+const handleExtract = guarded<typeof ExtractBody>({
+  operation: 'Muse Spark',
+  schema: ExtractBody,
+  sensitivityOf: (body) => body.context.sensitivity,
+  evidenceIdOf: (body) => body.context.evidenceId,
+  handle: async (body, res) => {
+    // `turns` cannot be supplied by the browser: they are model output, and a
+    // client that could inject them could forge an audio anchor. The anchor is
+    // rebuilt server-side from the transcript the client sends.
+    const context: EvidenceContext = {
+      evidenceId: body.context.evidenceId,
+      kind: body.context.kind,
+      capturedAt: body.context.capturedAt,
+      ...(body.context.sensitivity === undefined ? {} : { sensitivity: body.context.sensitivity }),
+      ...(body.context.ocrText === undefined ? {} : { ocrText: body.context.ocrText }),
+      ...(body.context.note === undefined ? {} : { note: body.context.note }),
     };
-  }
 
-  if (error instanceof MetaAdapterError) {
-    const status =
-      error.code === 'rate_limited'
-        ? 429
-        : error.code === 'timeout'
-          ? 504
-          : error.code === 'missing_api_key' || error.code === 'key_in_client'
-            ? 500
-            : error.code === 'http_error'
-              ? 502
-              : error.code === 'invalid_response'
-                ? 502
-                : 400;
-
-    return {
-      status,
-      code: error.code,
-      details: { message: error.message, retryable: error.retryable, requestId: error.requestId },
-    };
-  }
-
-  return { status: 500, code: 'internal_error', details: null };
-}
+    const result = await adapter.extractCausalCommitment(body.evidenceText, context);
+    sendJson(res, 200, result);
+  },
+});
 
 /* ------------------------------------------------------------------------- */
 /* Server                                                                    */
@@ -306,10 +336,11 @@ const server = createServer((req, res) => {
   const path = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`).pathname;
 
   res.on('finish', () => {
-    const mode = adapter.isMock ? 'mock' : 'live';
     // eslint-disable-next-line no-console
     console.log(
-      `${method} ${path} -> ${res.statusCode} (${Date.now() - requestStarted}ms, ${mode})`,
+      `${method} ${path} -> ${res.statusCode} (${Date.now() - requestStarted}ms, ${
+        isLive ? 'live' : 'mock'
+      })`,
     );
   });
 
@@ -318,9 +349,12 @@ const server = createServer((req, res) => {
       if (method !== 'GET') throw new HttpError(405, 'method_not_allowed', 'Use GET.');
       sendJson(res, 200, {
         ok: true,
-        mock: adapter.isMock,
+        mock: !isLive,
+        // Which variable the key came from — never the key itself.
+        keySource: credentials.source,
         models: MODEL,
         pricing: PRICING,
+        limits: { maxBodyBytes: MAX_BODY_BYTES },
         uptimeMs: Date.now() - startedAtMs,
       });
       return;
@@ -358,18 +392,24 @@ const server = createServer((req, res) => {
       return;
     }
     sendJson(res, mapped.status, {
-      error: { code: mapped.code, details: mapped.details },
+      error: { code: mapped.code, message: mapped.message, details: mapped.details },
     });
   });
 });
 
 server.listen(PORT, HOST, () => {
-  const mode = adapter.isMock ? 'MOCK (no network calls)' : 'LIVE (Meta Model API)';
   // eslint-disable-next-line no-console
-  console.log(`[arcadia] api listening on http://${HOST}:${PORT} — mode: ${mode}`);
-  if (!adapter.isMock) {
-    // Never log the key itself, not even truncated: a prefix is enough to
-    // correlate a leak with an account.
-    console.log(`[arcadia] key present (${API_KEY.length} chars), base ${process.env.META_BASE_URL ?? 'https://api.meta.ai/v1'}`);
+  console.log(
+    `[arcadia] api listening on http://${HOST}:${PORT} — mode: ${
+      isLive ? 'LIVE (Meta Model API)' : 'MOCK (no network calls)'
+    }`,
+  );
+  if (isLive) {
+    // Never log the key, not even truncated: a prefix is enough to correlate a
+    // leak with an account.
+    console.log(
+      `[arcadia] key from ${credentials.source} (${credentials.key.length} chars), ` +
+        `base ${process.env.META_BASE_URL ?? 'https://api.meta.ai/v1'}`,
+    );
   }
 });
