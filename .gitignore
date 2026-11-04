@@ -11,6 +11,9 @@ dist/
 # Runtime logs
 *.log
 
+# Event materials — the organiser's guide is theirs, not part of this repo
+participant_guide.md
+
 # OS noise
 .DS_Store
 Thumbs.db
