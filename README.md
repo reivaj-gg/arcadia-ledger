@@ -170,3 +170,4 @@ Open [http://localhost:3000/](http://localhost:3000/) in your browser.
 
 ## 📜 License
 MIT License. Built for the Meta Global AI Developer Hackathon 2026.
+
