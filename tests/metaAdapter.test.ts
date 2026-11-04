@@ -20,10 +20,11 @@ import {
   MetaAdapter,
   MetaAdapterError,
   MODEL,
-  parseSegmentationOutput,
   PrivacyViolationError,
   readImageSize,
 } from '../src/services/metaAdapter.ts';
+import { boxFromBounds, parseSegmentationText } from '../src/services/samParser.ts';
+import { recordsOfKind } from '@meta-sam/parser';
 import {
   MOCK_CLASS_DRAFT,
   MOCK_DILEMMA_DRAFT,
@@ -272,44 +273,50 @@ test('policy: 429 is classified as rate_limited so callers can back off', async 
 
 test('sam: the box prompt uses the documented token grammar in media pixels', () => {
   const prompt = buildObjectPrompt([100, 200, 300, 400], 1000, 1000);
-  assert.equal(prompt, '<0f>1<|box;x1=200;y1=100;x2=400;y2=300;w=1000;h=1000|>');
+  // The domain box is half-open (xmax 400 excludes 400), while the wire's x2 is
+  // inclusive. The official builder writes right - 1, so 399 is correct and 400
+  // would have asked SAM to segment a pixel that belongs to the next region.
+  assert.equal(prompt, '<0f>1<|box;x1=200;y1=100;x2=399;y2=299;w=1000;h=1000|>');
 });
 
-test('sam: coordinates clamp inside the media, x2/y2 are inclusive', () => {
+test('sam: a box that fills the media stops at the last pixel, never past it', () => {
   const prompt = buildObjectPrompt([0, 0, 1000, 1000], 720, 1280);
   assert.equal(prompt, '<0f>1<|box;x1=0;y1=0;x2=719;y2=1279;w=720;h=1280|>');
 });
 
 test('sam: a degenerate box still yields at least one pixel of area', () => {
   const prompt = buildObjectPrompt([500, 500, 500, 500], 100, 100);
-  // ymin == ymax would be a zero-area location; the builder widens it.
-  assert.equal(prompt, '<0f>1<|box;x1=50;y1=50;x2=51;y2=51;w=100;h=100|>');
+  // ymin == ymax would be a zero-area location; the builder widens it to one
+  // pixel before handing it to the official encoder, which rejects empty boxes.
+  assert.equal(prompt, '<0f>1<|box;x1=50;y1=50;x2=50;y2=50;w=100;h=100|>');
 });
 
-test('sam: the parser converts media pixels back into normalized space', () => {
-  const text = '<0f>1<|box;x1=10;y1=20;x2=30;y2=40;c=0.95|><|mask;data=0,0,!AA|>';
-  const records = parseSegmentationOutput(text, 100, 200);
+test('sam: the parsed box converts media pixels back into normalized space', async () => {
+  const result = await parseSegmentationText('<0f>1<|box;x1=10;y1=20;x2=30;y2=40;c=0.95|>');
+  const [record] = recordsOfKind(result.records, 'box');
 
-  assert.equal(records.length, 1);
-  const record = records[0];
   assert.ok(record !== undefined);
-  assert.equal(record.objectId, 1);
-  assert.deepEqual(record.box, [100, 100, 200, 300]);
+  assert.equal(record.objectId, '1');
   assert.equal(record.confidence, 0.95);
-  assert.equal(record.maskEncoding, 'one_bit');
+
+  // Wire corners are inclusive, the parsed box is half-open: right = 30 + 1.
+  assert.equal(record.right, 31);
+  assert.deepEqual(boxFromBounds(record, 100, 200), [100, 100, 205, 310]);
 });
 
-test('sam: an absent confidence stays null instead of being invented', () => {
-  const records = parseSegmentationOutput('<0f>2<|box;x1=1;y1=1;x2=2;y2=2|>', 100, 200);
+test('sam: an absent confidence stays null instead of being invented', async () => {
+  const result = await parseSegmentationText('<0f>2<|box;x1=1;y1=1;x2=2;y2=2|>');
+  const [record] = recordsOfKind(result.records, 'box');
 
-  assert.equal(records.length, 1);
-  assert.equal(records[0]?.confidence, null);
-  assert.equal(records[0]?.maskToken, null);
-  assert.equal(records[0]?.maskEncoding, null);
+  assert.ok(record !== undefined);
+  assert.equal(record.confidence, undefined, 'absence is not zero');
 });
 
-test('sam: prose without tokens yields no records rather than a wrong box', () => {
-  assert.deepEqual(parseSegmentationOutput('I could not find that object.', 100, 200), []);
+test('sam: prose without tokens yields no records rather than a wrong box', async () => {
+  const result = await parseSegmentationText('I could not find that object.');
+
+  assert.equal(result.records.length, 0);
+  assert.deepEqual(result.diagnostics, []);
 });
 
 /* ------------------------------------------------------------------------- */
