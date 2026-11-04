@@ -161,8 +161,49 @@ test('mock: segmentation refines the proposed box to a mask', async () => {
 
   assert.deepEqual(result.box, MOCK_REFINED_BOX);
   assert.equal(result.maskEncoding, 'one_bit');
+  assert.equal(result.geometry, null, 'the mock has no mask, so it claims no geometry');
   assert.ok(result.confidence > 0.9);
   assert.equal(result.receipt.model, MODEL.sam);
+});
+
+test('live: segmentation returns the decoded mask geometry, not just a box', async () => {
+  // The documented SAM line, served as a non-streaming Responses body.
+  const body = JSON.stringify({
+    output_text:
+      "<0f>1<|box;x1=211;y1=228;x2=270;y2=254;w=320;h=334|>" +
+      DOC_MASK,
+  });
+
+  let sentBody = '';
+  const adapter = new MetaAdapter({
+    apiKey: 'test-key',
+    mock: false,
+    retries: 0,
+    fetchImpl: (_url, init) => {
+      sentBody = typeof init?.body === 'string' ? init.body : '';
+      return Promise.resolve(
+        new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      );
+    },
+  });
+
+  const result = await adapter.segmentRegion(png(320, 334), [683, 659, 763, 847]);
+
+  assert.equal(result.matched, true);
+  if (!result.matched) return;
+
+  // The prompt must have asked for a half-open box converted to inclusive wire
+  // corners: right 847/1000 of 320 px is 271, so x2 is 270, not 271.
+  assert.match(sentBody, /"text":"<0f>1<\|box;x1=211;y1=228;x2=270;y2=254;w=320;h=334\|>"/);
+
+  assert.ok(result.geometry !== null, 'a real mask must decode into geometry');
+  const geometry = result.geometry;
+  assert.equal(geometry.objectId, '1');
+  assert.equal(geometry.raster.width, 60);
+  assert.equal(geometry.raster.height, 27);
+  assert.ok(geometry.raster.coverage > 0.9);
+  assert.ok(geometry.contours.length >= 1);
+  assert.deepEqual(geometry.box, [683, 659, 763, 847]);
 });
 
 test('mock: Spark returns a different draft for a screenshot than for audio', async () => {
