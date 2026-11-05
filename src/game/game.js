@@ -26,10 +26,10 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const SPEAKERS = {
-  javier: { name: 'Javier', role: 'Tú · Reconstruyendo tu habitación', style: 'default' },
-  narrador: { name: 'Narración', role: 'Entorno', style: 'narration' },
+  javier: { name: 'Javier', role: 'You · Rebuilding your room', style: 'default' },
+  narrador: { name: 'Narration', role: 'Surroundings', style: 'narration' },
   mariposa: { name: 'El Eco', role: 'Meta Muse Spark 1.3', style: 'thought' },
-  ledger: { name: 'Ledger Criptográfico', role: 'SHA-256 Inmutable', style: 'ledger' },
+  ledger: { name: 'Cryptographic ledger', role: 'SHA-256 · immutable', style: 'ledger' },
   muse: { name: 'Meta AI', role: 'SAM 3.1 · Muse Voice 1.0', style: 'voice' },
 };
 
@@ -49,7 +49,7 @@ root.innerHTML = `
       <div class="ag-hud-left">
         <div class="ag-tab" id="ag-chapter-chip">
           <span class="ag-tab-index" id="ag-chap-kicker">00</span>
-          <span class="ag-tab-title" id="ag-chap-title">El aleteo</span>
+          <span class="ag-tab-title" id="ag-chap-title">The Flutter</span>
         </div>
         <div class="ag-objective ag-hidden" id="ag-objective">
           <span class="ag-obj-icon" id="ag-obj-icon"></span>
@@ -66,31 +66,31 @@ root.innerHTML = `
           <span class="ag-clues" id="ag-clue-count"></span>
         </div>
         <div class="ag-hud-buttons">
-          <button class="ag-icon-btn highlight" id="ag-btn-meta-ai" title="Suite Meta AI Multimodal (SAM 3.1 · Muse Voice · Muse Spark)">${icon('spark')}<span>Meta AI</span></button>
-          <button class="ag-icon-btn" id="ag-btn-journal" title="Cuaderno (J)">${icon('book')}<span>Cuaderno</span></button>
+          <button class="ag-icon-btn highlight" id="ag-btn-meta-ai" title="Meta AI suite (SAM 3.1 · Muse Voice · Muse Spark)">${icon('spark')}<span>Meta AI</span></button>
+          <button class="ag-icon-btn" id="ag-btn-journal" title="Notebook (J)">${icon('book')}<span>Notebook</span></button>
           <button class="ag-icon-btn" id="ag-btn-ledger" title="Ledger (L)">${icon('chain')}<span>Ledger</span></button>
-          <button class="ag-icon-btn" id="ag-btn-music" title="Tocadiscos (M)">${icon('music')}<span>Música</span></button>
-          <button class="ag-icon-btn" id="ag-btn-rewind" title="Rebobinar (R)">${icon('butterfly')}<span>Eco</span></button>
-          <button class="ag-icon-btn" id="ag-btn-pause" title="Menú (ESC)">${icon('menu')}<span>Menú</span></button>
+          <button class="ag-icon-btn" id="ag-btn-music" title="Turntable (M)">${icon('music')}<span>Music</span></button>
+          <button class="ag-icon-btn" id="ag-btn-rewind" title="Rewind (R)">${icon('butterfly')}<span>Echo</span></button>
+          <button class="ag-icon-btn" id="ag-btn-pause" title="Menu (ESC)">${icon('menu')}<span>Menu</span></button>
         </div>
       </div>
     </div>
-    <div class="ag-bottom-hint"><b>WASD</b> caminar <i>·</i> <b>ARRASTRA</b> 360° <i>·</i> <b>E</b> interactuar <i>·</i> <b>I</b> Meta AI <i>·</i> <b>M</b> música <i>·</i> <b>R</b> Eco <i>·</i> <b>ESC</b> menú</div>
+    <div class="ag-bottom-hint"><b>WASD</b> walk <i>·</i> <b>DRAG</b> 360° <i>·</i> <b>E</b> interact <i>·</i> <b>I</b> Meta AI <i>·</i> <b>M</b> music <i>·</i> <b>R</b> Echo <i>·</i> <b>ESC</b> menu</div>
     <div id="ag-waypoint"><div class="ag-waypoint-inner"><div class="ag-waypoint-diamond"></div><div class="ag-waypoint-label"></div></div></div>
   </div>
 
   <!-- Outside the HUD on purpose: the demo has to be one click from the title
        screen, which fades the whole HUD out. -->
-  <div class="ag-demo-chip" id="ag-demo-chip" title="Secuencia cinemática de 90 s para grabar el vídeo">
+  <div class="ag-demo-chip" id="ag-demo-chip" title="90-second cinematic take, ready to record">
     <span class="ag-demo-dot"></span>
-    <span class="ag-demo-label">Demo automática</span>
-    <span class="ag-demo-sub">para grabar</span>
+    <span class="ag-demo-label">Auto demo</span>
+    <span class="ag-demo-sub">ready to record</span>
   </div>
 
   <div id="ag-toasts"></div>
   <div id="ag-consequence">
     <div class="ag-cons-butterfly">${icon('butterfly', { size: 34 })}</div>
-    <div class="ag-cons-title">Consecuencias registradas</div>
+    <div class="ag-cons-title">Consequences recorded</div>
     <div class="ag-cons-deltas" id="ag-cons-deltas"></div>
   </div>
 
@@ -102,16 +102,16 @@ root.innerHTML = `
     <div class="ag-dialogue-body">
       <div class="ag-speaker" id="ag-speaker"></div>
       <div class="ag-text" id="ag-text"></div>
-      <div class="ag-continue" id="ag-continue">ESPACIO · seguir ${icon('arrowDown', { size: 14 })}</div>
+      <div class="ag-continue" id="ag-continue">SPACE · continue ${icon('arrowDown', { size: 14 })}</div>
     </div>
   </div>
 
   <div id="ag-choices">
-    <div class="ag-choice-head">${icon('butterfly', { size: 16 })}<span>Lo que elijas queda escrito</span></div>
+    <div class="ag-choice-head">${icon('butterfly', { size: 16 })}<span>What you choose stays written</span></div>
     <div id="ag-choice-list"></div>
     <div class="ag-timer-wrap" id="ag-timer-wrap">
       <div class="ag-timer-track"><div class="ag-timer-fill" id="ag-timer-fill"></div></div>
-      <div class="ag-timer-text" id="ag-timer-text">EL TIEMPO SIGUE CORRIENDO</div>
+      <div class="ag-timer-text" id="ag-timer-text">TIME KEEPS RUNNING</div>
     </div>
   </div>
 
@@ -121,21 +121,21 @@ root.innerHTML = `
     <div class="ag-title-inner">
       <div class="ag-title-note">
         <div class="ag-tape wide"></div>
-        <div class="ag-title-kicker">Martes, 3 de noviembre · 16:42</div>
+        <div class="ag-title-kicker">Tuesday, 3 November · 16:42</div>
         <h1 class="ag-title-main">Arcadia</h1>
-        <div class="ag-title-sub">El tiempo perdona. El ledger, no.</div>
-        <p class="ag-title-desc">Reconstruye tu habitación con la suite Meta AI. Cada objeto, probado. Cada decisión, sellada.</p>
+        <div class="ag-title-sub">Time forgives. The ledger does not.</div>
+        <p class="ag-title-desc">Rebuild your room with the Meta AI suite. Every object proven. Every decision sealed.</p>
         <div class="ag-title-menu">
-          <button class="ag-menu-btn primary" id="ag-new"><span class="ag-menu-icon">${icon('play')}</span><span class="ag-menu-label">Nueva partida</span><span class="ag-menu-key">ENTER</span></button>
-          <button class="ag-menu-btn" id="ag-continue"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Continuar</span><span class="ag-menu-key" id="ag-save-info">—</span></button>
-          <button class="ag-menu-btn" id="ag-howto"><span class="ag-menu-icon">${icon('compass')}</span><span class="ag-menu-label">Cómo se juega</span><span class="ag-menu-key">?</span></button>
+          <button class="ag-menu-btn primary" id="ag-new"><span class="ag-menu-icon">${icon('play')}</span><span class="ag-menu-label">New game</span><span class="ag-menu-key">ENTER</span></button>
+          <button class="ag-menu-btn" id="ag-continue"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Continue</span><span class="ag-menu-key" id="ag-save-info">—</span></button>
+          <button class="ag-menu-btn" id="ag-howto"><span class="ag-menu-icon">${icon('compass')}</span><span class="ag-menu-label">How to play</span><span class="ag-menu-key">?</span></button>
         </div>
-        <div class="ag-title-footer">ARCADIA · CADENA SHA-256 · 8 PISTAS · 6 FINALES</div>
+        <div class="ag-title-footer">ARCADIA · SHA-256 CHAIN · 8 CLUES · 6 ENDINGS</div>
       </div>
       <div class="ag-title-polaroid">
         <div class="ag-tape"></div>
         <div class="ag-photo">${polaroidScene(0)}</div>
-        <div class="ag-cap">el faro, octubre</div>
+        <div class="ag-cap">the lighthouse, October</div>
       </div>
     </div>
   </div>
@@ -452,13 +452,13 @@ function tickWorld(time) {
     const remaining = Math.max(0, choiceCtx.deadline - performance.now());
     const ratio = remaining / choiceCtx.duration;
     $('ag-timer-fill').style.transform = `scaleX(${ratio})`;
-    $('ag-timer-text').textContent = remaining > 0 ? `DECIDE EN ${(remaining / 1000).toFixed(1)} s` : 'EL TIEMPO DECIDIÓ POR TI';
+    $('ag-timer-text').textContent = remaining > 0 ? `DECIDE IN ${(remaining / 1000).toFixed(1)} s` : 'TIME DECIDED FOR YOU';
     choiceCtx.container.querySelectorAll('.ag-choice').forEach((b) => b.dataset.urgent = remaining < 4000 ? 'true' : 'false');
     if (remaining <= 0) {
       const fallback = choiceCtx.available[0];
       const ctx = choiceCtx;
       choiceCtx = null;
-      toast('El tiempo decidió por ti', 'Dudar también es una respuesta.', 'red');
+      toast('Time decided for you', 'Hesitating is an answer too.', 'red');
       if (fallback) pickChoice(fallback, ctx);
       else {
         // Defensive only: the story graph always keeps one open branch, but a
@@ -575,7 +575,7 @@ function showChoices(scene, sceneId) {
         ? `<span class="ag-choice-tag">${esc(c.tag || '')}</span>`
         : `<span class="ag-choice-lock">${icon('lock', { size: 14 })}${c.requires?.allClues ? `${state.clues.length}/${TOTAL_CLUES}` : ''}</span>`}`;
     if (unlocked) btn.addEventListener('click', () => pickChoice(c));
-    else btn.addEventListener('click', () => toast('Sendas cerradas', c.requires?.allClues ? `Encuentra las ${TOTAL_CLUES} pistas para abrir esta senda.` : 'Necesitas haber actuado de otra forma.', 'red'));
+    else btn.addEventListener('click', () => toast('Path closed', c.requires?.allClues ? `Find all ${TOTAL_CLUES} clues to open this path.` : 'You would have had to act differently.', 'red'));
     list.appendChild(btn);
   });
   kbFocus = 0;
@@ -611,7 +611,7 @@ function pickChoice(choice, ctxOverride) {
 
   const before = state;
   const result = choose(state, ctx.sceneId, choice.id);
-  if (!result.ok) { toast('Esa senda está cerrada', result.reason || '', 'red'); showChoices(SCENES[ctx.sceneId], ctx.sceneId); return; }
+  if (!result.ok) { toast('That path is closed', result.reason || '', 'red'); showChoices(SCENES[ctx.sceneId], ctx.sceneId); return; }
   state = result.state;
 
   bus.api.appendLedger?.(choice.ledger?.type || 'decision.made', {
@@ -638,7 +638,7 @@ function showConsequence(effects = {}) {
     const sign = v > 0 ? '+' : '';
     deltas.push(`<span class="ag-delta ${v > 0 ? 'up' : 'down'}" style="animation-delay:${deltas.length * 70}ms">${icon(meta.icon, { size: 14 })}${esc(meta.label)} ${sign}${v}${k === 'dinero' ? '$' : ''}</span>`);
   }
-  if (effects.flags?.length) deltas.push(`<span class="ag-delta">${icon('pen', { size: 14 })}${effects.flags.length} marca${effects.flags.length > 1 ? 's' : ''} en tu historia</span>`);
+  if (effects.flags?.length) deltas.push(`<span class="ag-delta">${icon('pen', { size: 14 })}${effects.flags.length} mark${effects.flags.length > 1 ? 's' : ''} on your story</span>`);
   $('ag-cons-deltas').innerHTML = deltas.join('');
   $('ag-consequence').classList.add('on');
 }
@@ -651,9 +651,9 @@ function handleGrant(scene, before) {
   if (!scene.grant) return;
   const newClues = state.clues.filter((c) => !before.clues.includes(c));
   for (const c of newClues) {
-    toast(`Nueva pista · ${CLUES[c]?.title || c}`, '+1 recarga de Eco', 'green');
+    toast(`New clue · ${CLUES[c]?.title || c}`, '+1 Echo charge', 'green');
   }
-  if (scene.grant.charges && !newClues.length) toast('Eco recuperado', 'Una pista nueva te devuelve una recarga.', 'cyan');
+  if (scene.grant.charges && !newClues.length) toast('Echo restored', 'A new clue gives a charge back.', 'cyan');
   if (newClues.length) { uiSfx('clue'); butterflyBurst(window.innerWidth * 0.72, window.innerHeight * 0.3, 6); }
   if (scene.grant.ledger) bus.api.appendLedger?.(scene.grant.ledger.type, { ...scene.grant.ledger, scene: currentSceneId, at: new Date().toISOString() });
   // The first sealed object is the third onboarding beat: the player has just
@@ -703,7 +703,7 @@ function setObjective(obj) {
   state.objective = obj;
   phase = 'explore';
   for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
-  bus.api.setHotspotLabel?.(obj.hotspot, obj.label || 'Interactuar');
+  bus.api.setHotspotLabel?.(obj.hotspot, obj.label || 'Interact');
   renderObjective();
   save();
   lock(false); cinematic(false);
@@ -794,25 +794,25 @@ function requestRewind() {
     return;
   }
   if (phase === 'dialogue' || phase === 'choice' || openScreen) {
-    toast('El Eco no responde', 'Termina la escena antes de doblar el tiempo.', 'red');
+    toast('The Echo does not answer', 'Finish the scene before bending time.', 'red');
     return;
   }
   const check = canRewind(state);
   if (!check.ok) {
     uiSfx('error');
     const messages = {
-      NO_CHARGE: 'No te quedan recargas. Explora la habitación para recuperarlas.',
-      NO_DECISION: 'Aún no hay ninguna decisión que deshacer.',
-      NO_SNAPSHOT: 'Ese instante ya está demasiado lejos. Toma una decisión nueva.',
-      FINISHED: 'Esta línea de tiempo ya está cerrada.',
+      NO_CHARGE: 'No charges left. Explore the room to recover them.',
+      NO_DECISION: 'There is no decision to undo yet.',
+      NO_SNAPSHOT: 'That instant is already too far back. Make a new decision.',
+      FINISHED: 'This timeline is already closed.',
     };
-    toast('El Eco no responde', messages[check.reason] || 'No se puede rebobinar ahora.', 'red');
+    toast('The Echo does not answer', messages[check.reason] || 'You cannot rewind right now.', 'red');
     return;
   }
   const res = rewind(state);
   state = res.state;
   bus.api.appendLedger?.('timeline.rewound', {
-    note: 'El tiempo se deshace; el registro permanece',
+    note: 'Time comes undone; the record remains',
     fromScene: res.entry.sceneId, undoneChoice: res.entry.choiceId,
     remembered: res.entry.label, chargesLeft: state.charges,
     at: new Date().toISOString(),
@@ -823,7 +823,7 @@ function requestRewind() {
   save(); renderHUD();
   bus.emit('fx:rewind');
   fxRewind();
-  toast('Línea de tiempo reescrita', `Recuerdas: ${res.entry.label}. El ledger conserva el bloque.`, 'cyan');
+  toast('Timeline rewritten', `You remember: ${res.entry.label}. The ledger keeps the block.`, 'cyan');
 }
 function fxRewind() {
   document.body.classList.add('ag-rewinding');
@@ -858,24 +858,24 @@ function showChapterCard(chapterId, done) {
 
 const EVIDENCE_VIEWS = {
   mask: {
-    title: 'ANCLAJE PIXELAR · SAM 3.1', meta: 'Muse Spark 1.3 → SAM 3.1',
-    visual: `<div class="ag-ev-bubble"><span class="ag-ev-time">post-it</span>ENTREGA · jueves 17:00 · $200</div><div class="ag-ev-scan"></div><div class="ag-ev-line"></div>`,
-    stats: [['IoU', '99,96 %'], ['BOX', '[24,232,519,427]'], ['CONFIANZA', '0.9996']],
+    title: 'PIXEL ANCHOR · SAM 3.1', meta: 'Muse Spark 1.3 → SAM 3.1',
+    visual: `<div class="ag-ev-bubble"><span class="ag-ev-time">post-it</span>DELIVERY · thursday 17:00 · $200</div><div class="ag-ev-scan"></div><div class="ag-ev-line"></div>`,
+    stats: [['IoU', '99.96 %'], ['BOX', '[24,232,519,427]'], ['CONFIDENCE', '0.9996']],
   },
   voice: {
-    title: 'ANCLAJE DE AUDIO · MUSE VOICE 1.0', meta: '16 kHz · mono · PCM 16-bit',
+    title: 'AUDIO ANCHOR · MUSE VOICE 1.0', meta: '16 kHz · mono · PCM 16-bit',
     visual: `<div class="ag-ev-wave">${Array.from({ length: 54 }, (_, i) => `<i style="height:${18 + Math.abs(Math.sin(i * 0.7)) * 90}px;animation-delay:${(i % 9) * 90}ms"></i>`).join('')}</div>`,
-    stats: [['TURNO', '2 · Speaker A'], ['INICIO', '00:04.400'], ['FIN', '00:08.600']],
+    stats: [['TURN', '2 · Speaker A'], ['START', '00:04.400'], ['END', '00:08.600']],
   },
   schedule: {
-    title: 'DOCUMENTO ANCLADO · BILLETE', meta: 'Jueves · asiento 14C',
-    visual: `<div class="ag-ev-bubble" style="font-family:var(--ag-mono);font-size:12px;background:#f8f1e5;color:#33261a">JUEVES · 16:30<br><b>SALIDA · ESTACIÓN CENTRAL</b><br>Andén 3 · asiento 14C</div><div class="ag-ev-scan" style="border-color:#34d399"></div>`,
-    stats: [['SELLO', 'BUS-1430'], ['DÍA', 'JUEVES'], ['SALIDA', '16:30']],
+    title: 'ANCHORED DOCUMENT · TICKET', meta: 'Thursday · seat 14C',
+    visual: `<div class="ag-ev-bubble" style="font-family:var(--ag-mono);font-size:12px;background:#f8f1e5;color:#33261a">THURSDAY · 16:30<br><b>DEPARTURE · CENTRAL STATION</b><br>Platform 3 · seat 14C</div><div class="ag-ev-scan" style="border-color:#34d399"></div>`,
+    stats: [['SEAL', 'BUS-1430'], ['DAY', 'THURSDAY'], ['DEPARTURE', '16:30']],
   },
   conflict: {
-    title: 'CONFLICTO CAUSAL DETECTADO', meta: 'Bitemporal · asOf() · 1 coincidencia',
-    visual: `<div class="ag-ev-conflict"><div class="ag-ev-slip"><b>ENTREGA · 17:00</b><span>16:15 → 17:00</span></div><div class="ag-ev-slip bad"><b>BUS · 16:30</b><span>16:15 → 16:30</span></div><div class="ag-ev-overlap">${icon('warning', { size: 16 })} SOLAPAMIENTO · 45 MIN</div></div>`,
-    stats: [['ANCLAJES', '3'], ['CONFLICTOS', '1'], ['LEDGER', 'VÁLIDO']],
+    title: 'CAUSAL CONFLICT DETECTED', meta: 'Bitemporal · asOf() · 1 match',
+    visual: `<div class="ag-ev-conflict"><div class="ag-ev-slip"><b>DELIVERY · 17:00</b><span>16:15 → 17:00</span></div><div class="ag-ev-slip bad"><b>BUS · 16:30</b><span>16:15 → 16:30</span></div><div class="ag-ev-overlap">${icon('warning', { size: 16 })} OVERLAP · 45 MIN</div></div>`,
+    stats: [['ANCHORS', '3'], ['CONFLICTS', '1'], ['LEDGER', 'VALID']],
   },
 };
 function showEvidence(type, done) {
@@ -886,7 +886,7 @@ function showEvidence(type, done) {
       <div class="ag-ev-head"><h2>${esc(view.title)}</h2><span>${esc(view.meta)}</span></div>
       <div class="ag-ev-visual">${view.visual}</div>
       <div class="ag-ev-meta">${view.stats.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>
-      <div class="ag-ev-foot"><button class="ag-icon-btn primary" id="ag-ev-continue">Sellar evidencia →</button></div>
+      <div class="ag-ev-foot"><button class="ag-icon-btn primary" id="ag-ev-continue">Seal evidence →</button></div>
     </div>`;
   showScreen('evidence');
   uiSfx('clue');
@@ -902,19 +902,19 @@ function showJournal() {
   const found = state.clues.length;
   const clueSlips = Object.entries(CLUES).map(([id, c]) => {
     const has = state.clues.includes(id);
-    return `<div class="ag-clue ${has ? '' : 'missing'}" title="${esc(has ? c.detail : 'Todavía no la has encontrado')}">
+    return `<div class="ag-clue ${has ? '' : 'missing'}" title="${esc(has ? c.detail : 'You have not found it yet')}">
       <span class="ag-clue-ic">${icon(has ? c.icon : 'lock', { size: 17 })}</span>
-      <span class="ag-clue-t">${esc(has ? c.title : 'sin encontrar')}</span>
+      <span class="ag-clue-t">${esc(has ? c.title : 'not found')}</span>
       ${has ? `<span class="ag-clue-mark">${icon('check', { size: 13 })}</span>` : ''}
     </div>`;
   }).join('');
 
   const decisionStamps = state.decisions.length
     ? state.decisions.map((d) => `<div class="ag-stamp ${d.undone ? 'undone' : ''}">
-        <span class="ag-stamp-mark">${d.undone ? 'DESHECHA' : 'SELLADA'}</span>
+        <span class="ag-stamp-mark">${d.undone ? 'UNDONE' : 'SEALED'}</span>
         <span class="ag-stamp-label">${esc(d.label)}</span>
       </div>`).join('')
-    : '<p class="ag-hand-empty">Todavía no hay nada escrito aquí.</p>';
+    : '<p class="ag-hand-empty">Nothing written here yet.</p>';
 
   const statInk = Object.entries(STAT_META).map(([k, m]) => `<div class="ag-ink-row">
       ${icon(m.icon, { size: 16 })}
@@ -929,80 +929,80 @@ function showJournal() {
     `<li>${esc(ch.title)} · ${esc(ch.subtitle)}</li>`,
     objective ? `<li>${esc(objective.text)}</li>` : null,
     found < TOTAL_CLUES
-      ? `<li>Me faltan <b>${TOTAL_CLUES - found}</b> pistas por encontrar.</li>`
-      : '<li>Tengo las ocho pistas. Falta sellarlas.</li>',
-    `<li>Eco: <b>${state.charges}</b> recargas disponibles.</li>`,
+      ? `<li>I still have <b>${TOTAL_CLUES - found}</b> clues to find.</li>`
+      : '<li>I have all eight clues. Now to seal them.</li>',
+    `<li>Echo: <b>${state.charges}</b> charges available.</li>`,
   ].filter(Boolean).join('');
 
   $('ag-journal').innerHTML = `
     <div class="ag-book">
-      <button class="ag-book-close ag-interactive" id="ag-journal-close" title="Cerrar">${icon('close', { size: 20 })}</button>
+      <button class="ag-book-close ag-interactive" id="ag-journal-close" title="Close">${icon('close', { size: 20 })}</button>
       <div class="ag-book-spiral">${notebookSpiral(20)}</div>
       <div class="ag-book-spread">
         <article class="ag-book-page" data-page="0">
-          <span class="ag-page-tab">la semana</span>
+          <span class="ag-page-tab">the week</span>
           <div class="ag-page-paper">
             <div class="ag-polaroid journal">
               <div class="ag-tape"></div>
               <div class="ag-photo">${polaroidScene(1)}</div>
-              <div class="ag-cap">el faro, octubre</div>
+              <div class="ag-cap">the lighthouse, October</div>
             </div>
-            <h2 class="ag-hand-title">Lo que sé</h2>
+            <h2 class="ag-hand-title">What I know</h2>
             <ul class="ag-hand-list">
-              <li><b>Martes.</b> El post-it dice: entrega jueves a las 17:00. 200 $.</li>
-              <li><b>21:14.</b> Mi nota de voz: el bus sale a las 16:30.</li>
-              <li><b>Jueves.</b> Las dos cosas no caben.</li>
+              <li><b>Tuesday.</b> The post-it says: delivery thursday at 17:00. $200.</li>
+              <li><b>21:14.</b> My voice note: the bus leaves at 16:30.</li>
+              <li><b>Thursday.</b> The two do not fit.</li>
             </ul>
-            <p class="ag-hand-aside">${icon('arrowRight', { size: 16 })} si entrego, pierdo el bus. si me voy, incumplo.</p>
+            <p class="ag-hand-aside">${icon('arrowRight', { size: 16 })} if I deliver, I miss the bus. if I leave, I break my word.</p>
             <p class="ag-hand-sign">${esc(ch.title)} · ${esc(ch.subtitle)}</p>
           </div>
           <span class="ag-page-num">1</span>
         </article>
 
         <article class="ag-book-page" data-page="1">
-          <span class="ag-page-tab">pistas</span>
+          <span class="ag-page-tab">clues</span>
           <div class="ag-page-paper">
-            <h2 class="ag-hand-title">Pistas <em>${found}/${TOTAL_CLUES}</em></h2>
+            <h2 class="ag-hand-title">Clues <em>${found}/${TOTAL_CLUES}</em></h2>
             <div class="ag-clue-grid">${clueSlips}</div>
-            <p class="ag-hand-aside">${icon('butterfly', { size: 16 })} cada pista te devuelve una recarga de Eco.</p>
+            <p class="ag-hand-aside">${icon('butterfly', { size: 16 })} every clue gives an Echo charge back.</p>
             <div class="ag-page-doodle">${icon('lighthouse', { size: 64, stroke: 1.2 })}</div>
           </div>
           <span class="ag-page-num">2</span>
         </article>
 
         <article class="ag-book-page is-hidden" data-page="2">
-          <span class="ag-page-tab">decisiones</span>
+          <span class="ag-page-tab">decisions</span>
           <div class="ag-page-paper">
-            <h2 class="ag-hand-title">Pendientes</h2>
+            <h2 class="ag-hand-title">Outstanding</h2>
             <ul class="ag-hand-list">${pendientes}</ul>
-            <h2 class="ag-hand-title small">Decisiones</h2>
+            <h2 class="ag-hand-title small">Decisions</h2>
             <div class="ag-stamp-list">${decisionStamps}</div>
-            <p class="ag-hand-aside">${icon('pen', { size: 16 })} el ledger no borra: marca.</p>
+            <p class="ag-hand-aside">${icon('pen', { size: 16 })} the ledger does not erase: it marks.</p>
             <div class="ag-page-doodle">${icon('compass', { size: 68, stroke: 1.2 })}</div>
           </div>
           <span class="ag-page-num">3</span>
         </article>
 
         <article class="ag-book-page is-hidden" data-page="3">
-          <span class="ag-page-tab">otras líneas</span>
+          <span class="ag-page-tab">other lines</span>
           <div class="ag-page-paper">
-            <h2 class="ag-hand-title">Tu expediente</h2>
+            <h2 class="ag-hand-title">Your record</h2>
             <div class="ag-ink-list">${statInk}</div>
-            <h2 class="ag-hand-title small">Otras líneas</h2>
-            <p class="ag-hand-body">${state.memories.length ? state.memories.map((m) => `«${esc(m)}»`).join('<br>') : 'Ninguna. Aún no has rebobinado.'}</p>
-            <p class="ag-hand-sign">${blocks} bloques SHA-256 · ${state.rewindCount} rebobinados</p>
+            <h2 class="ag-hand-title small">Other lines</h2>
+            <p class="ag-hand-body">${state.memories.length ? state.memories.map((m) => `«${esc(m)}»`).join('<br>') : 'None. You have not rewound yet.'}</p>
+            <p class="ag-hand-sign">${blocks} SHA-256 blocks · ${state.rewindCount} rewinds</p>
           </div>
           <span class="ag-page-num">4</span>
         </article>
       </div>
 
       <div class="ag-book-nav">
-        <button class="ag-nav-text ag-interactive" id="ag-journal-prev">${icon('arrowLeft', { size: 15 })} Anterior</button>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-prev">${icon('arrowLeft', { size: 15 })} Previous</button>
         <span class="ag-nav-page" id="ag-journal-pageno">1–2</span>
-        <button class="ag-nav-text ag-interactive" id="ag-journal-next">Siguiente ${icon('arrowRight', { size: 15 })}</button>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-next">Next ${icon('arrowRight', { size: 15 })}</button>
         <span class="ag-nav-sep"></span>
         <button class="ag-nav-text ag-interactive" id="ag-journal-ledger">Ledger</button>
-        <button class="ag-nav-text ag-interactive" id="ag-journal-tutorial">Controles</button>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-tutorial">Controls</button>
       </div>
     </div>`;
 
@@ -1037,37 +1037,37 @@ function showJournal() {
 function showPause() {
   const ch = CHAPTERS[state.chapterId] || CHAPTERS.prologo;
   const notes = {
-    resume: ['Volver a la escena', 'El tiempo sigue donde lo dejaste. Si había una decisión abierta, el contador está congelado.'],
-    journal: ['Cuaderno', 'La semana, las pistas que llevas, las decisiones selladas y lo que recuerdas de otras líneas.'],
-    tutorial: ['Controles', 'Repasa cómo moverte, orbitar la cámara e interactuar sin salir de la partida.'],
-    music: ['Tocadiscos', 'Tres piezas originales generadas en el navegador. Nada de audio con licencia.'],
-    sound: ['Sonido', 'Activa o silencia los clics y avisos de la interfaz.'],
-    restart: ['Reiniciar', 'Borra esta línea de tiempo y empieza de cero. El ledger anterior se queda en el disco.'],
-    title: ['Título', 'Vuelve a la portada. La partida queda guardada donde está.'],
+    resume: ['Back to the scene', 'Time stays where you left it. If a decision was open, the counter is frozen.'],
+    journal: ['Notebook', 'The week, the clues you carry, the decisions sealed and what you remember from other lines.'],
+    tutorial: ['Controls', 'Review how to move, orbit the camera and interact without leaving the game.'],
+    music: ['Turntable', 'Three original pieces generated in the browser. No licensed audio.'],
+    sound: ['Sound', 'Turn the interface clicks and cues on or off.'],
+    restart: ['Restart', 'Erases this timeline and starts from scratch. The previous ledger stays on disk.'],
+    title: ['Title', 'Back to the cover. The game stays saved where it is.'],
   };
   $('ag-pause').innerHTML = `
     <div class="ag-menu">
       <div class="ag-menu-tabs" role="tablist">
-        <button class="ag-tab-btn is-active" data-tab="game">Partida</button>
+        <button class="ag-tab-btn is-active" data-tab="game">Game</button>
         <button class="ag-tab-btn" data-tab="audio">Audio</button>
-        <button class="ag-tab-btn" data-tab="system">Sistema</button>
+        <button class="ag-tab-btn" data-tab="system">System</button>
       </div>
       <div class="ag-menu-body">
         <div class="ag-menu-rows" data-panel="game">
-          <button class="ag-row" id="ag-p-resume" data-note="resume"><span class="ag-row-ic">${icon('play', { size: 18 })}</span><span class="ag-row-label">Continuar</span><span class="ag-row-val">ESC</span></button>
-          <button class="ag-row" id="ag-p-journal" data-note="journal"><span class="ag-row-ic">${icon('book', { size: 18 })}</span><span class="ag-row-label">Cuaderno</span><span class="ag-row-val">J</span></button>
-          <button class="ag-row" id="ag-p-tutorial" data-note="tutorial"><span class="ag-row-ic">${icon('compass', { size: 18 })}</span><span class="ag-row-label">Controles</span><span class="ag-row-val">?</span></button>
-          <div class="ag-row static"><span class="ag-row-ic">${icon('butterfly', { size: 18 })}</span><span class="ag-row-label">Eco</span><span class="ag-row-val">${state.charges}/${MAX_CHARGES}</span></div>
-          <div class="ag-row static"><span class="ag-row-ic">${icon('search', { size: 18 })}</span><span class="ag-row-label">Pistas</span><span class="ag-row-val">${state.clues.length}/${TOTAL_CLUES}</span></div>
-          <div class="ag-row static"><span class="ag-row-ic">${icon('chain', { size: 18 })}</span><span class="ag-row-label">Capítulo</span><span class="ag-row-val">${esc(ch.index)} · ${esc(ch.title)}</span></div>
+          <button class="ag-row" id="ag-p-resume" data-note="resume"><span class="ag-row-ic">${icon('play', { size: 18 })}</span><span class="ag-row-label">Continue</span><span class="ag-row-val">ESC</span></button>
+          <button class="ag-row" id="ag-p-journal" data-note="journal"><span class="ag-row-ic">${icon('book', { size: 18 })}</span><span class="ag-row-label">Notebook</span><span class="ag-row-val">J</span></button>
+          <button class="ag-row" id="ag-p-tutorial" data-note="tutorial"><span class="ag-row-ic">${icon('compass', { size: 18 })}</span><span class="ag-row-label">Controls</span><span class="ag-row-val">?</span></button>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('butterfly', { size: 18 })}</span><span class="ag-row-label">Echo</span><span class="ag-row-val">${state.charges}/${MAX_CHARGES}</span></div>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('search', { size: 18 })}</span><span class="ag-row-label">Clues</span><span class="ag-row-val">${state.clues.length}/${TOTAL_CLUES}</span></div>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('chain', { size: 18 })}</span><span class="ag-row-label">Chapter</span><span class="ag-row-val">${esc(ch.index)} · ${esc(ch.title)}</span></div>
         </div>
         <div class="ag-menu-rows is-hidden" data-panel="audio">
-          <button class="ag-row" id="ag-p-music" data-note="music"><span class="ag-row-ic">${icon('music', { size: 18 })}</span><span class="ag-row-label">Tocadiscos</span><span class="ag-row-val">M</span></button>
-          <button class="ag-row" id="ag-p-sound" data-note="sound"><span class="ag-row-ic">${icon(soundOn ? 'volume' : 'mute', { size: 18 })}</span><span class="ag-row-label">Sonido de interfaz</span><span class="ag-row-val">${soundOn ? 'ACTIVO' : 'SILENCIO'}</span></button>
+          <button class="ag-row" id="ag-p-music" data-note="music"><span class="ag-row-ic">${icon('music', { size: 18 })}</span><span class="ag-row-label">Turntable</span><span class="ag-row-val">M</span></button>
+          <button class="ag-row" id="ag-p-sound" data-note="sound"><span class="ag-row-ic">${icon(soundOn ? 'volume' : 'mute', { size: 18 })}</span><span class="ag-row-label">Interface sound</span><span class="ag-row-val">${soundOn ? 'ON' : 'MUTED'}</span></button>
         </div>
         <div class="ag-menu-rows is-hidden" data-panel="system">
-          <button class="ag-row" id="ag-p-restart" data-note="restart"><span class="ag-row-ic">${icon('restart', { size: 18 })}</span><span class="ag-row-label">Reiniciar partida</span><span class="ag-row-val">↺</span></button>
-          <button class="ag-row" id="ag-p-title" data-note="title"><span class="ag-row-ic">${icon('home', { size: 18 })}</span><span class="ag-row-label">Volver al título</span><span class="ag-row-val">⌂</span></button>
+          <button class="ag-row" id="ag-p-restart" data-note="restart"><span class="ag-row-ic">${icon('restart', { size: 18 })}</span><span class="ag-row-label">Restart game</span><span class="ag-row-val">↺</span></button>
+          <button class="ag-row" id="ag-p-title" data-note="title"><span class="ag-row-ic">${icon('home', { size: 18 })}</span><span class="ag-row-label">Back to title</span><span class="ag-row-val">⌂</span></button>
         </div>
         <aside class="ag-menu-note">
           <div class="ag-polaroid tiny"><div class="ag-tape"></div><div class="ag-photo">${polaroidScene(2)}</div></div>
@@ -1076,9 +1076,9 @@ function showPause() {
         </aside>
       </div>
       <div class="ag-menu-foot">
-        <span class="ag-key"><b>ESC</b> volver</span>
-        <span class="ag-key"><b>J</b> cuaderno</span>
-        <span class="ag-key"><b>R</b> rebobinar</span>
+        <span class="ag-key"><b>ESC</b> back</span>
+        <span class="ag-key"><b>J</b> notebook</span>
+        <span class="ag-key"><b>R</b> rewind</span>
       </div>
     </div>`;
   if (!openOverlay('pause')) return false;
@@ -1110,7 +1110,7 @@ function showPause() {
   $('ag-p-music').addEventListener('click', () => bus.api.openMusic?.());
   $('ag-p-sound').addEventListener('click', () => { soundOn = !soundOn; showPause(); });
   $('ag-p-restart').addEventListener('click', () => {
-    if (!confirm('¿Reiniciar la partida? Se perderán las decisiones y las pistas de esta línea de tiempo.')) return;
+    if (!confirm('Restart the game? The decisions and clues of this timeline will be lost.')) return;
     localStorage.removeItem(SAVE_KEY);
     state = createInitialState();
     hideScreens(); startNewGame(false);
@@ -1151,16 +1151,16 @@ function showEnding() {
         <div class="ag-ending-verdict">${esc(ending.verdict)}</div>
         <div class="ag-ending-paras">${ending.paragraphs.slice(0, 2).map((p) => `<p>${esc(p)}</p>`).join('')}</div>
         <div class="ag-ending-stats">
-          <span>${icon('search', { size: 15 })}<b>${state.clues.length}/${TOTAL_CLUES}</b> pistas</span>
-          <span>${icon('rewind', { size: 15 })}<b>${state.rewindCount}</b> rebobinados</span>
-          <span>${icon('chain', { size: 15 })}<b>${blocks}</b> bloques</span>
-          <span>${icon('heart', { size: 15 })}<b>${Math.round(state.stats.confianza)}</b> confianza</span>
+          <span>${icon('search', { size: 15 })}<b>${state.clues.length}/${TOTAL_CLUES}</b> clues</span>
+          <span>${icon('rewind', { size: 15 })}<b>${state.rewindCount}</b> rewinds</span>
+          <span>${icon('chain', { size: 15 })}<b>${blocks}</b> blocks</span>
+          <span>${icon('heart', { size: 15 })}<b>${Math.round(state.stats.confianza)}</b> trust</span>
         </div>
       </div>
       <div class="ag-ending-actions">
-        <button class="ag-menu-btn primary" id="ag-e-again"><span class="ag-menu-icon">${icon('restart')}</span><span class="ag-menu-label">Otra línea</span></button>
-        <button class="ag-menu-btn" id="ag-e-journal"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Cuaderno</span></button>
-        <button class="ag-menu-btn" id="ag-e-title"><span class="ag-menu-icon">${icon('home')}</span><span class="ag-menu-label">Título</span></button>
+        <button class="ag-menu-btn primary" id="ag-e-again"><span class="ag-menu-icon">${icon('restart')}</span><span class="ag-menu-label">Another line</span></button>
+        <button class="ag-menu-btn" id="ag-e-journal"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Notebook</span></button>
+        <button class="ag-menu-btn" id="ag-e-title"><span class="ag-menu-icon">${icon('home')}</span><span class="ag-menu-label">Title</span></button>
       </div>
     </div>`;
   showScreen('ending');
@@ -1191,7 +1191,7 @@ function startTutorial(standalone = false) {
   $('ag-choices').classList.remove('on');
   $('ag-tutorial').classList.remove('ag-hidden');
   renderTutorial();
-  toast('Tutorial', 'Cinco pasos. Puedes saltarlo cuando quieras.', 'cyan');
+  toast('Tutorial', 'Five steps. You can skip it whenever you like.', 'cyan');
 }
 function renderTutorial() {
   if (!tutorial) return;
@@ -1201,7 +1201,7 @@ function renderTutorial() {
     <div class="ag-tut-card">
       <div class="ag-tape"></div>
       <div class="ag-tut-top">
-        <span class="ag-tut-kicker">PASO ${tutorial.index + 1} / ${TUTORIAL_STEPS.length}</span>
+        <span class="ag-tut-kicker">STEP ${tutorial.index + 1} / ${TUTORIAL_STEPS.length}</span>
         <div class="ag-tut-steps">${TUTORIAL_STEPS.map((_, i) => `<span class="ag-tut-step ${i < tutorial.index ? 'done' : i === tutorial.index ? 'current' : ''}"></span>`).join('')}</div>
       </div>
       <div class="ag-tut-main">
@@ -1213,20 +1213,20 @@ function renderTutorial() {
       </div>
       <div class="ag-tut-keys">${step.keys.map((k) => `<span class="ag-key">${esc(k)}</span>`).join('')}</div>
       <div class="ag-tut-foot">
-        <span class="ag-tut-status" id="ag-tut-status">esperando tu acción…</span>
-        <button class="ag-link ag-interactive" id="ag-tut-skip">Saltar ${icon('arrowRight', { size: 13 })}</button>
+        <span class="ag-tut-status" id="ag-tut-status">waiting for you…</span>
+        <button class="ag-link ag-interactive" id="ag-tut-skip">Skip ${icon('arrowRight', { size: 13 })}</button>
       </div>
     </div>`;
   $('ag-tut-skip').addEventListener('click', () => finishTutorial(true));
   for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
-  if (step.id === 'approach' || step.id === 'interact') bus.api.setHotspotLabel?.('desk', 'Examinar el escritorio');
+  if (step.id === 'approach' || step.id === 'interact') bus.api.setHotspotLabel?.('desk', 'Examine the desk');
 }
 function completeTutorialStep() {
   if (!tutorial || tutorial.checking) return;
   tutorial.checking = true;
   uiSfx('clue');
   const st = $('ag-tut-status');
-  if (st) { st.innerHTML = `<span class="ag-tut-check">${icon('check', { size: 14 })} hecho</span>`; st.className = 'ag-tut-status'; }
+  if (st) { st.innerHTML = `<span class="ag-tut-check">${icon('check', { size: 14 })} done</span>`; st.className = 'ag-tut-status'; }
   butterflyBurst(window.innerWidth * 0.25, window.innerHeight * 0.75, 5);
   setTimeout(() => {
     tutorial.index++;
@@ -1246,12 +1246,12 @@ function finishTutorial(skipped) {
     if (ret?.phase) phase = ret.phase;
     if (ret?.screen === 'pause') showPause();
     else if (ret?.screen === 'game' || ret?.screen === 'ending') restorePhase();
-    else showTitle();          // "Cómo se juega" from the title screen
+    else showTitle();          // "How to play" from the title screen
     return;
   }
   state.tutorialDone = true;
   save();
-  toast(skipped ? 'Tutorial omitido' : 'Tutorial completado', 'Ya sabes moverte por Arcadia.', 'green');
+  toast(skipped ? 'Tutorial skipped' : 'Tutorial complete', 'You know your way around Arcadia now.', 'green');
   beginStory();
 }
 
@@ -1314,11 +1314,11 @@ function showTitle() {
   const saved = readSave();
   $('ag-continue').disabled = !saved;
   $('ag-save-info').textContent = saved
-    ? `${saved.clues.length}/${TOTAL_CLUES} pistas${saved.finished ? ' · fin' : ''}`
-    : 'sin guardado';
+    ? `${saved.clues.length}/${TOTAL_CLUES} clues${saved.finished ? ' · ended' : ''}`
+    : 'no save';
   $('ag-continue').title = saved
-    ? `${CHAPTERS[saved.chapterId]?.title || 'Partida'} · ${saved.clues.length}/${TOTAL_CLUES} pistas`
-    : 'No hay partida guardada';
+    ? `${CHAPTERS[saved.chapterId]?.title || 'Game'} · ${saved.clues.length}/${TOTAL_CLUES} clues`
+    : 'No saved game';
   showScreen('title');
   renderHUD();
 }
