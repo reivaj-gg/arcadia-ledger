@@ -46,7 +46,7 @@
 /* --------------------------------------------------------------------------
    LEGACY SHELL
    The old HUD / modals stay in the DOM so the 3D engine keeps its listeners,
-   but they are never shown. The tocadiscos and the ledger drawer are reused
+   but they are never shown. The turntable and the ledger drawer are reused
    and repainted as paper.
    -------------------------------------------------------------------------- */
 body.arcadia-game #ui-layer,
@@ -1105,7 +1105,7 @@ body.ag-rewinding #webgl-canvas { filter: hue-rotate(18deg) saturate(1.2) contra
 .ag-ev-foot .ag-icon-btn span { display: none; }
 
 /* --------------------------------------------------------------------------
-   LEGACY · tocadiscos repainted as paper
+   LEGACY · turntable repainted as paper
    -------------------------------------------------------------------------- */
 body.arcadia-game #music-modal { background: rgba(8, 6, 4, 0.82); backdrop-filter: blur(10px); }
 body.arcadia-game .music-sheet {

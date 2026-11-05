@@ -82,7 +82,7 @@ test('e2e: evidence -> Spark -> SAM -> hash chain -> conflict -> rewind', async 
   /* --------------------------------------------------------------------- */
 
   const extraction = await adapter.extractCausalCommitment(
-    'Oye Javier, ¿me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM.',
+    'Hey Javier, can you help me with the design for Thursday? Paying $200. Delivery by 4 PM.',
     {
       evidenceId: MOCK_EVIDENCE_SCREENSHOT.id,
       kind: 'screenshot',
@@ -171,7 +171,7 @@ test('e2e: evidence -> Spark -> SAM -> hash chain -> conflict -> rewind', async 
 
   const classTurn = transcription.turns[1];
   assert.ok(classTurn !== undefined);
-  assert.match(classTurn.text, /cálculo/);
+  assert.match(classTurn.text, /Calculus/i);
 
   /* --------------------------------------------------------------------- */
   /* Step 6 — seal the second commitment, anchored to that audio turn      */

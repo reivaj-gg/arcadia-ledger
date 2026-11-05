@@ -102,7 +102,7 @@ One click, a 90-second take with letterbox, subtitles and a progress bar. Built 
 
 ### The story
 
-Five chapters — *El aleteo*, *La captura*, *La nota de voz*, *La encrucijada*, *Epílogo* — across 35 scenes, 8 collectible clues and 6 endings.
+Five chapters — *The Flutter*, *The Capture*, *The Voice Note*, *The Crossroads*, *Epilogue* — across 35 scenes, 8 collectible clues and 6 endings.
 
 The conflict is small and specific: a delivery due at 17:00, a bus that leaves at 16:30, and 45 minutes that cannot be in two places. What you do about it is recorded, and the epilogue you get depends on what you were willing to lose.
 
@@ -165,7 +165,7 @@ The narrative layer writes into the same chain as the multimodal evidence, throu
 
 ## Demo mode
 
-The **Demo automática** chip in the top corner runs a 90-second scripted take:
+The **Interactive Demo** chip in the top corner runs a 90-second scripted take:
 
 ```
 0:00  dolly through the golden-hour room

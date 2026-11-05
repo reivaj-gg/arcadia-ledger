@@ -49,7 +49,7 @@ const btnOnboarding = document.getElementById('btn-onboarding');
 const btnCloseOnboarding = document.getElementById('btn-close-onboarding');
 const btnStartGame = document.getElementById('btn-start-game');
 
-// Modal de Tocadiscos & Carga de Música Personalizada
+// Turntable Modal & Custom Music Loader
 const musicModal = document.getElementById('music-modal');
 const btnMusicManager = document.getElementById('btn-music-manager');
 const btnCloseMusic = document.getElementById('btn-close-music');
@@ -297,8 +297,8 @@ function createPolaroidTexture(caption, type) {
     ctx.fillText('[SAM 3.1 MASK]', imgX + 30, imgY + 60);
     ctx.fillStyle = '#e2e8f0';
     ctx.font = '10px sans-serif';
-    ctx.fillText('Entrega Jueves 4 PM', imgX + 30, imgY + 80);
-    ctx.fillText('$200 acordados', imgX + 30, imgY + 98);
+    ctx.fillText('Delivery Thursday 4 PM', imgX + 30, imgY + 80);
+    ctx.fillText('$200 agreed', imgX + 30, imgY + 98);
   } else if (type === 'guitar') {
     ctx.fillStyle = '#451a03';
     ctx.fillRect(imgX, imgY, imgW, imgH);
@@ -352,14 +352,14 @@ function createCorkboardTexture() {
   ctx.fillRect(60, 60, 110, 110);
   ctx.fillStyle = '#713f12';
   ctx.font = '14px sans-serif';
-  ctx.fillText('Entrega Mariana', 70, 95);
-  ctx.fillText('Jueves 4 PM', 70, 120);
+  ctx.fillText('Mariana Delivery', 70, 95);
+  ctx.fillText('Thursday 4 PM', 70, 120);
 
   ctx.fillStyle = '#bae6fd';
   ctx.fillRect(320, 80, 120, 110);
   ctx.fillStyle = '#0c4a6e';
-  ctx.fillText('Clase Cálculo', 330, 115);
-  ctx.fillText('Jueves 3 PM', 330, 140);
+  ctx.fillText('Calculus Class', 330, 115);
+  ctx.fillText('Thursday 3 PM', 330, 140);
 
   ctx.fillStyle = '#dc2626';
   ctx.beginPath();
@@ -1200,10 +1200,10 @@ const polaroidGallery = new THREE.Group();
 polaroidGallery.position.set(-6.26, 3.2, 0.5);
 
 const polaroidsData = [
-  { caption: 'Faro de Arcadia', type: 'lighthouse', z: -1.8, rot: -0.08 },
-  { caption: 'Evidencia Mariana', type: 'chat', z: -0.6, rot: 0.05 },
-  { caption: 'Mi Guitarra', type: 'guitar', z: 0.6, rot: -0.04 },
-  { caption: 'Bosque de Pinos', type: 'nature', z: 1.8, rot: 0.09 },
+  { caption: 'Arcadia Lighthouse', type: 'lighthouse', z: -1.8, rot: -0.08 },
+  { caption: 'Mariana Evidence', type: 'chat', z: -0.6, rot: 0.05 },
+  { caption: 'My Guitar', type: 'guitar', z: 0.6, rot: -0.04 },
+  { caption: 'Pine Woods', type: 'nature', z: 1.8, rot: 0.09 },
 ];
 
 polaroidsData.forEach((p) => {
@@ -1242,12 +1242,12 @@ roomGroup.add(corkboardGroup);
 const posterGroup = new THREE.Group();
 posterGroup.position.set(6.28, 3.4, 0);
 
-const p1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('SESIONES DEL FARO · OCTUBRE', 'LA MAREA BAJA'), roughness: 0.4 }));
+const p1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('LIGHTHOUSE SESSIONS · OCTOBER', 'LOW TIDE'), roughness: 0.4 }));
 p1.rotation.y = -Math.PI / 2;
 p1.position.z = -1.5;
 posterGroup.add(p1);
 
-const p2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('FESTIVAL DE OTOÑO', 'COLECTIVO ARCADIA'), roughness: 0.4 }));
+const p2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('AUTUMN FESTIVAL', 'ARCADIA COLLECTIVE'), roughness: 0.4 }));
 p2.rotation.y = -Math.PI / 2;
 p2.position.z = 1.5;
 posterGroup.add(p2);
@@ -1458,7 +1458,7 @@ floatingShelfGroup.add(polaroidWall);
 
 roomGroup.add(floatingShelfGroup);
 
-// Tocadiscos
+// Turntable
 const turntableGroup = new THREE.Group();
 turntableGroup.position.set(-5.2, 0, 1.4);
 
@@ -2070,7 +2070,7 @@ const colliders = [
   { minX: -6.0, maxX: -3.0, minZ: -5.6, maxZ: -0.9 },
   // Mesa de escritorio en L y silla
   { minX: 0.8, maxX: 5.6, minZ: -3.8, maxZ: 0.8 },
-  // Mueble tocadiscos
+  // Turntable cabinet
   { minX: -6.2, maxX: -4.2, minZ: 0.6, maxZ: 2.2 },
   // Estantería de libros, hiedra y baúl vintage
   { minX: -6.4, maxX: -3.8, minZ: 2.6, maxZ: 5.4 },
@@ -2327,74 +2327,74 @@ const hotspots = [
   {
     id: 'desk',
     pos: new THREE.Vector3(2.5, 1.6, -1.8),
-    label: 'Abrir Cuaderno de Decisiones',
+    label: 'Open Decision Ledger',
     camPos: new THREE.Vector3(1.5, 2.2, -0.6),
     camLook: new THREE.Vector3(2.8, 1.4, -2.4),
-    thought: '"El ledger no miente: la entrega para Mariana choca exactamente con mi clase de cálculo."'
+    thought: '"The ledger does not lie: the delivery deadline for Mariana directly clashes with my Calculus lecture."'
   },
   {
     id: 'corkboard',
     pos: new THREE.Vector3(0.8, 2.4, -4.5),
-    label: 'Inspeccionar Tablón de Evidencias',
+    label: 'Inspect Evidence Corkboard',
     camPos: new THREE.Vector3(0.8, 3.3, -4.0),
     camLook: new THREE.Vector3(0.8, 3.6, -6.3),
-    thought: '"El hilo rojo une la captura con la nota de voz. Dos pruebas irrefutables, un conflicto temporal sellado con SHA-256."'
+    thought: '"The red thread links the screenshot with the voice note. Two irrefutable proofs, a temporal dilemma sealed with SHA-256."'
   },
   {
     id: 'guitar',
     pos: new THREE.Vector3(-5.6, 1.2, -1.2),
-    label: 'Tocar la guitarra',
+    label: 'Play Acoustic Guitar',
     camPos: new THREE.Vector3(-4.0, 1.8, -0.2),
     camLook: new THREE.Vector3(-5.8, 1.1, -1.2),
-    thought: '"Cada acorde me hace sentir que el tiempo se detiene... pero las consecuencias siguen ahí."'
+    thought: '"Each acoustic chord makes time stand still... but the ledger consequences remain."'
   },
   {
     id: 'bed',
     pos: new THREE.Vector3(-4.2, 1.2, -3.0),
-    label: 'Recostarse y Reflexionar',
+    label: 'Lie Down & Reflect',
     camPos: new THREE.Vector3(-2.2, 2.1, -1.8),
     camLook: new THREE.Vector3(-4.5, 1.0, -3.2),
-    thought: '"Arcadia se ve tan tranquila... pero las decisiones que tomamos tienen un peso real."'
+    thought: '"Arcadia seems so peaceful... but the commitments we make carry real weight."'
   },
   {
     id: 'turntable',
     pos: new THREE.Vector3(-5.0, 1.5, 1.4),
-    label: 'Poner un disco',
+    label: 'Play Vinyl Record',
     camPos: new THREE.Vector3(-3.6, 2.2, 2.2),
     camLook: new THREE.Vector3(-5.2, 1.3, 1.4),
-    thought: '"La música analógica siempre me ayuda a poner en orden mis pensamientos."'
+    thought: '"Analog music always helps me organize my thoughts."'
   },
   {
     id: 'window',
     pos: new THREE.Vector3(-2.8, 2.5, -5.5),
-    label: 'Mirar el Faro / Cambiar Clima',
+    label: 'Look at Lighthouse / Change Weather',
     camPos: new THREE.Vector3(-2.8, 2.6, -3.6),
     camLook: new THREE.Vector3(-2.8, 3.2, -6.5),
-    thought: '"La luz dorada sobre el faro... el tiempo siempre parece detenerse en esta ventana."'
+    thought: '"Golden light over the lighthouse... time always seems suspended at this window."'
   },
   {
     id: 'butterfly',
     pos: new THREE.Vector3(-1.2, 2.4, 0.2),
-    label: 'Explorar Efecto Mariposa',
+    label: 'Explore Butterfly Effect',
     camPos: new THREE.Vector3(-0.4, 2.2, 1.4),
     camLook: new THREE.Vector3(-1.2, 2.4, 0.2),
-    thought: '"\'Lo que elijas queda escrito\'. El aleteo de una mariposa cambia todo."'
+    thought: '"\'What you choose is permanently recorded\'. The flutter of a butterfly changes everything."'
   },
   {
     id: 'bookshelf',
     pos: new THREE.Vector3(-4.8, 2.0, 3.8),
-    label: 'Examinar Biblioteca y Archivos',
+    label: 'Browse Library & Archives',
     camPos: new THREE.Vector3(-2.8, 2.3, 3.8),
     camLook: new THREE.Vector3(-5.5, 2.1, 3.8),
-    thought: '"Entre libros de arte y archivos viejos... cada memoria es una evidencia que el tiempo no borra."'
+    thought: '"Between art books and old archives... every memory is evidence time cannot erase."'
   },
   {
     id: 'armchair',
     pos: new THREE.Vector3(-3.4, 1.2, 2.3),
-    label: 'Descansar en el Sillón Vintage',
+    label: 'Rest in Vintage Armchair',
     camPos: new THREE.Vector3(-1.8, 1.8, 3.2),
     camLook: new THREE.Vector3(-3.4, 1.2, 2.3),
-    thought: '"El terciopelo morado de este viejo sillón... el rincón perfecto para pensar con calma antes de que una decisión selle el futuro."'
+    thought: '"The purple velvet of this vintage chair... the calm spot to think before a choice seals the timeline."'
   }
 ];
 
@@ -2563,7 +2563,7 @@ function setWorldState(mode) {
       floorSunPatch.material.opacity = 0.18;
     }
     if (weatherIcon) weatherIcon.innerHTML = icon('rain', { size: 18 });
-    if (weatherText) weatherText.innerText = 'Tormenta de Dudas';
+    if (weatherText) weatherText.innerText = 'Storm of Doubts';
     playAcousticNote(180);
   } else if (mode === 2) {
     // Crepúsculo de Arcadia
@@ -2588,7 +2588,7 @@ function setWorldState(mode) {
       floorSunPatch.material.opacity = 0.28;
     }
     if (weatherIcon) weatherIcon.innerHTML = icon('star', { size: 18 });
-    if (weatherText) weatherText.innerText = 'Crepúsculo de Arcadia';
+    if (weatherText) weatherText.innerText = 'Arcadia Twilight';
     playAcousticNote(260);
   } else {
     // Atardecer Dorado
@@ -2613,7 +2613,7 @@ function setWorldState(mode) {
       floorSunPatch.material.opacity = 0.42;
     }
     if (weatherIcon) weatherIcon.innerHTML = icon('spark', { size: 18 });
-    if (weatherText) weatherText.innerText = 'Atardecer Dorado';
+    if (weatherText) weatherText.innerText = 'Golden Sunset';
     playAcousticNote(392);
   }
 }
@@ -2669,9 +2669,9 @@ function renderLedgerUI() {
   const verification = ledger.verify();
   if (hudChainStatus) {
     if (verification.valid) {
-      hudChainStatus.innerHTML = `<span class="ok">Validado · ${verification.checked} bloques</span>`;
+      hudChainStatus.innerHTML = `<span class="ok">Verified · ${verification.checked} blocks</span>`;
     } else {
-      hudChainStatus.innerHTML = `<span class="bad">Corrupción detectada</span>`;
+      hudChainStatus.innerHTML = `<span class="bad">Corruption detected</span>`;
     }
   }
 
@@ -2948,7 +2948,7 @@ function toggleAudio() {
     isAudioPlaying = false;
     tonearmTargetY = 0.1;
     const aText = document.getElementById('audio-text');
-    if (aText) aText.innerText = 'Música (Pausada)';
+    if (aText) aText.innerText = 'Music (Paused)';
     return;
   }
 
@@ -2957,17 +2957,17 @@ function toggleAudio() {
     isAudioPlaying = false;
     tonearmTargetY = 0.1; // Retirar aguja
     const aText = document.getElementById('audio-text');
-    if (aText) aText.innerText = 'Música Indie (Pausada)';
+    if (aText) aText.innerText = 'Indie Music (Paused)';
   } else {
     isAudioPlaying = true;
     tonearmTargetY = 0.45; // Colocar aguja sobre el disco
     playVinylCrackle();
 
-    const trackNames = ['Marea baja', 'Atardecer en Arcadia', 'Lluvia en la Ventana'];
-    const currentName = trackNames[currentAcousticProgression] || 'Indie Folk Acústico';
+    const trackNames = ['Low Tide', 'Arcadia Sunset', 'Rain on the Window'];
+    const currentName = trackNames[currentAcousticProgression] || 'Acoustic Indie Folk';
 
     const aText = document.getElementById('audio-text');
-    if (aText) aText.innerText = `Sonando: ${currentName}`;
+    if (aText) aText.innerText = `Playing: ${currentName}`;
 
     const chordsSeq = acousticChordsList[currentAcousticProgression] || acousticChordsList[0];
     let chordIdx = 0;
@@ -3113,11 +3113,11 @@ function animate() {
   const delta = animClock.getDelta();
   const time = animClock.getElapsedTime();
 
-  // 1. ROTACIÓN DEL VINILO Y BRAZO DEL TOCADISCOS
+  // 1. VINYL ROTATION AND TONEARM MOVEMENT
   vinylDisc.rotation.y += isAudioPlaying ? 0.055 : 0.02;
   tonearm.rotation.y = THREE.MathUtils.lerp(tonearm.rotation.y, tonearmTargetY, 0.04);
 
-  // 2. ALETEO SUAVE DE LA MARIPOSA AZUL
+  // 2. GENTLE FLUTTER OF BLUE BUTTERFLY
   leftWing.rotation.y = Math.sin(time * 16) * 0.75;
   rightWing.rotation.y = -Math.sin(time * 16) * 0.75;
   butterflyGroup.position.y = 2.4 + Math.sin(time * 2.8) * 0.28;

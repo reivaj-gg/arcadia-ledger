@@ -1,6 +1,6 @@
 # Arcadia — Conformance Harness Report
 
-Generated: 2026-11-05T02:24:03.761Z
+Generated: 2026-11-05T02:59:28.107Z
 
 ## What this report is
 

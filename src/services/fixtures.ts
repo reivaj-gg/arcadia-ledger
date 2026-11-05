@@ -62,18 +62,18 @@ export const MOCK_SCREENSHOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" widt
   <rect width="${SHOT_WIDTH}" height="${SHOT_HEIGHT}" fill="#0b141a"/>
   <rect width="${SHOT_WIDTH}" height="120" fill="#1f2c34"/>
   <circle cx="46" cy="62" r="26" fill="#00a884"/>
-  <text x="88" y="56" font-family="Segoe UI, Roboto, sans-serif" font-size="26" font-weight="600" fill="#e9edef">Mariana · Cliente</text>
-  <text x="88" y="86" font-family="Segoe UI, Roboto, sans-serif" font-size="19" fill="#8696a0">en línea</text>
+  <text x="88" y="56" font-family="Segoe UI, Roboto, sans-serif" font-size="26" font-weight="600" fill="#e9edef">Mariana · Client</text>
+  <text x="88" y="86" font-family="Segoe UI, Roboto, sans-serif" font-size="19" fill="#8696a0">online</text>
   <rect x="${BUBBLE.x}" y="${BUBBLE.y}" width="${BUBBLE.width}" height="${BUBBLE.height}" rx="14" fill="#202c33"/>
   <text font-family="Segoe UI, Roboto, sans-serif" font-size="24" fill="#e9edef">
-    <tspan x="44" y="278">Oye Javier, ¿me ayudas con el</tspan>
-    <tspan x="44" y="312">diseño para el jueves?</tspan>
-    <tspan x="44" y="346">Te pago $200.</tspan>
-    <tspan x="44" y="380">Entrega a las 4 PM.</tspan>
+    <tspan x="44" y="278">Hey Javier, can you help me with</tspan>
+    <tspan x="44" y="312">the design for Thursday?</tspan>
+    <tspan x="44" y="346">Paying $200.</tspan>
+    <tspan x="44" y="380">Delivery by 4 PM.</tspan>
   </text>
   <text x="470" y="412" font-family="Segoe UI, Roboto, sans-serif" font-size="17" fill="#8696a0">09:41</text>
   <rect x="300" y="456" width="396" height="64" rx="14" fill="#005c4b"/>
-  <text x="324" y="496" font-family="Segoe UI, Roboto, sans-serif" font-size="24" fill="#e9edef">Déjame ver mi agenda</text>
+  <text x="324" y="496" font-family="Segoe UI, Roboto, sans-serif" font-size="24" fill="#e9edef">Let me check my calendar</text>
   <text x="640" y="512" font-family="Segoe UI, Roboto, sans-serif" font-size="17" fill="#8696a0">09:42</text>
 </svg>`;
 
@@ -126,19 +126,19 @@ export const MOCK_TRANSCRIPTION_TURNS: AudioTurn[] = [
     speaker: 'A',
     startMs: 0,
     endMs: 4200,
-    text: 'Si acepto el diseño de Mariana, tengo que entregar el jueves a las 4 de la tarde.',
+    text: "If I accept Mariana's design job, I have to deliver Thursday by 4 PM.",
   },
   {
     speaker: 'A',
     startMs: 4400,
     endMs: 8600,
-    text: 'Pero a las 3 tengo clase de cálculo y no puedo faltar.',
+    text: 'But at 3 PM I have Calculus class and attendance is mandatory.',
   },
   {
     speaker: 'A',
     startMs: 8800,
     endMs: 11200,
-    text: 'Si le digo que sí, entrego tarde. Si le digo que no, pierdo los doscientos.',
+    text: 'If I say yes, I deliver late. If I say no, I lose the two hundred.',
   },
 ];
 
@@ -165,11 +165,11 @@ export const MOCK_REFINED_BOX: PixelBoundingBox = normalizeBox(
 export const MOCK_BRANCHES: [CausalBranch, CausalBranch] = [
   {
     pathName: 'A',
-    actionTitle: 'Aceptar y negociar la entrega para el viernes',
+    actionTitle: 'Accept and negotiate delivery for Friday',
     tradeOffs: [
-      'Cobrás los $200 sin romper la clase del jueves.',
-      'Quedás comprometido hasta el viernes a las 11 AM.',
-      'Mariana puede leerlo como falta de disponibilidad.',
+      'Earn the $200 without missing Thursday class.',
+      'Committed until Friday at 11 AM.',
+      'Mariana may perceive lack of immediate availability.',
     ],
     deltaHours: 6,
     deltaEnergy: -2,
@@ -177,11 +177,11 @@ export const MOCK_BRANCHES: [CausalBranch, CausalBranch] = [
   },
   {
     pathName: 'B',
-    actionTitle: 'Aceptar el jueves y faltar a clase',
+    actionTitle: 'Accept for Thursday and skip class',
     tradeOffs: [
-      'Entregás a tiempo y protegés la relación comercial.',
-      'Perdés la clase de cálculo, que tiene asistencia obligatoria.',
-      'Acumulás 3 horas de deuda de sueño el mismo día.',
+      'Deliver on time and protect commercial relationship.',
+      'Miss Calculus class with mandatory attendance.',
+      'Accumulate 3 hours of sleep debt the same day.',
     ],
     deltaHours: 11,
     deltaEnergy: -7,
@@ -195,9 +195,9 @@ export const MOCK_BRANCHES: [CausalBranch, CausalBranch] = [
 
 /** The commitment extracted from the WhatsApp screenshot. */
 export const MOCK_DILEMMA_DRAFT: DraftCommitment = {
-  title: 'Diseño para Mariana',
+  title: 'Design for Mariana',
   claimText:
-    'Mariana pide un diseño para el jueves a las 4 PM y ofrece $200 por el trabajo.',
+    'Mariana asks for a design by Thursday at 4 PM and offers $200 for the job.',
   branches: MOCK_BRANCHES,
   validFrom: '2026-11-03T09:41:00-03:00',
   timeWindow: {
@@ -211,22 +211,22 @@ export const MOCK_DILEMMA_DRAFT: DraftCommitment = {
  * delivery window above. Same Thursday, 15:00–17:00.
  */
 export const MOCK_CLASS_DRAFT: DraftCommitment = {
-  title: 'Clase de cálculo',
+  title: 'Calculus class',
   claimText:
-    'La clase de cálculo del jueves va de 15:00 a 17:00 y tiene asistencia obligatoria.',
+    'Thursday Calculus class runs from 15:00 to 17:00 and has mandatory attendance.',
   branches: [
     {
       pathName: 'A',
-      actionTitle: 'Asistir y entregar el diseño el viernes',
-      tradeOffs: ['Protegés la asistencia.', 'La entrega se corre 19 horas.'],
+      actionTitle: 'Attend and deliver the design on Friday',
+      tradeOffs: ['Protects class attendance.', 'Delivery pushed back by 19 hours.'],
       deltaHours: 2,
       deltaEnergy: -1,
       riskLevel: 'low',
     },
     {
       pathName: 'B',
-      actionTitle: 'Faltar a clase para entregar a tiempo',
-      tradeOffs: ['Entregás a tiempo.', 'Perdés la asistencia obligatoria.'],
+      actionTitle: 'Skip class to deliver on time',
+      tradeOffs: ['Delivers on time.', 'Forfeits mandatory class attendance.'],
       deltaHours: 0,
       deltaEnergy: -4,
       riskLevel: 'high',

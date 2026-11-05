@@ -193,7 +193,7 @@ test('mock: transcription returns turn-level timestamps, never word-level', asyn
     assert.ok(turn.text.length > 0);
   }
 
-  assert.match(result.fullText, /clase de cálculo/);
+  assert.match(result.fullText, /Calculus class/i);
 });
 
 function liveAsrAdapter(body: string): MetaAdapter {
