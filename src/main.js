@@ -1835,15 +1835,15 @@ function setActionState(state) {
   if (!actionExitHint) return;
   if (state === 'sitting_armchair') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('armchair', { size: 16 });
-    if (actionExitText) actionExitText.innerText = 'Sentado en el sillón · arrastra para mirar · [V] 3ª persona · [W] levantarse';
+    if (actionExitText) actionExitText.innerText = 'Seated in the armchair · drag to look around · [V] 3rd person · [W] stand up';
     actionExitHint.classList.add('visible');
   } else if (state === 'lying_bed') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('bed', { size: 16 });
-    if (actionExitText) actionExitText.innerText = 'En la cama, mirando la ventana · [V] 3ª persona · [W] levantarse';
+    if (actionExitText) actionExitText.innerText = 'In bed, looking out the window · [V] 3rd person · [W] stand up';
     actionExitHint.classList.add('visible');
   } else if (state === 'playing_guitar') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('guitar', { size: 16 });
-    if (actionExitText) actionExitText.innerText = 'Tocando la guitarra acústica · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    if (actionExitText) actionExitText.innerText = 'Playing acoustic guitar · Press [W][A][S][D] or [Space] to stand up';
     actionExitHint.classList.add('visible');
   }
 }
@@ -2768,7 +2768,7 @@ if (choiceA) {
     });
     renderLedgerUI();
     setWorldState(1); // Tormenta
-    showThought('Senda A sellada: el tiempo colapsa y una tormenta se cierne sobre Arcadia.');
+    showThought('Branch A sealed: time collapses and a storm gathers over Arcadia.');
     closeJournal();
   });
 }
@@ -2783,7 +2783,7 @@ if (choiceB) {
     });
     renderLedgerUI();
     setWorldState(0); // Atardecer Dorado
-    showThought('Senda B sellada: asistencia protegida. El atardecer dorado permanece.');
+    showThought('Branch B sealed: attendance secured. Golden hour remains.');
     closeJournal();
   });
 }
@@ -3062,8 +3062,8 @@ if (customMusicFile && customAudioPlayer) {
       if (loadedFileName) loadedFileName.innerText = `▶ ${cleanName}`;
       if (musicBtnLabel) musicBtnLabel.innerText = `🎵 ${cleanName.substring(0, 14)}`;
       const audioHud = document.getElementById('audio-text');
-      if (audioHud) audioHud.innerText = `Sonando: ${cleanName}`;
-      showThought(`"Puse '${cleanName}' en el tocadiscos... la música perfecta para concentrarme."`);
+      if (audioHud) audioHud.innerText = `Now playing: ${cleanName}`;
+      showThought(`"Playing '${cleanName}' on the turntable... the right sound to focus."`);
     }).catch(err => {
       console.warn('Playback error', err);
     });
@@ -3085,15 +3085,15 @@ musicOptions.forEach(opt => {
     if (track === 'marea') {
       currentAcousticProgression = 0;
       if (!isAudioPlaying) toggleAudio();
-      else showThought('"Marea baja... el himno tranquilo de Arcadia."');
+      else showThought('"Low Tide... the quiet theme of Arcadia."');
     } else if (track === 'golden') {
       currentAcousticProgression = 1;
       if (!isAudioPlaying) toggleAudio();
-      else showThought('"Atardecer en Arcadia... acordes cálidos de reflexión."');
+      else showThought('"Sunset in Arcadia... warm chords of reflection."');
     } else if (track === 'rain') {
       currentAcousticProgression = 2;
       if (!isAudioPlaying) toggleAudio();
-      else showThought('"Lluvia en la Ventana... la melancolía del tiempo detenido."');
+      else showThought('"Rain on the Window... the melancholy of suspended time."');
     }
   });
 });
@@ -3551,7 +3551,7 @@ Object.assign(bus.api, {
           kind: text(kind, 'timeline.rewound'),
           fromScene: text(p.fromScene || p.scene, 'unknown.scene'),
           choiceId: text(p.undoneChoice || p.choiceId, 'unknown.choice'),
-          remembered: text(p.remembered || p.note, 'Una línea de tiempo deshecha'),
+          remembered: text(p.remembered || p.note, 'An undone timeline branch'),
           chargesLeft: Number.isFinite(p.chargesLeft) ? Math.max(0, Math.trunc(p.chargesLeft)) : 0,
           recordedAt: when,
         });
@@ -3559,7 +3559,7 @@ Object.assign(bus.api, {
         event = ledger.append('narrative.clue', {
           kind: text(kind, 'narrative.clue'),
           sceneId: text(p.scene || p.sceneId, 'unknown.scene'),
-          label: text(p.note || label, 'Pista sellada'),
+          label: text(p.note || label, 'Sealed clue'),
           recordedAt: when,
         });
       } else {
@@ -3567,7 +3567,7 @@ Object.assign(bus.api, {
           kind: text(kind, 'narrative.decision'),
           sceneId: text(p.scene || p.sceneId, 'unknown.scene'),
           choiceId: text(p.choice || p.choiceId, 'unknown.choice'),
-          label: text(p.label, 'Decisión sellada'),
+          label: text(p.label, 'Sealed decision'),
           recordedAt: when,
         };
         if (note) decision.note = note;

@@ -28,7 +28,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const SPEAKERS = {
   javier: { name: 'Javier', role: 'You · Rebuilding your room', style: 'default' },
   narrador: { name: 'Narration', role: 'Surroundings', style: 'narration' },
-  mariposa: { name: 'El Eco', role: 'Meta Muse Spark 1.3', style: 'thought' },
+  mariposa: { name: 'The Echo', role: 'Meta Muse Spark 1.3', style: 'thought' },
   ledger: { name: 'Cryptographic ledger', role: 'SHA-256 · immutable', style: 'ledger' },
   muse: { name: 'Meta AI', role: 'SAM 3.1 · Muse Voice 1.0', style: 'voice' },
 };
