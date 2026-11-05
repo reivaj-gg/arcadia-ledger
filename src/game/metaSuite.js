@@ -52,7 +52,7 @@ function deskPhoto() {
   const bw = ((BOX.x2 - BOX.x1) / 1000) * 960;
   const bh = ((BOX.y2 - BOX.y1) / 1000) * 720;
 
-  return `<svg viewBox="0 0 960 720" class="ms-photo" preserveAspectRatio="none" aria-label="Fotografía del escritorio">
+  return `<svg viewBox="0 0 960 720" class="ms-photo" preserveAspectRatio="none" aria-label="Photo of the desk">
     <defs>
       <linearGradient id="msWood" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#8a5a34"/><stop offset="0.5" stop-color="#744526"/><stop offset="1" stop-color="#5c3419"/>
@@ -94,7 +94,7 @@ function deskPhoto() {
       <path d="M512 618q28-24 54 0t54 0" stroke="#8a7a63" stroke-width="2" fill="none" opacity="0.6"/>
     </g>
 
-    <!-- taza de café, vista en tres cuartos -->
+    <!-- coffee mug, three-quarter view -->
     <g transform="translate(772 342)">
       <ellipse cx="8" cy="14" rx="62" ry="54" fill="#000" opacity="0.3" filter="url(#msSoft)"/>
       <path d="M-56 0v34a56 52 0 0 0 112 0V0z" fill="#33404a"/>
@@ -104,7 +104,7 @@ function deskPhoto() {
       <ellipse cx="-12" cy="-2" rx="16" ry="5" fill="#6b4a2e" opacity="0.55"/>
     </g>
 
-    <!-- lápiz apoyado -->
+    <!-- pencil lying down -->
     <g transform="rotate(-9 240 660)">
       <rect x="128" y="650" width="200" height="15" rx="3" fill="#e0a83c"/>
       <rect x="128" y="650" width="26" height="15" fill="#c96a5a"/>
@@ -113,7 +113,7 @@ function deskPhoto() {
       <rect x="128" y="654" width="200" height="3" fill="#c98f2e" opacity="0.6"/>
     </g>
 
-    <!-- planta, cortada por el borde -->
+    <!-- plant, cropped by the frame edge -->
     <g transform="translate(58 700)">
       <path d="M-40 30h80l-10 60h-60z" fill="#b5643f"/>
       <path d="M-30 -6q-32-32-14-60 26 8 30 50z" fill="#4b7a4a"/>
@@ -121,14 +121,14 @@ function deskPhoto() {
       <path d="M-6 -8q-5-40 11-56 18 20 5 58z" fill="#3f6b40"/>
     </g>
 
-    <!-- el post-it: ocupa exactamente la caja reportada -->
+    <!-- the sticky note: sits exactly inside the reported box -->
     <g transform="rotate(-1.4 ${bx + bw / 2} ${by + bh / 2})">
       <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="url(#msNote)"/>
       <rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#000" opacity="0.07" filter="url(#msSoft)" transform="translate(4 7)"/>
       <rect x="${bx + 5}" y="${by + 5}" width="${bw - 10}" height="${bh - 10}" fill="none" stroke="#d8bf6d" stroke-width="1.5" opacity="0.7"/>
       <g fill="#3b3226" font-family="Caveat, cursive">
-        <text x="${bx + 22}" y="${by + 40}" font-size="31" font-weight="700">ENTREGA</text>
-        <text x="${bx + 22}" y="${by + 79}" font-size="27">jueves · 17:00</text>
+        <text x="${bx + 22}" y="${by + 40}" font-size="31" font-weight="700">DELIVERY</text>
+        <text x="${bx + 22}" y="${by + 79}" font-size="27">thursday · 17:00</text>
         <text x="${bx + 22}" y="${by + 124}" font-size="38" font-weight="700" fill="#8c2f2b">$200</text>
       </g>
       <path d="M${bx + 22} ${by + 133} h${bw - 56}" stroke="#8c2f2b" stroke-width="2" opacity="0.45"/>
@@ -166,19 +166,19 @@ function samPanel() {
 
         <div class="ms-metrics">
           <div class="ms-metric"><b>BBOX</b><span>[24, 232, 519, 427]</span></div>
-          <div class="ms-metric"><b>ESPACIO</b><span>normalizado 0–1000</span></div>
-          <div class="ms-metric"><b>IMAGEN</b><span>720 × 1280 px</span></div>
-          <div class="ms-metric"><b>CLASE</b><span>post-it · texto manuscrito</span></div>
+          <div class="ms-metric"><b>SPACE</b><span>normalised 0–1000</span></div>
+          <div class="ms-metric"><b>IMAGE</b><span>960 × 720 px</span></div>
+          <div class="ms-metric"><b>CLASS</b><span>post-it · handwritten text</span></div>
         </div>
 
-        <div class="ms-tokens" id="ms-tokens" aria-label="Salida del modelo">
-          <span class="ms-tokens-label">salida del modelo</span>
+        <div class="ms-tokens" id="ms-tokens" aria-label="Model output">
+          <span class="ms-tokens-label">model output</span>
           <code id="ms-token-code"></code>
         </div>
 
         <div class="ms-ocr">
-          <span class="ms-ocr-k">texto recuperado</span>
-          <p>ENTREGA · jueves 17:00 · $200</p>
+          <span class="ms-ocr-k">recovered text</span>
+          <p>DELIVERY · thursday 17:00 · $200</p>
         </div>
       </aside>
     </div>
@@ -186,9 +186,9 @@ function samPanel() {
 }
 
 const VOICE_LINES = [
-  { from: 0, to: 4.4, text: 'Javier, son las dos y diez de la madrugada.' },
-  { from: 4.4, to: 8.6, text: 'El bus sale el jueves a las 16:30 y no pienso perderlo otra vez.' },
-  { from: 8.6, to: 12.4, text: 'Voy a llegar. Lo prometo.' },
+  { from: 0, to: 4.4, text: 'Javier, it is ten past two in the morning.' },
+  { from: 4.4, to: 8.6, text: 'The bus leaves thursday at 16:30 and I am not missing it again.' },
+  { from: 8.6, to: 12.4, text: 'I will be there. I promise.' },
 ];
 
 function voicePanel() {
@@ -218,8 +218,8 @@ function voicePanel() {
       </div>
 
       <footer class="ms-voice-foot">
-        <button class="ms-play" id="ms-voice-play">${icon('play', { size: 15 })}<span>Escuchar</span></button>
-        <span class="ms-voice-note">turno 2 · speaker A · confianza 0.985</span>
+        <button class="ms-play" id="ms-voice-play">${icon('play', { size: 15 })}<span>Listen</span></button>
+        <span class="ms-voice-note">turn 2 · speaker A · confidence 0.985</span>
       </footer>
     </div>
   </section>`;
@@ -230,7 +230,7 @@ function sparkPanel() {
   <section class="ms-panel" data-panel="spark">
     <div class="ms-spark">
       <div class="ms-graph">
-        <svg viewBox="0 0 640 380" class="ms-graph-svg" aria-label="Grafo causal">
+        <svg viewBox="0 0 640 380" class="ms-graph-svg" aria-label="Causal graph">
           <defs>
             <marker id="msArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
               <path d="M0 0 L10 5 L0 10 z" fill="#4b6a86"/>
@@ -244,11 +244,11 @@ function sparkPanel() {
           <path class="ms-edge hot" d="M498 182 C 540 182, 548 182, 574 182"/>
 
           <g class="ms-node"><rect x="20" y="52" width="96" height="52" rx="6"/>
-            <text x="68" y="76" text-anchor="middle" class="ms-n-k">FOTOGRAFÍA</text>
-            <text x="68" y="92" text-anchor="middle" class="ms-n-v">escritorio</text></g>
+            <text x="68" y="76" text-anchor="middle" class="ms-n-k">PHOTO</text>
+            <text x="68" y="92" text-anchor="middle" class="ms-n-v">desk</text></g>
 
           <g class="ms-node"><rect x="20" y="274" width="96" height="52" rx="6"/>
-            <text x="68" y="298" text-anchor="middle" class="ms-n-k">VOZ</text>
+            <text x="68" y="298" text-anchor="middle" class="ms-n-k">VOICE</text>
             <text x="68" y="314" text-anchor="middle" class="ms-n-v">00:12.4</text></g>
 
           <g class="ms-node accent"><rect x="236" y="52" width="104" height="52" rx="6"/>
@@ -257,7 +257,7 @@ function sparkPanel() {
 
           <g class="ms-node accent"><rect x="236" y="274" width="104" height="52" rx="6"/>
             <text x="288" y="298" text-anchor="middle" class="ms-n-k">MUSE VOICE</text>
-            <text x="288" y="314" text-anchor="middle" class="ms-n-v">turno 2</text></g>
+            <text x="288" y="314" text-anchor="middle" class="ms-n-v">turn 2</text></g>
 
           <g class="ms-node core"><rect x="436" y="156" width="86" height="52" rx="6"/>
             <text x="479" y="180" text-anchor="middle" class="ms-n-k">SPARK</text>
@@ -273,12 +273,12 @@ function sparkPanel() {
 
       <aside class="ms-spark-side">
         <div class="ms-positions">
-          <div class="ms-pos"><b>posición 3D</b><span id="ms-pos">x 2.50 · y 1.60 · z −1.80</span></div>
-          <div class="ms-pos"><b>anclaje</b><span>hotspot «desk» · 0.42 m</span></div>
+          <div class="ms-pos"><b>3D position</b><span id="ms-pos">x 2.50 · y 1.60 · z −1.80</span></div>
+          <div class="ms-pos"><b>anchor</b><span>hotspot "desk" · 0.42 m</span></div>
         </div>
 
         <div class="ms-map">
-          <svg viewBox="0 0 200 140" aria-label="Plano de la habitación">
+          <svg viewBox="0 0 200 140" aria-label="Room plan">
             <rect x="6" y="6" width="188" height="128" rx="4" class="ms-map-room"/>
             <rect x="118" y="24" width="66" height="30" rx="3" class="ms-map-furn"/>
             <rect x="18" y="88" width="54" height="34" rx="3" class="ms-map-furn"/>
@@ -287,13 +287,13 @@ function sparkPanel() {
             <circle cx="152" cy="39" r="11" class="ms-map-ring"/>
             <path d="M0 70h200" class="ms-map-scan"/>
           </svg>
-          <span class="ms-map-cap">objeto proyectado</span>
+          <span class="ms-map-cap">projected object</span>
         </div>
 
         <div class="ms-conflict">
-          <div class="ms-conflict-head">${icon('warning', { size: 14 })}<span>45 min de solapamiento</span></div>
+          <div class="ms-conflict-head">${icon('warning', { size: 14 })}<span>45 min overlap</span></div>
           <div class="ms-bars">
-            <div class="ms-bar"><span class="ms-bar-k">entrega</span><div class="ms-bar-track"><i class="ms-bar-fill late" style="--a:72%;--b:88%"></i></div><span class="ms-bar-v">17:00</span></div>
+            <div class="ms-bar"><span class="ms-bar-k">delivery</span><div class="ms-bar-track"><i class="ms-bar-fill late" style="--a:72%;--b:88%"></i></div><span class="ms-bar-v">17:00</span></div>
             <div class="ms-bar"><span class="ms-bar-k">bus</span><div class="ms-bar-track"><i class="ms-bar-fill bus" style="--a:56%;--b:72%"></i></div><span class="ms-bar-v">16:30</span></div>
           </div>
         </div>
@@ -309,16 +309,16 @@ function ledgerPanel() {
       <div class="ms-chain-head">
         <div class="ms-chain-status" id="ms-chain-status">
           <span class="ms-verdict-dot"></span>
-          <b>CADENA VERIFICADA</b>
-          <span id="ms-chain-count">0 bloques</span>
+          <b>CHAIN VERIFIED</b>
+          <span id="ms-chain-count">0 blocks</span>
         </div>
-        <button class="ms-play" id="ms-seal">${icon('seal', { size: 15 })}<span>Sellar bloque</span></button>
+        <button class="ms-play" id="ms-seal">${icon('seal', { size: 15 })}<span>Seal block</span></button>
       </div>
 
       <div class="ms-blocks" id="ms-blocks"></div>
 
       <div class="ms-hashbox">
-        <div class="ms-hash-label">hash en vivo</div>
+        <div class="ms-hash-label">live hash</div>
         <code class="ms-hash" id="ms-hash"></code>
         <div class="ms-hash-formula">SHA-256( seq · prevHash · payloadHash · timestamp )</div>
       </div>
@@ -339,22 +339,22 @@ function fmt(sec) {
 /* Shell                                                                      */
 /* ------------------------------------------------------------------------- */
 const TABS = [
-  { id: 'sam', label: 'SAM 3.1', sub: 'Visión', icon: 'scan' },
+  { id: 'sam', label: 'SAM 3.1', sub: 'Vision', icon: 'scan' },
   { id: 'voice', label: 'Muse Voice', sub: 'Audio', icon: 'waveform' },
-  { id: 'spark', label: 'Muse Spark', sub: 'Causalidad', icon: 'graph' },
+  { id: 'spark', label: 'Muse Spark', sub: 'Causality', icon: 'graph' },
   { id: 'ledger', label: 'SHA-256', sub: 'Ledger', icon: 'hash' },
 ];
 
 function shell() {
   return `
     <div class="ms-scrim" data-close></div>
-    <div class="ms-sheet" role="dialog" aria-modal="true" aria-label="Suite Meta AI">
+    <div class="ms-sheet" role="dialog" aria-modal="true" aria-label="Meta AI Suite">
       <header class="ms-head">
         <div class="ms-head-l">
           <span class="ms-head-mark">${icon('spark', { size: 18 })}</span>
           <div>
             <h2 class="ms-title">Meta AI Suite</h2>
-            <div class="ms-sub">Tus evidencias, verificadas en vivo</div>
+            <div class="ms-sub">Your evidence, verified live</div>
           </div>
         </div>
         <div class="ms-tabs" role="tablist">
@@ -365,7 +365,7 @@ function shell() {
               <span class="ms-tab-s">${t.sub}</span>
             </button>`).join('')}
         </div>
-        <button class="ms-close" data-close title="Cerrar (ESC)">${icon('close', { size: 18 })}</button>
+        <button class="ms-close" data-close title="Close (ESC)">${icon('close', { size: 18 })}</button>
       </header>
 
       <div class="ms-body">
@@ -380,7 +380,7 @@ function shell() {
         <span class="ms-foot-k">${icon('waveform', { size: 13 })} Muse Voice 1.0</span>
         <span class="ms-foot-k">${icon('graph', { size: 13 })} Muse Spark 1.3</span>
         <span class="ms-foot-k">${icon('hash', { size: 13 })} SHA-256</span>
-        <span class="ms-foot-hint"><b>I</b> o <b>ESC</b> para volver a la habitación</span>
+        <span class="ms-foot-hint"><b>I</b> or <b>ESC</b> back to the room</span>
       </footer>
     </div>`;
 }
@@ -639,7 +639,7 @@ function tickSpark(time) {
 function seedLedger() {
   const genesis = '0'.repeat(64);
   ledgerBlocks = [
-    { seq: 0, type: 'genesis', label: 'BLOQUE GÉNESIS', hash: genesis, prevHash: genesis, at: '—' },
+    { seq: 0, type: 'genesis', label: 'GENESIS BLOCK', hash: genesis, prevHash: genesis, at: '—' },
   ];
   renderBlocks();
 }
@@ -657,7 +657,7 @@ function sealBlock({ user = false } = {}) {
   });
   const payloadHash = sha256Hex(payload);
   const hash = sha256Hex(`${seq}${prev.hash}${payloadHash}${at}`);
-  ledgerBlocks.push({ seq, type: user ? 'manual.seal' : 'narrative.clue', label: user ? 'SELLO MANUAL' : 'ANCLAJE PIXELAR', hash, prevHash: prev.hash, at });
+  ledgerBlocks.push({ seq, type: user ? 'manual.seal' : 'narrative.clue', label: user ? 'MANUAL SEAL' : 'PIXEL ANCHOR', hash, prevHash: prev.hash, at });
   renderBlocks();
   revealHash(hash);
 }
@@ -677,7 +677,7 @@ function renderBlocks() {
     </div>`).join('');
 
   const count = el.querySelector('#ms-chain-count');
-  if (count) count.textContent = `${ledgerBlocks.length} bloque${ledgerBlocks.length === 1 ? '' : 's'}`;
+  if (count) count.textContent = `${ledgerBlocks.length} block${ledgerBlocks.length === 1 ? '' : 's'}`;
 }
 
 function revealHash(target) {

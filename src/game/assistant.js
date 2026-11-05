@@ -50,7 +50,7 @@ function render() {
           <span class="ag-as-dots">${dots}</span>
         </div>
       </div>
-      <button class="ag-as-skip" title="Omitir la guía">${icon('close', { size: 14 })}</button>
+      <button class="ag-as-skip" title="Skip the guide">${icon('close', { size: 14 })}</button>
     </div>`;
 
   el.querySelector('.ag-as-skip')?.addEventListener('click', () => stopAssistant(true));

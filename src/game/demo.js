@@ -57,7 +57,7 @@ function build() {
       <span class="dm-cap-t" id="dm-cap-t"></span>
     </div>
     <div class="dm-progress"><i id="dm-progress-fill"></i></div>
-    <button class="dm-skip" id="dm-skip">${icon('close', { size: 14 })}<span>Saltar demo</span></button>
+    <button class="dm-skip" id="dm-skip">${icon('close', { size: 14 })}<span>Skip demo</span></button>
     <div class="dm-card" id="dm-card">
       <div class="dm-card-inner">
         <div class="dm-card-kicker" id="dm-card-kicker"></div>
@@ -120,14 +120,14 @@ async function sequence() {
   await wait(420);
 
   shot([5.4, 3.6, 6.6], [0.4, 1.5, -1.6], 200);
-  await card('Reconstrucción espacial verificable', 'Arcadia', 'Una habitación, probada objeto por objeto', 2600);
+  await card('Verifiable spatial reconstruction', 'Arcadia', 'One room, proven object by object', 2600);
 
-  caption('00 · La habitación', 'Cada objeto se reconstruye desde una prueba real.');
+  caption('00 · The room', 'Every object is rebuilt from real evidence.');
   shot([2.4, 2.7, 5.2], [0.2, 1.35, -1.8], 9000);
   await wait(9000);
 
   // ── 0:12 walk to the desk ──────────────────────────────────────────────
-  caption('01 · Javier', 'La reconstrucción es suya: su escritorio, sus notas, su voz.');
+  caption('01 · Javier', 'The reconstruction is his: his desk, his notes, his voice.');
   shot([3.5, 2.4, 3.4], [0.8, 1.2, -0.4], 2000);
   await walk(1.5, -0.6, 5200);
   shot([2.1, 2.0, 1.2], [2.4, 1.3, -1.9], 2400);
@@ -138,23 +138,23 @@ async function sequence() {
   shot([1.7, 1.85, -0.3], [2.55, 1.35, -2.0], 1600);
   await wait(1900);
 
-  caption('02 · Meta SAM 3.1', 'Segmenta el post-it del escritorio con precisión de píxel.');
+  caption('02 · Meta SAM 3.1', 'Segments the sticky note on the desk to pixel precision.');
   openMetaSuite({ tab: 'sam' });
   await wait(12000);
 
   // ── 0:35 Muse Voice 1.0 ────────────────────────────────────────────────
-  caption('03 · Meta Muse Voice 1.0', 'Su propia nota de voz, transcrita con marcas de tiempo.');
+  caption('03 · Meta Muse Voice 1.0', 'His own voice note, transcribed with timecodes.');
   setTab('voice');
   metaSuitePlayVoice();
   await wait(12000);
 
   // ── 0:47 Muse Spark 1.3 ────────────────────────────────────────────────
-  caption('04 · Meta Muse Spark 1.3', 'Cruza imagen y audio: la entrega de las 17:00 choca con el bus de las 16:30.');
+  caption('04 · Meta Muse Spark 1.3', 'Crosses image and audio: the 17:00 delivery collides with the 16:30 bus.');
   setTab('spark');
   await wait(9500);
 
   // ── 0:56 SHA-256 ───────────────────────────────────────────────────────
-  caption('05 · SHA-256 Spatial Ledger', 'El hallazgo se sella en un bloque que nadie puede reescribir.');
+  caption('05 · SHA-256 Spatial Ledger', 'The finding is sealed into a block nobody can rewrite.');
   setTab('ledger');
   await wait(3000);
   metaSuiteSeal();
@@ -165,7 +165,7 @@ async function sequence() {
   closeMetaSuite();
   await wait(1200);
 
-  caption('06 · El sillón', 'Y entonces se sienta a mirar lo que ha reconstruido.');
+  caption('06 · The armchair', 'And then he sits down to look at what he has rebuilt.');
   shot([-0.8, 2.3, 4.6], [-3.0, 1.1, 2.4], 2600);
   await walk(-2.5, 2.35, 6200);
 
@@ -187,7 +187,7 @@ async function sequence() {
 
   // ── end card ───────────────────────────────────────────────────────────
   clearCaption();
-  await card('Arcadia', 'El tiempo perdona. El ledger, no.', '8 pistas · 6 finales · una sola cadena verificada', 7000);
+  await card('Arcadia', 'Time forgives. The ledger does not.', '8 clues · 6 endings · one verified chain', 7000);
 
   finish();
 }

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arcadia · El tiempo perdona, el ledger no</title>
-  <meta name="description" content="Arcadia: un juego narrativo de decisiones verificables, exploración 3D y rebobinado temporal.">
+  <title>Arcadia · Time forgives, the ledger does not</title>
+  <meta name="description" content="Arcadia: a narrative game of verifiable decisions, 3D exploration and temporal rewind.">
   <meta name="theme-color" content="#100c09">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23100c09'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23100c09'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='36' font-weight='700' fill='%23f0e6d6' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@300;400;700&family=Barlow+Condensed:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -34,7 +34,7 @@
       z-index: 1;
     }
 
-    /* VIGNETTE ANALÓGICO CINEMÁTICO */
+    /* CINEMATIC ANALOGUE VIGNETTE */
     .vignette-overlay {
       position: absolute;
       inset: 0;
@@ -240,7 +240,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
-    /* CAJA DE MONÓLOGO INTERNO DE MAX */
+    /* INNER MONOLOGUE BOX */
     #introspection-box {
       position: absolute;
       bottom: 95px;
@@ -283,7 +283,7 @@
     }
 
 
-    /* Viñeta cinematográfica (viñeta de cómic) */
+    /* Cinematic vignette (comic frame) */
     .comic-vignette {
       position: absolute;
       inset: 0;
@@ -293,7 +293,7 @@
       box-shadow: inset 0 0 90px rgba(0,0,0,0.35);
     }
 
-    /* Píldora de acción activa (Sentado/Acostado) */
+    /* Active action pill (seated / lying down) */
     #action-exit-hint {
       position: absolute;
       bottom: 95px;
@@ -324,7 +324,7 @@
       pointer-events: auto;
     }
 
-    /* Modal de Onboarding y Misión */
+    /* Onboarding and mission modal */
     #onboarding-modal {
       display: none;
       position: absolute;
@@ -357,7 +357,7 @@
       color: #2b2016;
     }
 
-    /* Modal de Música y Carga Personalizada */
+    /* Music and custom upload modal */
     #music-modal {
       display: none;
       position: absolute;
@@ -495,7 +495,7 @@
       transform: rotate(-3deg);
     }
 
-    /* Panel Drawer del Ledger Criptográfico */
+    /* Cryptographic ledger drawer */
     #ledger-drawer {
       display: none;
       position: absolute;
@@ -554,33 +554,33 @@
   <!-- CANVAS WEBGL 3D -->
   <canvas id="webgl-canvas"></canvas>
 
-  <!-- OVERLAY ANALÓGICO CINEMÁTICO -->
+  <!-- CINEMATIC ANALOGUE OVERLAY -->
   <div class="vignette-overlay"></div>
 
-  <!-- EFECTO REWIND VISUAL -->
+  <!-- REWIND VISUAL EFFECT -->
   <div id="rewind-fx-overlay"></div>
 
-  <!-- MARCADOR FLOTANTE 3D SOBRE EL OBJETO CERCANO -->
+  <!-- FLOATING 3D MARKER OVER THE NEAREST OBJECT -->
   <div id="world-hotspot-prompt">
     <div class="hotspot-pill">
       <span class="key-badge-circle">E</span>
-      <span id="hotspot-action-text">Interactuar</span>
+      <span id="hotspot-action-text">Interact</span>
     </div>
   </div>
 
-  <!-- MONÓLOGO INTERNO NARRATIVO -->
+  <!-- NARRATIVE INNER MONOLOGUE -->
   <div id="introspection-box"></div>
 
-  <!-- OVERLAY DE LA EXPERIENCIA -->
+  <!-- EXPERIENCE OVERLAY -->
   <div class="comic-vignette"></div>
   <div id="action-exit-hint">
     <span id="action-exit-icon"></span>
-    <span id="action-exit-text">Descansando en el sillón · Presiona [W][A][S][D] o [Espacio] para levantarte</span>
-    <button id="btn-toggle-view" style="margin-left:8px;background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#38bdf8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:bold;">[V] 1ª/3ª Persona</button>
+    <span id="action-exit-text">Resting in the armchair · Press [W][A][S][D] or [Space] to stand up</span>
+    <button id="btn-toggle-view" style="margin-left:8px;background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#38bdf8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:bold;">[V] 1st / 3rd person</button>
   </div>
   <div id="ui-layer">
     
-    <!-- HEADER CON AMBIENTE Y ESTADO -->
+    <!-- HEADER WITH MOOD AND STATE -->
     <div class="header-bar">
       <div class="butterfly-banner interactive">
         <svg class="butterfly-icon-glow" style="width:26px;height:26px;color:#38bdf8;" viewBox="0 0 24 24" fill="currentColor">
@@ -588,51 +588,51 @@
         </svg>
         <div>
           <div style="font-size:11px;color:#a89a87;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Arcadia · Verifiable Spatial Ledger</div>
-          <div style="font-size:17px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;letter-spacing:0.3px;">"Lo que elijas queda escrito"</div>
+          <div style="font-size:17px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;letter-spacing:0.3px;">"What you choose stays written"</div>
         </div>
       </div>
 
-      <!-- BOTONES DE CONTROL DE CLIMA, AUDIO Y LEDGER -->
+      <!-- WEATHER, AUDIO AND LEDGER CONTROLS -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;" class="interactive">
         <button id="btn-onboarding" class="btn-action" style="color:#f59e0b;border-color:rgba(245,158,11,0.6);background:rgba(35,26,16,0.9);">
-          <span>Misión</span>
+          <span>Mission</span>
         </button>
 
         <button id="btn-music-manager" class="btn-action" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);background:rgba(18,24,36,0.9);">
-          <span id="music-btn-label">Música</span>
+          <span id="music-btn-label">Music</span>
         </button>
 
         <button id="btn-quick-rewind" class="btn-action" style="color:#f59e0b;border-color:rgba(245,158,11,0.5);">
-          <span>Rebobinar [R]</span>
+          <span>Rewind [R]</span>
         </button>
 
         <div id="btn-toggle-ledger" class="ledger-badge">
-          <span>Ledger: <strong id="hud-ledger-count">5</strong> eventos · <span id="hud-chain-status" style="color:#10b981;"> Validado</span></span>
+          <span>Ledger: <strong id="hud-ledger-count">5</strong> events · <span id="hud-chain-status" style="color:#10b981;"> Verified</span></span>
         </div>
 
         <button id="btn-weather" class="btn-action">
           <span id="weather-icon"></span>
-          <span id="weather-text">Atardecer Dorado</span>
+          <span id="weather-text">Golden Hour</span>
         </button>
 
         <button id="btn-audio" class="btn-action" style="color:#38bdf8;border-color:rgba(56,189,248,0.35);">
           <span></span>
-          <span id="audio-text">Música Acústica Indie</span>
+          <span id="audio-text">Indie Acoustic</span>
         </button>
       </div>
     </div>
 
-    <!-- BARRA INFERIOR DE CONTROLES -->
+    <!-- BOTTOM CONTROL BAR -->
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="controls-pill">
-        <span> <strong>[W][A][S][D]</strong> Caminar</span>
-        <span> <strong>[Shift]</strong> Correr</span>
-        <span> <strong>[Click 3D]</strong> Interactuar</span>
-        <span> <strong>[Arrastrar]</strong> Cámara 360°</span>
-        <span> <strong>[Rueda]</strong> Zoom</span>
-        <span> <strong>[E]</strong> Interactuar</span>
-        <span><strong>[R]</strong> Rebobinar</span>
-        <span>ESC <strong>[Cámara Libre]</strong></span>
+        <span> <strong>[W][A][S][D]</strong> Walk</span>
+        <span> <strong>[Shift]</strong> Run</span>
+        <span> <strong>[3D click]</strong> Interact</span>
+        <span> <strong>[Drag]</strong> 360° camera</span>
+        <span> <strong>[Wheel]</strong> Zoom</span>
+        <span> <strong>[E]</strong> Interact</span>
+        <span><strong>[R]</strong> Rewind</span>
+        <span>ESC <strong>[Free camera]</strong></span>
       </div>
 
       <div style="background:rgba(22,17,13,0.85);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(14px);border-radius:14px;padding:9px 18px;font-size:11px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;">
@@ -642,23 +642,23 @@
 
   </div>
 
-  <!-- DRAWER DEL LEDGER CRIPTOGRÁFICO -->
+  <!-- CRYPTOGRAPHIC LEDGER DRAWER -->
   <div id="ledger-drawer">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(56,189,248,0.3);padding-bottom:12px;margin-bottom:14px;">
       <div>
-        <div style="font-weight:700;color:#8c2f2b;font-size:13px;letter-spacing:0.12em;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z"/><path d="M5 17a3 3 0 0 1 3-3h9"/></svg>LEDGER INMUTABLE SHA-256</div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Cadena de custodia criptográfica auditable</div>
+        <div style="font-weight:700;color:#8c2f2b;font-size:13px;letter-spacing:0.12em;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z"/><path d="M5 17a3 3 0 0 1 3-3h9"/></svg>SHA-256 IMMUTABLE LEDGER</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Auditable cryptographic chain of custody</div>
       </div>
       <button id="btn-close-ledger" style="background:none;border:none;color:#746d5f;cursor:pointer;padding:4px 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
     <div style="background:rgba(15,23,42,0.6);border-left:3px solid #10b981;padding:8px 12px;border-radius:6px;font-size:10px;color:#94a3b8;margin-bottom:14px;">
-      Génesis: <code style="color:#64748b;">0000000000000000000000000000000000000000000000000000000000000000</code><br>
-      Cada bloque sella: <code>hash = SHA256(seq + prevHash + payloadHash + timestamp)</code>
+      Genesis: <code style="color:#64748b;">0000000000000000000000000000000000000000000000000000000000000000</code><br>
+      Every block seals: <code>hash = SHA256(seq + prevHash + payloadHash + timestamp)</code>
     </div>
 
     <div id="ledger-events-container">
-      <!-- Inyectado dinámicamente -->
+      <!-- Injected dynamically -->
     </div>
   </div>
 
@@ -670,47 +670,47 @@
     <div class="music-sheet">
       <div class="music-head">
         <div>
-          <h3>Tocadiscos</h3>
-          <div class="music-sub">Tres piezas originales · sin audio con licencia</div>
+          <h3>Turntable</h3>
+          <div class="music-sub">Three original pieces · no licensed audio</div>
         </div>
-        <button id="btn-close-music" class="music-close" title="Cerrar">Cerrar</button>
+        <button id="btn-close-music" class="music-close" title="Close">Close</button>
       </div>
 
       <div class="music-list">
         <div class="music-option active" data-track="marea">
           <div>
-            <div class="music-name">Marea baja</div>
-            <div class="music-desc">Arpegios lentos en Re mayor con crujido de vinilo</div>
+            <div class="music-name">Low Tide</div>
+            <div class="music-desc">Slow D-major arpeggios with vinyl crackle</div>
           </div>
-          <span class="music-state">Suena</span>
+          <span class="music-state">Playing</span>
         </div>
 
         <div class="music-option" data-track="golden">
           <div>
-            <div class="music-name">Atardecer en Arcadia</div>
-            <div class="music-desc">Acordes cálidos para mirar por la ventana</div>
+            <div class="music-name">Sunset in Arcadia</div>
+            <div class="music-desc">Warm chords for looking out of the window</div>
           </div>
-          <span class="music-state">Elegir</span>
+          <span class="music-state">Choose</span>
         </div>
 
         <div class="music-option" data-track="rain">
           <div>
-            <div class="music-name">Lluvia en la ventana</div>
-            <div class="music-desc">Gotas en el cristal y notas suaves</div>
+            <div class="music-name">Rain on the Window</div>
+            <div class="music-desc">Drops on the glass and soft notes</div>
           </div>
           <span class="music-state">Elegir</span>
         </div>
       </div>
 
       <div class="music-upload">
-        <div class="music-upload-title">Tu propio vinilo</div>
-        <div class="music-upload-desc">Carga un archivo local (MP3, WAV, OGG) y sonará en el tocadiscos.</div>
+        <div class="music-upload-title">Your own record</div>
+        <div class="music-upload-desc">Load a local file (MP3, WAV, OGG) and it will play on the turntable.</div>
         <input type="file" id="custom-music-file" accept="audio/*" style="display:none;" />
-        <button id="btn-browse-music" class="music-browse">Elegir archivo</button>
+        <button id="btn-browse-music" class="music-browse">Choose file</button>
         <div id="loaded-file-name" class="music-file"></div>
       </div>
 
-      <div class="music-foot"><span id="audio-text">Sonando: Marea baja</span></div>
+      <div class="music-foot"><span id="audio-text">Now playing: Low Tide</span></div>
 
       <audio id="custom-audio-player" style="display:none;" loop></audio>
     </div>
