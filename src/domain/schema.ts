@@ -289,6 +289,47 @@ export const LEDGER_PAYLOADS = {
     })
     .strict(),
   'conflict.detected': z.object({ conflict: ConflictRecord }).strict(),
+
+  /* --------------------------------------------------------------------- */
+  /* Narrative layer (Arcadia: the game)                                    */
+  /* --------------------------------------------------------------------- */
+  /**
+   * The game writes its decisions, discovered clues and timeline rewinds into
+   * the SAME append-only chain as the multimodal evidence. These are still
+   * strict, verifiable payloads — no free-form blobs — so a rewind can never
+   * erase a decision from the custody chain.
+   *
+   * `kind` carries the game's own semantic label (e.g. `decision.final`,
+   * `evidence.pixel_anchored`) while `recordedAt` is the transaction time.
+   */
+  'narrative.decision': z
+    .object({
+      kind: z.string().min(1),
+      sceneId: z.string().min(1),
+      choiceId: z.string().min(1),
+      label: z.string().min(1),
+      note: z.string().optional(),
+      recordedAt: IsoDateTime,
+    })
+    .strict(),
+  'narrative.clue': z
+    .object({
+      kind: z.string().min(1),
+      sceneId: z.string().min(1),
+      label: z.string().min(1),
+      recordedAt: IsoDateTime,
+    })
+    .strict(),
+  'narrative.rewound': z
+    .object({
+      kind: z.string().min(1),
+      fromScene: z.string().min(1),
+      choiceId: z.string().min(1),
+      remembered: z.string().min(1),
+      chargesLeft: z.number().int().min(0),
+      recordedAt: IsoDateTime,
+    })
+    .strict(),
 } as const;
 
 export type LedgerEventType = keyof typeof LEDGER_PAYLOADS;

@@ -9,6 +9,8 @@ import {
   MOCK_REFINED_BOX,
   MOCK_CLASS_ANCHOR_TURN,
 } from './services/fixtures.ts';
+import { bus } from './game/bus.js';
+import { icon } from './game/icons.js';
 
 // ============================================================================
 // ARCADIA 3D · THE LIVING SANCTUARY (CINEMATIC PHYSICS & INTERACTION ENGINE)
@@ -64,9 +66,9 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.25;
+renderer.toneMappingExposure = 1.04;
 
-// SCENE & ATMOSPHERE · LIFE IS STRANGE GOLDEN HOUR SANCTUARY
+// SCENE & ATMOSPHERE · GOLDEN HOUR SANCTUARY
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xfbf6ee);
 scene.fog = new THREE.FogExp2(0xf7ede2, 0.007);
@@ -75,11 +77,11 @@ scene.fog = new THREE.FogExp2(0xf7ede2, 0.007);
 const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 4.2, 7.2);
 
-// LIGHTS · AMBIENTE CÁLIDO LIFE IS STRANGE
-const hemiLight = new THREE.HemisphereLight(0xfff6ea, 0x8a5b3a, 1.85);
+// LIGHTS · AMBIENTE CÁLIDO DE ATARDECER
+const hemiLight = new THREE.HemisphereLight(0xf3f1ea, 0x6d5442, 1.32);
 scene.add(hemiLight);
 
-const sunLight = new THREE.DirectionalLight(0xf59e0b, 4.5);
+const sunLight = new THREE.DirectionalLight(0xf8caa0, 2.9);
 sunLight.position.set(-6.5, 6.5, -4.5);
 
 // Luz de relleno cálida interior para que las paredes y detalles luzcan acogedores
@@ -400,7 +402,7 @@ function createJavierFaceTexture() {
   ctx.arc(317, 275, 34, 0, Math.PI * 2);
   ctx.fill();
 
-  // Ojos expresivos estilo cómic Life is Strange (proporción frontal perfecta)
+  // Ojos expresivos estilo cómic (proporción frontal)
   [[205, 225], [307, 225]].forEach(([x, y]) => {
     // Esclerótica blanca limpia con contorno
     ctx.fillStyle = '#ffffff';
@@ -709,12 +711,12 @@ function createWallPolaroidsTexture() {
 
   const photos = [
     { x: 40, y: 30, w: 90, h: 110, rot: -0.06, title: 'Pacific Crest', hue: '#38bdf8' },
-    { x: 155, y: 20, w: 95, h: 115, rot: 0.04, title: 'Blackwell Quad', hue: '#f59e0b' },
+    { x: 155, y: 20, w: 95, h: 115, rot: 0.04, title: 'Plaza del Faro', hue: '#f59e0b' },
     { x: 275, y: 35, w: 90, h: 110, rot: -0.03, title: 'Faro 2024', hue: '#ec4899' },
-    { x: 390, y: 25, w: 95, h: 115, rot: 0.05, title: 'Two Whales', hue: '#10b981' },
-    { x: 90, y: 180, w: 100, h: 120, rot: 0.05, title: 'Vortex Night', hue: '#8b5cf6' },
+    { x: 390, y: 25, w: 95, h: 115, rot: 0.05, title: 'Puerto Viejo', hue: '#10b981' },
+    { x: 90, y: 180, w: 100, h: 120, rot: 0.05, title: 'Noche de concierto', hue: '#8b5cf6' },
     { x: 220, y: 190, w: 95, h: 115, rot: -0.04, title: 'Mariana Chat', hue: '#ef4444' },
-    { x: 345, y: 175, w: 100, h: 120, rot: 0.03, title: 'Max & Chloe', hue: '#06b6d4' }
+    { x: 345, y: 175, w: 100, h: 120, rot: 0.03, title: 'Javier & Mariana', hue: '#06b6d4' }
   ];
 
   photos.forEach(p => {
@@ -1240,12 +1242,12 @@ roomGroup.add(corkboardGroup);
 const posterGroup = new THREE.Group();
 posterGroup.position.set(6.28, 3.4, 0);
 
-const p1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('VORTEX CLUB · OCTOBER', 'SYD MATTERS'), roughness: 0.4 }));
+const p1 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('SESIONES DEL FARO · OCTUBRE', 'LA MAREA BAJA'), roughness: 0.4 }));
 p1.rotation.y = -Math.PI / 2;
 p1.position.z = -1.5;
 posterGroup.add(p1);
 
-const p2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('FALL FESTIVAL CONCERT', 'JOSÉ GONZÁLEZ'), roughness: 0.4 }));
+const p2 = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.7), new THREE.MeshStandardMaterial({ map: createPosterTexture('FESTIVAL DE OTOÑO', 'COLECTIVO ARCADIA'), roughness: 0.4 }));
 p2.rotation.y = -Math.PI / 2;
 p2.position.z = 1.5;
 posterGroup.add(p2);
@@ -1798,7 +1800,7 @@ function spawnMusicNote() {
 }
 
 // ============================================================================
-// AVATAR DE JAVIER QUILUMBA (ESTILO CÓMIC LIFE IS STRANGE · ARTICULADO)
+// AVATAR DE JAVIER QUILUMBA (ESTILO CÓMIC · ARTICULADO)
 // ============================================================================
 
 const avatar = new THREE.Group();
@@ -1814,15 +1816,15 @@ function setActionState(state) {
   if (!actionExitHint) return;
 
   if (state === 'sitting_armchair') {
-    if (actionExitIcon) actionExitIcon.innerText = '🛋️';
+    if (actionExitIcon) actionExitIcon.innerHTML = icon('armchair', { size: 16 });
     if (actionExitText) actionExitText.innerText = 'Descansando en el sillón vintage · Presiona [W][A][S][D] o [Espacio] para levantarte';
     actionExitHint.classList.add('visible');
   } else if (state === 'lying_bed') {
-    if (actionExitIcon) actionExitIcon.innerText = '🛏️';
+    if (actionExitIcon) actionExitIcon.innerHTML = icon('bed', { size: 16 });
     if (actionExitText) actionExitText.innerText = 'Recostado en la cama · Presiona [W][A][S][D] o [Espacio] para levantarte';
     actionExitHint.classList.add('visible');
   } else if (state === 'playing_guitar') {
-    if (actionExitIcon) actionExitIcon.innerText = '🎸';
+    if (actionExitIcon) actionExitIcon.innerHTML = icon('guitar', { size: 16 });
     if (actionExitText) actionExitText.innerText = 'Tocando la guitarra acústica · Presiona [W][A][S][D] o [Espacio] para levantarte';
     actionExitHint.classList.add('visible');
   } else {
@@ -2089,8 +2091,12 @@ function lerpAngle(current, target, factor) {
 // ============================================================================
 
 const keys = { w: false, a: false, s: false, d: false, shift: false };
+// While a dialogue / choice / menu is on screen the narrative layer owns the
+// keyboard and the avatar must not wander off behind a modal.
+let gameInputLocked = false;
 
 window.addEventListener('keydown', (e) => {
+  if (gameInputLocked) return;
   const k = e.key.toLowerCase();
   if (k === 'w' || k === 'arrowup') keys.w = true;
   if (k === 's' || k === 'arrowdown') keys.s = true;
@@ -2107,16 +2113,11 @@ window.addEventListener('keydown', (e) => {
     handleInteraction();
   }
   if (k === 'r') {
-    executeRewind();
+    // The narrative layer decides whether the rewind is allowed (Eco charges).
+    bus.emit('input:rewind');
   }
   if (k === 'v') {
     togglePerspective();
-  }
-  if (k === 'h' || k === 'o') {
-    toggleOnboardingModal();
-  }
-  if (k === 'm') {
-    toggleMusicModal();
   }
   if (e.key === 'Escape') {
     closeJournal();
@@ -2174,8 +2175,9 @@ window.addEventListener('mousemove', (e) => {
   if (isDragging) {
     const deltaX = e.clientX - prevMouseX;
     const deltaY = e.clientY - prevMouseY;
-    cameraAngleY += deltaX * 0.005;
+    cameraAngleY -= deltaX * 0.005;
     cameraPitch = Math.max(0.12, Math.min(1.05, cameraPitch + deltaY * 0.003));
+    bus.emit('camera:drag', { dx: Math.abs(deltaX), dy: Math.abs(deltaY) });
     prevMouseX = e.clientX;
     prevMouseY = e.clientY;
   } else if (e.target === canvas) {
@@ -2265,7 +2267,7 @@ const hotspots = [
   {
     id: 'guitar',
     pos: new THREE.Vector3(-5.6, 1.2, -1.2),
-    label: 'Tocar Guitarra ("Obstacles")',
+    label: 'Tocar la guitarra',
     camPos: new THREE.Vector3(-4.0, 1.8, -0.2),
     camLook: new THREE.Vector3(-5.8, 1.1, -1.2),
     thought: '"Cada acorde me hace sentir que el tiempo se detiene... pero las consecuencias siguen ahí."'
@@ -2276,12 +2278,12 @@ const hotspots = [
     label: 'Recostarse y Reflexionar',
     camPos: new THREE.Vector3(-2.2, 2.1, -1.8),
     camLook: new THREE.Vector3(-4.5, 1.0, -3.2),
-    thought: '"Arcadia Bay se ve tan tranquila... pero las decisiones que tomamos tienen un peso real."'
+    thought: '"Arcadia se ve tan tranquila... pero las decisiones que tomamos tienen un peso real."'
   },
   {
     id: 'turntable',
     pos: new THREE.Vector3(-5.0, 1.5, 1.4),
-    label: 'Encender Tocadiscos ("Obstacles")',
+    label: 'Poner un disco',
     camPos: new THREE.Vector3(-3.6, 2.2, 2.2),
     camLook: new THREE.Vector3(-5.2, 1.3, 1.4),
     thought: '"La música analógica siempre me ayuda a poner en orden mis pensamientos."'
@@ -2300,7 +2302,7 @@ const hotspots = [
     label: 'Explorar Efecto Mariposa',
     camPos: new THREE.Vector3(-0.4, 2.2, 1.4),
     camLook: new THREE.Vector3(-1.2, 2.4, 0.2),
-    thought: '"\'This action will have consequences...\' El aleteo de una mariposa cambia todo."'
+    thought: '"\'Lo que elijas queda escrito\'. El aleteo de una mariposa cambia todo."'
   },
   {
     id: 'bookshelf',
@@ -2335,6 +2337,10 @@ function showThought(text) {
 }
 
 function updateHotspotsProximity() {
+  if (gameInputLocked) {
+    if (worldHotspotPrompt) worldHotspotPrompt.classList.remove('visible');
+    return;
+  }
   const avPos = avatar.position;
   let nearest = null;
   let minDist = 2.6;
@@ -2370,6 +2376,17 @@ function updateHotspotsProximity() {
 
 function handleInteraction() {
   if (!activeHotspot) return;
+
+  // The narrative game layer gets first refusal on every world interaction.
+  //  - `true`    → fully handled, skip the legacy behaviour
+  //  - `legacy`  → also run the original 3D posture / cinematic reaction
+  //  - no reply  → game layer not loaded, fall back to the legacy behaviour
+  const verdicts = bus.emit('interact', {
+    id: activeHotspot.id,
+    label: activeHotspot.label,
+    thought: activeHotspot.thought,
+  });
+  if (verdicts.length > 0 && !verdicts.includes('legacy')) return;
 
   playCameraClick();
   showThought(activeHotspot.thought);
@@ -2417,14 +2434,16 @@ function exitCinematicFocus() {
 }
 
 function openJournal() {
+  // The static journal is replaced by the narrative Decision Journal in the
+  // game layer. Never activate the legacy modal: it would silently freeze the
+  // avatar through the `isInputActive` check in the animation loop.
+  bus.emit('cmd:openJournal');
   playCameraClick();
-  playAcousticNote(330);
-  journalModal.classList.add('active');
 }
 
 function closeJournal() {
   playAcousticNote(220);
-  journalModal.classList.remove('active');
+  if (journalModal) journalModal.classList.remove('active');
   exitCinematicFocus();
 }
 
@@ -2444,6 +2463,7 @@ function toggleWeather() {
 if (btnWeather) btnWeather.addEventListener('click', toggleWeather);
 
 function setWorldState(mode) {
+  bus.emit('world:state', { mode });
   if (mode === 1) {
     // Tormenta de Dudas
     sunLight.color.setHex(0x38bdf8);
@@ -2466,7 +2486,7 @@ function setWorldState(mode) {
       floorSunPatch.material.color.setHex(0x38bdf8);
       floorSunPatch.material.opacity = 0.18;
     }
-    if (weatherIcon) weatherIcon.innerText = '🌧️';
+    if (weatherIcon) weatherIcon.innerHTML = icon('rain', { size: 18 });
     if (weatherText) weatherText.innerText = 'Tormenta de Dudas';
     playAcousticNote(180);
   } else if (mode === 2) {
@@ -2491,14 +2511,14 @@ function setWorldState(mode) {
       floorSunPatch.material.color.setHex(0xa855f7);
       floorSunPatch.material.opacity = 0.28;
     }
-    if (weatherIcon) weatherIcon.innerText = '🌙';
+    if (weatherIcon) weatherIcon.innerHTML = icon('star', { size: 18 });
     if (weatherText) weatherText.innerText = 'Crepúsculo de Arcadia';
     playAcousticNote(260);
   } else {
     // Atardecer Dorado
-    sunLight.color.setHex(0xf59e0b);
-    sunLight.intensity = 3.8;
-    hemiLight.color.setHex(0xffecd6);
+    sunLight.color.setHex(0xf8caa0);
+    sunLight.intensity = 2.7;
+    hemiLight.color.setHex(0xf6efe4);
     hemiLight.groundColor.setHex(0x422618);
     scene.background.setHex(0x24160e);
     scene.fog.color.setHex(0x382214);
@@ -2516,7 +2536,7 @@ function setWorldState(mode) {
       floorSunPatch.material.color.setHex(0xfbbf24);
       floorSunPatch.material.opacity = 0.42;
     }
-    if (weatherIcon) weatherIcon.innerText = '☀️';
+    if (weatherIcon) weatherIcon.innerHTML = icon('spark', { size: 18 });
     if (weatherText) weatherText.innerText = 'Atardecer Dorado';
     playAcousticNote(392);
   }
@@ -2573,9 +2593,9 @@ function renderLedgerUI() {
   const verification = ledger.verify();
   if (hudChainStatus) {
     if (verification.valid) {
-      hudChainStatus.innerHTML = `<span style="color:#10b981;font-weight:700;">✓ Validado (${verification.checked} bloques)</span>`;
+      hudChainStatus.innerHTML = `<span class="ok">Validado · ${verification.checked} bloques</span>`;
     } else {
-      hudChainStatus.innerHTML = `<span style="color:#ef4444;font-weight:700;">✗ Corrupción detectada</span>`;
+      hudChainStatus.innerHTML = `<span class="bad">Corrupción detectada</span>`;
     }
   }
 
@@ -2621,14 +2641,17 @@ if (btnCloseLedger && ledgerDrawer) {
 const historyBuffer = [];
 let isRewinding = false;
 
-function executeRewind() {
-  if (isRewinding || historyBuffer.length < 5) return;
+function executeRewind(opts = {}) {
+  const force = opts && opts.force === true;
+  if (isRewinding) return;
+  if (!force && historyBuffer.length < 5) {
+    bus.emit('rewind:rejected', { reason: 'NO_HISTORY' });
+    return;
+  }
   isRewinding = true;
   playRewindSound();
-  if (rewindOverlay) {
-    rewindOverlay.classList.add('active');
-  }
-  showThought('⏪ El tiempo se dobla hacia atrás... antes de que existiera el conflicto.');
+  if (rewindOverlay) rewindOverlay.classList.add('active');
+  bus.emit('rewind:started', {});
 
   const rewindInterval = setInterval(() => {
     if (historyBuffer.length > 0) {
@@ -2648,14 +2671,15 @@ function executeRewind() {
       clearInterval(rewindInterval);
       isRewinding = false;
       if (rewindOverlay) rewindOverlay.classList.remove('active');
-      setWorldState(0);
-      showThought('✨ Tiempo restablecido. El santuario ha vuelto a su equilibrio.');
+      // The narrative layer owns the world state now; never force golden hour
+      // behind its back, or a storm ending would be silently overwritten.
+      bus.emit('rewind:complete', {});
     }
   }, 18);
 }
 
-if (btnRewind) btnRewind.addEventListener('click', executeRewind);
-if (btnQuickRewind) btnQuickRewind.addEventListener('click', executeRewind);
+if (btnRewind) btnRewind.addEventListener('click', () => bus.emit('input:rewind'));
+if (btnQuickRewind) btnQuickRewind.addEventListener('click', () => bus.emit('input:rewind'));
 
 // BOTONES DE ELECCIÓN EN EL DIARIO
 const choiceA = document.getElementById('choice-a');
@@ -2668,7 +2692,7 @@ if (choiceA) {
     });
     renderLedgerUI();
     setWorldState(1); // Tormenta
-    showThought('⚡ Senda A sellada: Tu tiempo colapsa y una tormenta se cierne sobre Arcadia.');
+    showThought('Senda A sellada: el tiempo colapsa y una tormenta se cierne sobre Arcadia.');
     closeJournal();
   });
 }
@@ -2683,7 +2707,7 @@ if (choiceB) {
     });
     renderLedgerUI();
     setWorldState(0); // Atardecer Dorado
-    showThought('✨ Senda B sellada: Asistencia protegida. El atardecer dorado permanece.');
+    showThought('Senda B sellada: asistencia protegida. El atardecer dorado permanece.');
     closeJournal();
   });
 }
@@ -2702,9 +2726,9 @@ function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-// Progresiones de acordes acústicos Indie Folk (Syd Matters, José González)
+// Progresiones de acordes acústicos originales (folk lento, sin material con licencia)
 const acousticChordsList = [
-  // 0: Syd Matters · Obstacles (Re Mayor 7 / La / Sim / Sol)
+  // 0: Marea baja (Re Mayor 7 / La / Sim / Sol)
   [
     [146.83, 220.0, 293.66, 369.99, 440.0],
     [220.0, 277.18, 329.63, 440.0, 554.37],
@@ -2863,7 +2887,7 @@ function toggleAudio() {
     tonearmTargetY = 0.45; // Colocar aguja sobre el disco
     playVinylCrackle();
 
-    const trackNames = ['Syd Matters · Obstacles', 'Atardecer en Arcadia', 'Lluvia en la Ventana'];
+    const trackNames = ['Marea baja', 'Atardecer en Arcadia', 'Lluvia en la Ventana'];
     const currentName = trackNames[currentAcousticProgression] || 'Indie Folk Acústico';
 
     const aText = document.getElementById('audio-text');
@@ -2982,10 +3006,10 @@ musicOptions.forEach(opt => {
       customAudioPlayer.pause();
     }
 
-    if (track === 'obstacles') {
+    if (track === 'marea') {
       currentAcousticProgression = 0;
       if (!isAudioPlaying) toggleAudio();
-      else showThought('"Syd Matters · Obstacles... el himno nostálgico de Arcadia."');
+      else showThought('"Marea baja... el himno tranquilo de Arcadia."');
     } else if (track === 'golden') {
       currentAcousticProgression = 1;
       if (!isAudioPlaying) toggleAudio();
@@ -3068,6 +3092,7 @@ function animate() {
   const isInputActive =
     inputVector.lengthSq() > 0 &&
     !isRewinding &&
+    !gameInputLocked &&
     (!journalModal || !journalModal.classList.contains('active'));
 
   if (isInputActive) {
@@ -3276,6 +3301,117 @@ function animate() {
 
   renderer.render(scene, camera);
 }
+
+// ============================================================================
+// NARRATIVE GAME LAYER BRIDGE
+// The 3D sanctuary publishes a small capability table. The game layer never
+// reaches into Three.js internals directly; it only uses these functions and
+// the event bus. See src/game/game.js.
+// ============================================================================
+Object.assign(bus.api, {
+  scene, camera, avatar, hotspots,
+
+  /**
+   * Adapt a game event into one of the three strict `narrative.*` payload
+   * schemas and seal it into the SAME SHA-256 chain as the evidence.
+   *
+   * The domain ledger only accepts whitelisted, Zod-validated event types, so
+   * passing the game's semantic type straight through would throw and abort
+   * the choice flow. This adapter normalises the fields and, crucially, is
+   * non-fatal: an optional audit write must never break the player's scene.
+   */
+  appendLedger(kind, payload = {}) {
+    const p = payload && typeof payload === 'object' ? payload : {};
+    const text = (value, fallback) => {
+      const s = typeof value === 'string' && value.trim() ? value.trim() : fallback;
+      return s || fallback;
+    };
+    const when = typeof p.at === 'string' && !Number.isNaN(Date.parse(p.at))
+      ? new Date(p.at).toISOString()
+      : new Date().toISOString();
+    const label = text(p.kind || p.type, text(kind, 'narrative.event'));
+    const note = typeof p.note === 'string' && p.note.trim() ? p.note.trim() : undefined;
+
+    try {
+      let event;
+      if (kind === 'timeline.rewound' || kind === 'narrative.rewound') {
+        event = ledger.append('narrative.rewound', {
+          kind: text(kind, 'timeline.rewound'),
+          fromScene: text(p.fromScene || p.scene, 'unknown.scene'),
+          choiceId: text(p.undoneChoice || p.choiceId, 'unknown.choice'),
+          remembered: text(p.remembered || p.note, 'Una línea de tiempo deshecha'),
+          chargesLeft: Number.isFinite(p.chargesLeft) ? Math.max(0, Math.trunc(p.chargesLeft)) : 0,
+          recordedAt: when,
+        });
+      } else if (kind === 'narrative.clue' || /^evidence\./.test(String(kind))) {
+        event = ledger.append('narrative.clue', {
+          kind: text(kind, 'narrative.clue'),
+          sceneId: text(p.scene || p.sceneId, 'unknown.scene'),
+          label: text(p.note || label, 'Pista sellada'),
+          recordedAt: when,
+        });
+      } else {
+        const decision = {
+          kind: text(kind, 'narrative.decision'),
+          sceneId: text(p.scene || p.sceneId, 'unknown.scene'),
+          choiceId: text(p.choice || p.choiceId, 'unknown.choice'),
+          label: text(p.label, 'Decisión sellada'),
+          recordedAt: when,
+        };
+        if (note) decision.note = note;
+        event = ledger.append('narrative.decision', decision);
+      }
+      renderLedgerUI();
+      return event;
+    } catch (error) {
+      // Keep the chain untouched and let the narrative continue.
+      console.warn('[arcadia] narrative ledger write skipped:', error);
+      return null;
+    }
+  },
+  ledgerCount: () => ledger.listEvents().length,
+  renderLedgerUI,
+  setWorldState,
+  showThought,
+  playCameraClick,
+  playAcousticNote,
+
+  setInputLock(locked) { gameInputLocked = !!locked; },
+  setHotspotLabel(id, text) {
+    const h = hotspots.find((x) => x.id === id);
+    if (h) h.label = text;
+  },
+  hotspotPosition(id) {
+    const h = hotspots.find((x) => x.id === id);
+    return h ? h.pos.clone() : null;
+  },
+  distanceTo(id) {
+    const p = bus.api.hotspotPosition(id);
+    if (!p) return Infinity;
+    return Math.hypot(avatar.position.x - p.x, avatar.position.z - p.z);
+  },
+  avatarPosition: () => ({ x: avatar.position.x, y: avatar.position.y, z: avatar.position.z }),
+  project(pos) {
+    const p = pos.clone().project(camera);
+    return {
+      x: (p.x * 0.5 + 0.5) * window.innerWidth,
+      y: (-(p.y * 0.5) + 0.5) * window.innerHeight,
+      visible: p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1,
+    };
+  },
+  focusHotspot(id) {
+    const h = hotspots.find((x) => x.id === id);
+    if (h) cinematicFocus = h;
+  },
+  clearFocus() { cinematicFocus = null; },
+  toggleLedger() { if (ledgerDrawer) ledgerDrawer.classList.toggle('active'); },
+  openMusic() { if (musicModal) musicModal.classList.add('active'); },
+  closeMusic() { if (musicModal) musicModal.classList.remove('active'); },
+});
+
+bus.on('fx:rewind', () => executeRewind({ force: true }));
+bus.on('cmd:weather', (d) => setWorldState(d?.mode ?? 0));
+bus.on('cmd:lock', (d) => { gameInputLocked = !!d; });
 
 animate();
 

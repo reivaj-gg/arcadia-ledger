@@ -89,7 +89,10 @@ The entire codebase is built in **TypeScript strict mode** on **Node.js 24**, wi
 | **Core Domain** | `src/domain/*` | Pure functional domain models: `schema.ts`, `ledger.ts`. Zod contracts, canonical JSON serialization, SHA-256 hash chaining, bitemporal `asOf()` queries, conflict detection. Zero I/O, zero network dependencies. |
 | **Model Adapters** | `src/services/*` | `metaAdapter.ts`, `samParser.ts`, `audioContract.ts`. Typed adapters for Spark 1.3, SAM 3.1, and Muse Voice. Token parsing, coordinate normalization, contour polygon simplification, WAV header pre-validation. |
 | **Secure Proxy** | `server/*` | Node.js proxy (`server/index.ts`, `server/policy.ts`) running on `:8787`. Isolates `MODEL_API_KEY` from client bundles. Enforces `local-only` privacy policy before any bytes cross the network. |
-| **Spatial UI** | `index.html`, `src/main.js` | 3D WebGL Sanctuary (Three.js), procedural textures, AABB collision sliding, articulated avatar rigging, spatial raycast interaction, Web Audio synth foley, Moleskine Decision Journal modal, in-scene SHA-256 block inspector. |
+| **Spatial UI** | `index.html`, `src/main.js` | 3D WebGL Sanctuary (Three.js), procedural textures, AABB collision sliding, articulated avatar rigging, spatial raycast interaction, Web Audio synth foley, in-scene SHA-256 block inspector. |
+| **Narrative Game** | `src/game/*` | Playable game layer. `story.js` is a pure DOM-free scene graph / state machine (35 scenes, 8 clues, 6 endings); `game.js` owns HUD, dialogue, timed choices, tutorial, FX, saves and pause; `game.css` supplies the paper/ink presentation (torn-edge sheets, ring-bound journal, tabbed pause) and `icons.js` the hand-drawn SVG icon set plus procedural polaroid/spiral assets; `bus.js` is the **only** bridge to the 3D engine (late-bound `bus.api` capability table + synchronous channels). The renderer was not rewritten. |
+
+**Integration contract.** `src/main.js` publishes `bus.api` (scene, camera, hotspots, world state, ledger append, input lock, projection) and emits `interact`, `input:rewind`, `camera:drag` and `world:state`. The game layer gets *first refusal* on every world interaction and owns the keyboard during dialogue/menus; the avatar is unlocked only during exploration. This keeps the 3D engine a renderer and makes the narrative logic independently testable.
 
 ---
 
@@ -105,6 +108,9 @@ $$\text{Event Hash} = \text{SHA256}(\text{seq} + \text{prevHash} + \text{payload
   - **Transaction Time (`recordedAt`):** When the ledger ingested the evidence.
   - **Valid Time (`validFrom` / `validTo`):** When the real-world commitment actually takes effect.
 * **Rewind (`asOf(timestamp)`):** Projects the timeline back to any prior state, discarding facts learned after that point.
+* **Narrative events:** Three additional strict Zod payloads — `narrative.decision`, `narrative.clue`, `narrative.rewound` — seal game actions into the **same** chain as the multimodal evidence. The game→ledger adapter in `src/main.js` normalises fields and is non-fatal, so an optional audit write cannot abort a player's scene.
+* **The central invariant, now mechanical:** a player rewind restores the pre-choice snapshot, spends one Eco charge and keeps the *memory* of the undone branch, but the decision row is marked `undone` (never deleted) and a `narrative.rewound` block is appended. Rewinding time cannot rewrite custody — *el tiempo perdona, el ledger no*.
+* **Save compaction:** timeline snapshots are full state clones; only the three most recent survive serialisation and nested recursion is stripped, so `localStorage` usage stays bounded. Older instants become non-rewindable with an explicit `NO_SNAPSHOT` reason.
 
 ---
 
@@ -115,7 +121,8 @@ Arcadia features an automated, reproducible benchmark suite (`npm run eval`):
 * **Coordinate Round-Trip Precision (10 cases):** `99.96%` Mean IoU (worst case: `99.63%`). Catches half-open vs. closed interval coordinate edge cases.
 * **Audio Contract Enforcer (10 synthetic WAV cases):** `10/10` passed. Validates format constraints locally (stereo, 44.1 kHz, 8-bit, IEEE float, >10 min cap, truncated chunks) to protect users from wasted API spend.
 * **Ledger Invariants:** Verified hash continuity, tamper detection, single-pass conflict detection, and bitemporal state reconstruction.
-* **Unit & E2E Tests:** `109/109` passing across all modules in `<1.0s`.
+* **Unit & E2E Tests:** `132/132` passing across all modules in `~1.0s`, including 18 deterministic narrative-engine tests (`tests/story.test.ts`).
+* **Browser Smoke Test:** headless CDP walkthrough of the production build, `21/21` checks green, zero console errors — title → tutorial → dialogue → journal continuity and pagination → 3D raycast objective → timed choice → pause timer freeze → nested overlay return → decision → SHA-256 ledger seal → rewind, plus assertions that the icon set is in use and that no emoji renders anywhere.
 
 ---
 
@@ -125,8 +132,8 @@ Arcadia features an automated, reproducible benchmark suite (`npm run eval`):
 |---|---|---|
 | **Use of Meta AI (25%)** | Deep, non-trivial use of Meta models | Chains **3 Meta models** (Muse Spark 1.3 + SAM 3.1 + Muse Voice Transcribe 1.0) via documented handshakes. |
 | **Utility & Impact (30%)** | Solves a real, painful problem | Solves conversational commitment hallucinations and dispute resolution with verifiable cryptographic receipts. |
-| **Technical Quality (25%)** | Robust engineering, clean code, tests | 109 tests, 100% strict TypeScript, honest eval harness, secure Node key proxy, zero Python dependencies. |
-| **Originality & Delight (20%)** | Distinctive, memorable design | 3D narrative spatial sanctuary, retro acoustic vinyl audio, time-travel rewind mechanics, Moleskine Decision Journal. |
+| **Technical Quality (25%)** | Robust engineering, clean code, tests | 132 tests, strict TypeScript, honest eval harness, secure Node key proxy, headless browser smoke test, zero Python dependencies. |
+| **Originality & Delight (20%)** | Distinctive, memorable design | A complete narrative game in a 3D sanctuary: tutorial, cinematic dialogue with procedural portraits, timed consequential choices, 8 hidden clues, Eco-limited rewind, 6 endings, and a decision journal welded to the live hash chain. |
 | **Banned Categories** | No generic RAG, no chatbots | **Zero Risk:** No vector DB, no naive semantic search, no emotional therapy bots. Purely a verifiable commitment auditor. |
 
 ---
@@ -134,7 +141,9 @@ Arcadia features an automated, reproducible benchmark suite (`npm run eval`):
 ## 7. Submission Checklist
 
 - [x] Strict TypeScript compilation (`npx tsc --noEmit` $\to$ 0 errors)
-- [x] Full test suite passing (`npm test` $\to$ 109/109)
+- [x] Full test suite passing (`npm test` $\to$ 132/132)
+- [x] Narrative game layer integrated without rewriting the 3D renderer
+- [x] Headless browser smoke test of the production build (21/21 checks, zero console errors)
 - [x] Conformance benchmark running (`npm run eval` $\to$ 3/3 checks green)
 - [x] Production bundle verified (`npm run build` $\to$ clean dist)
 - [x] Secure Node proxy running concurrently with Vite dev server (`npm run dev`)

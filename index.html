@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arcadia · The Verifiable Spatial Ledger</title>
+  <title>Arcadia · El tiempo perdona, el ledger no</title>
+  <meta name="description" content="Arcadia: un juego narrativo de decisiones verificables, exploración 3D y rebobinado temporal.">
+  <meta name="theme-color" content="#100c09">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23100c09'/%3E%3Ctext x='32' y='45' font-size='40' text-anchor='middle'%3E%F0%9F%A6%8B%3C/text%3E%3C/svg%3E">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@300;400;700&family=Barlow+Condensed:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
     * {
       margin: 0;
@@ -410,7 +413,7 @@
       box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
     }
 
-    /* Modal del Diario de Max */
+    /* Modal del Diario de Javier */
     #journal-modal {
       display: none;
       position: absolute;
@@ -546,7 +549,7 @@
     }
   </style>
 </head>
-<body>
+<body class="arcadia-game">
 
   <!-- CANVAS WEBGL 3D -->
   <canvas id="webgl-canvas"></canvas>
@@ -571,7 +574,7 @@
   <!-- OVERLAY DE LA EXPERIENCIA -->
   <div class="comic-vignette"></div>
   <div id="action-exit-hint">
-    <span id="action-exit-icon">🛋️</span>
+    <span id="action-exit-icon"></span>
     <span id="action-exit-text">Descansando en el sillón · Presiona [W][A][S][D] o [Espacio] para levantarte</span>
     <button id="btn-toggle-view" style="margin-left:8px;background:rgba(56,189,248,0.2);border:1px solid #38bdf8;color:#38bdf8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:bold;">[V] 1ª/3ª Persona</button>
   </div>
@@ -647,10 +650,10 @@
   <div id="ledger-drawer">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(56,189,248,0.3);padding-bottom:12px;margin-bottom:14px;">
       <div>
-        <div style="font-weight:bold;color:#38bdf8;font-size:13px;letter-spacing:0.5px;">📜 LEDGER INMUTABLE SHA-256</div>
+        <div style="font-weight:700;color:#8c2f2b;font-size:13px;letter-spacing:0.12em;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M5 4h9a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z"/><path d="M5 17a3 3 0 0 1 3-3h9"/></svg>LEDGER INMUTABLE SHA-256</div>
         <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Cadena de custodia criptográfica auditable</div>
       </div>
-      <button id="btn-close-ledger" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
+      <button id="btn-close-ledger" style="background:none;border:none;color:#746d5f;cursor:pointer;padding:4px 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
     <div style="background:rgba(15,23,42,0.6);border-left:3px solid #10b981;padding:8px 12px;border-radius:6px;font-size:10px;color:#94a3b8;margin-bottom:14px;">
@@ -663,7 +666,7 @@
     </div>
   </div>
 
-  <!-- MODAL DEL CUADERNO DE DECISIONES DE MAX -->
+  <!-- MODAL DEL CUADERNO DE DECISIONES DE JAVIER -->
   <div id="journal-modal" class="interactive">
     <div class="moleskine-book">
       <div class="book-fold"></div>
@@ -760,9 +763,11 @@
     </div>
   </div>
 
+  <!-- 3D sanctuary renderer first (publishes bus.api), narrative game second. -->
   <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/game/game.js"></script>
 
-  <!-- MODAL DE ONBOARDING / MISIÓN DEL JUGADOR -->
+  <!-- MODAL DE ONBOARDING / MISIÓN DEL JUGADOR (legado, oculto por la capa de juego) -->
   <div id="onboarding-modal" class="interactive active">
     <div class="onboarding-sheet">
       <div class="washi-tape" style="top:-12px;width:120px;"></div>
@@ -835,60 +840,53 @@
     </div>
   </div>
 
-  <!-- MODAL DEL REPRODUCTOR DE MÚSICA & CARGADOR PERSONALIZADO -->
+  <!-- TOCADISCOS · pistas originales generadas en el navegador -->
   <div id="music-modal" class="interactive">
     <div class="music-sheet">
-      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(245,158,11,0.3);padding-bottom:12px;margin-bottom:18px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:24px;">📻</span>
-          <div>
-            <h3 style="margin:0;font-family:'Patrick Hand',cursive;font-size:24px;color:#f59e0b;">Tocadiscos & Banda Sonora</h3>
-            <div style="font-size:11px;color:#94a3b8;">Música indie analógica y reproductor personal</div>
-          </div>
+      <div class="music-head">
+        <div>
+          <h3>Tocadiscos</h3>
+          <div class="music-sub">Tres piezas originales · sin audio con licencia</div>
         </div>
-        <button id="btn-close-music" style="background:none;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
+        <button id="btn-close-music" class="music-close" title="Cerrar">Cerrar</button>
       </div>
 
-      <!-- Selector de pistas predefinidas -->
-      <div style="margin-bottom:18px;">
-        <div class="music-option active" data-track="obstacles">
+      <div class="music-list">
+        <div class="music-option active" data-track="marea">
           <div>
-            <div style="font-weight:bold;color:#fef3c7;font-size:13px;">🎸 Syd Matters · Obstacles (Indie Folk Acústico)</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Arpegios cálidos fingerpicking en Re Mayor con crujido de vinilo 33 RPM</div>
+            <div class="music-name">Marea baja</div>
+            <div class="music-desc">Arpegios lentos en Re mayor con crujido de vinilo</div>
           </div>
-          <span style="color:#38bdf8;font-size:12px;font-weight:bold;">▶ Activo</span>
+          <span class="music-state">Suena</span>
         </div>
 
         <div class="music-option" data-track="golden">
           <div>
-            <div style="font-weight:bold;color:#fef3c7;font-size:13px;">☀️ Atardecer en Arcadia (José González Style)</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Acordes suaves para reflexionar junto a la ventana</div>
+            <div class="music-name">Atardecer en Arcadia</div>
+            <div class="music-desc">Acordes cálidos para mirar por la ventana</div>
           </div>
-          <span style="color:#64748b;font-size:12px;">Elegir</span>
+          <span class="music-state">Elegir</span>
         </div>
 
         <div class="music-option" data-track="rain">
           <div>
-            <div style="font-weight:bold;color:#fef3c7;font-size:13px;">🌧️ Lluvia en la Ventana (Lofi Melancólico)</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Gotas de lluvia en el cristal con notas acústicas nostálgicas</div>
+            <div class="music-name">Lluvia en la ventana</div>
+            <div class="music-desc">Gotas en el cristal y notas suaves</div>
           </div>
-          <span style="color:#64748b;font-size:12px;">Elegir</span>
+          <span class="music-state">Elegir</span>
         </div>
       </div>
 
-      <!-- Sección de Subir tu Propia Música -->
-      <div style="background:rgba(30,41,59,0.7);border:2px dashed #38bdf8;border-radius:14px;padding:16px;text-align:center;">
-        <div style="font-size:18px;margin-bottom:4px;">📁</div>
-        <div style="font-weight:bold;color:#38bdf8;font-size:13px;margin-bottom:4px;">¿Quieres escuchar tu propia música?</div>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Carga cualquier archivo local (MP3, WAV, OGG, AAC) y sonará en el tocadiscos 3D</div>
+      <div class="music-upload">
+        <div class="music-upload-title">Tu propio vinilo</div>
+        <div class="music-upload-desc">Carga un archivo local (MP3, WAV, OGG) y sonará en el tocadiscos.</div>
         <input type="file" id="custom-music-file" accept="audio/*" style="display:none;" />
-        <button id="btn-browse-music" style="background:#38bdf8;color:#0f172a;font-weight:bold;font-size:12px;padding:8px 18px;border-radius:8px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(56,189,248,0.3);">
-          Seleccionar Archivo de Audio...
-        </button>
-        <div id="loaded-file-name" style="font-size:11px;color:#10b981;margin-top:8px;font-family:'JetBrains Mono',monospace;"></div>
+        <button id="btn-browse-music" class="music-browse">Elegir archivo</button>
+        <div id="loaded-file-name" class="music-file"></div>
       </div>
 
-      <!-- HTML5 Audio Element para archivos del usuario -->
+      <div class="music-foot"><span id="audio-text">Sonando: Marea baja</span></div>
+
       <audio id="custom-audio-player" style="display:none;" loop></audio>
     </div>
   </div>

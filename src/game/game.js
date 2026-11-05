@@ -1,0 +1,1717 @@
+/**
+ * ARCADIA · Game runtime
+ * ---------------------------------------------------------------------------
+ * Owns the narrative flow, HUD, onboarding, timed choices, rewind, saves,
+ * cinematic FX and the 3D objective beacon. It talks to the 3D sanctuary only
+ * through `bus.api` / bus events — the renderer stays a renderer.
+ */
+import './game.css';
+import * as THREE from 'three';
+import { bus } from './bus.js';
+import { portraitSVG } from './portraits.js';
+import { icon, polaroidScene, notebookSpiral } from './icons.js';
+import {
+  SAVE_VERSION, MAX_CHARGES, TOTAL_CLUES, STAT_META, CHAPTERS, HOTSPOTS, CLUES,
+  SCENES, FLAVOR, TUTORIAL_STEPS,
+  createInitialState, cloneState, enterScene, availableChoices, choose,
+  canRewind, rewind, computeEnding, requirementsMet,
+} from './story.js';
+
+const SAVE_KEY = 'arcadia.game.v3';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const SPEAKERS = {
+  javier: { name: 'Javier', role: 'Tú · Estudiante & Freelancer', style: 'default' },
+  mariana: { name: 'Mariana Rivera', role: 'Cliente Freelance · $200 USD', style: 'phone' },
+  profesor: { name: 'Prof. Salas', role: 'Cálculo II · Examen Presencial', style: 'voice' },
+  narrador: { name: 'Narración', role: 'Entorno', style: 'narration' },
+  mariposa: { name: 'El Eco', role: 'Meta Muse Spark 1.3', style: 'thought' },
+  ledger: { name: 'Ledger Criptográfico', role: 'SHA-256 Inmutable', style: 'ledger' },
+};
+
+// ---------------------------------------------------------------------------
+// DOM SHELL
+// ---------------------------------------------------------------------------
+const root = document.createElement('div');
+root.id = 'arcadia-game';
+root.innerHTML = `
+  <div id="ag-grain"></div>
+  <div id="ag-scanlines"></div>
+  <div id="ag-flash"></div>
+  <div id="ag-letterbox"></div>
+
+  <div id="ag-hud">
+    <div class="ag-hud-top">
+      <div class="ag-hud-left">
+        <div class="ag-tab" id="ag-chapter-chip">
+          <span class="ag-tab-index" id="ag-chap-kicker">00</span>
+          <span class="ag-tab-title" id="ag-chap-title">El aleteo</span>
+        </div>
+        <div class="ag-objective ag-hidden" id="ag-objective">
+          <span class="ag-obj-icon" id="ag-obj-icon"></span>
+          <span class="ag-obj-text" id="ag-obj-text"></span>
+          <span class="ag-obj-dist" id="ag-obj-dist"></span>
+        </div>
+      </div>
+      <div class="ag-hud-right">
+        <div class="ag-stat-strip" id="ag-stats"></div>
+        <div class="ag-charges">
+          <span class="ag-eco" id="ag-eco-label">${icon('butterfly', { size: 15 })}</span>
+          <div class="ag-charge-pips" id="ag-pips"></div>
+          <span class="ag-money" id="ag-money"></span>
+          <span class="ag-clues" id="ag-clue-count"></span>
+        </div>
+        <div class="ag-hud-buttons">
+          <button class="ag-icon-btn highlight" id="ag-btn-meta-ai" title="Suite Meta AI Multimodal (SAM 3.1 · Muse Voice · Muse Spark)">${icon('spark')}<span>Meta AI</span></button>
+          <button class="ag-icon-btn" id="ag-btn-guide" title="Guía de Misión y Personajes (H)">${icon('compass')}<span>Guía</span></button>
+          <button class="ag-icon-btn" id="ag-btn-journal" title="Cuaderno (J)">${icon('book')}<span>Cuaderno</span></button>
+          <button class="ag-icon-btn" id="ag-btn-ledger" title="Ledger (L)">${icon('chain')}<span>Ledger</span></button>
+          <button class="ag-icon-btn" id="ag-btn-music" title="Música (M)">${icon('music')}<span>Música</span></button>
+          <button class="ag-icon-btn" id="ag-btn-rewind" title="Rebobinar (R)">${icon('rewind')}<span>Eco</span></button>
+          <button class="ag-icon-btn primary" id="ag-btn-pause" title="Menú (ESC)">${icon('menu')}<span>Menú</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="ag-bottom-hint"><b>ESPACIO</b> seguir <i>·</i> <b>1–4</b> elegir <i>·</i> <b>I</b> Meta AI <i>·</i> <b>H</b> Guía <i>·</i> <b>M</b> Música <i>·</i> <b>R</b> Eco <i>·</i> <b>ESC</b> menú</div>
+    <div id="ag-waypoint"><div class="ag-waypoint-inner"><div class="ag-waypoint-diamond"></div><div class="ag-waypoint-label"></div></div></div>
+  </div>
+
+  <div id="ag-toasts"></div>
+  <div id="ag-consequence">
+    <div class="ag-cons-butterfly">${icon('butterfly', { size: 34 })}</div>
+    <div class="ag-cons-title">Consecuencias registradas</div>
+    <div class="ag-cons-deltas" id="ag-cons-deltas"></div>
+  </div>
+
+  <div id="ag-dialogue">
+    <div class="ag-portrait-wrap">
+      <div class="ag-tape"></div>
+      <div class="ag-portrait" id="ag-portrait"></div>
+    </div>
+    <div class="ag-dialogue-body">
+      <div class="ag-speaker" id="ag-speaker"></div>
+      <div class="ag-text" id="ag-text"></div>
+      <div class="ag-continue" id="ag-continue">ESPACIO · seguir ${icon('arrowDown', { size: 14 })}</div>
+    </div>
+  </div>
+
+  <div id="ag-choices">
+    <div class="ag-choice-head">${icon('butterfly', { size: 16 })}<span>Lo que elijas queda escrito</span></div>
+    <div id="ag-choice-list"></div>
+    <div class="ag-timer-wrap" id="ag-timer-wrap">
+      <div class="ag-timer-track"><div class="ag-timer-fill" id="ag-timer-fill"></div></div>
+      <div class="ag-timer-text" id="ag-timer-text">EL TIEMPO SIGUE CORRIENDO</div>
+    </div>
+  </div>
+
+  <div id="ag-tutorial" class="ag-hidden"></div>
+
+  <div class="ag-screen" id="ag-title">
+    <div class="ag-title-inner">
+      <div class="ag-title-note">
+        <div class="ag-tape wide"></div>
+        <div class="ag-title-kicker">Martes, 3 de noviembre · 16:42</div>
+        <h1 class="ag-title-main">Arcadia</h1>
+        <div class="ag-title-sub">El tiempo perdona. El ledger, no.</div>
+        <p class="ag-title-desc">Dos mensajes. Una nota de voz. Una hora que no puede ser cierta.</p>
+        <div class="ag-title-menu">
+          <button class="ag-menu-btn primary" id="ag-new"><span class="ag-menu-icon">${icon('play')}</span><span class="ag-menu-label">Nueva partida</span><span class="ag-menu-key">ENTER</span></button>
+          <button class="ag-menu-btn" id="ag-continue"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Continuar</span><span class="ag-menu-key" id="ag-save-info">—</span></button>
+          <button class="ag-menu-btn" id="ag-howto"><span class="ag-menu-icon">${icon('compass')}</span><span class="ag-menu-label">Cómo se juega</span><span class="ag-menu-key">?</span></button>
+        </div>
+        <div class="ag-title-footer">ARCADIA · CADENA SHA-256 · 8 PISTAS · 6 FINALES</div>
+      </div>
+      <div class="ag-title-polaroid">
+        <div class="ag-tape"></div>
+        <div class="ag-photo">${polaroidScene(0)}</div>
+        <div class="ag-cap">el faro, octubre</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ag-screen ag-hidden" id="ag-chapter"><div class="ag-chapter-inner" id="ag-chapter-inner"></div></div>
+  <div class="ag-screen ag-hidden" id="ag-journal"></div>
+  <div class="ag-screen ag-hidden" id="ag-pause"></div>
+  <div class="ag-screen ag-hidden" id="ag-ending"></div>
+  <div class="ag-screen ag-hidden" id="ag-evidence"></div>
+
+  <!-- MODAL SUITE META AI MULTIMODAL -->
+  <div class="ag-modal-overlay" id="ag-ai-modal">
+    <div class="ag-modal-sheet">
+      <div class="ag-modal-head">
+        <div>
+          <h2 class="ag-modal-title">Suite Meta AI Multimodal</h2>
+          <div class="ag-modal-sub">Modelos de IA oficiales y verificación de contratos en Arcadia</div>
+        </div>
+        <button class="ag-modal-close" id="ag-close-ai" title="Cerrar (ESC)">✕</button>
+      </div>
+
+      <div class="ag-ai-tabs">
+        <button class="ag-ai-tab-btn active" data-tab="sam">
+          ${icon('camera')} SAM 3.1 (Visión)
+        </button>
+        <button class="ag-ai-tab-btn" data-tab="voice">
+          ${icon('waveform')} Muse Voice 1.0 (Audio)
+        </button>
+        <button class="ag-ai-tab-btn" data-tab="spark">
+          ${icon('spark')} Muse Spark 1.3 (Razonamiento)
+        </button>
+        <button class="ag-ai-tab-btn" data-tab="ledger">
+          ${icon('chain')} SHA-256 Spatial Ledger
+        </button>
+      </div>
+
+      <!-- TAB 1: SAM 3.1 -->
+      <div class="ag-ai-content active" id="ag-tab-sam">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
+              Segment Anything Model 3.1 · Pixel-Accurate OCR
+            </div>
+            <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+              SAM 3.1 localiza y segmenta el texto del mensaje de Mariana dentro de la captura de WhatsApp (720x1280 px).
+            </p>
+            <div style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 4px; font-family: var(--mono); font-size: 12px; margin-top: 10px;">
+              <div><b>Gramática:</b> &lt;0f&gt;1&lt;|box;x1=24;y1=232;x2=519;y2=427;w=720;h=1280|&gt;</div>
+              <div style="margin-top: 4px;"><b>Espacio Normalizado:</b> [24, 232, 519, 427]</div>
+              <div style="margin-top: 4px; color: #15803d;"><b>Conformidad Eval:</b> IoU 99.96% round-trip PASS ✓</div>
+            </div>
+            <div style="margin-top: 14px; font-size: 13px; color: var(--ink-2);">
+              <i>«Javi! Necesito la landing para el jueves a las 4pm sí o sí. Te pago $200 USD.»</i>
+            </div>
+          </div>
+          <div class="ag-sam-preview">
+            <div class="ag-sam-laser"></div>
+            <div style="font-family: var(--mono); font-size: 11px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">
+              CAPTURA WHATSAPP (MEDIA ID: VIS-01)
+            </div>
+            <div class="ag-sam-box">
+              <span class="ag-sam-badge">SAM 3.1 · IoU 100%</span>
+              <div style="font-size: 13px; line-height: 1.4; color: #e2e8f0; font-family: var(--sans);">
+                "Javi! Necesito la landing para el jueves a las 4pm sí o sí. Te pago $200 USD si está antes de las 16:00."
+              </div>
+            </div>
+            <div style="font-family: var(--mono); font-size: 11px; color: #38bdf8; margin-top: 12px;">
+              [BBOX TARGET SEALED: SHA-256 HASH VERIFIED]
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MUSE VOICE 1.0 -->
+      <div class="ag-ai-content" id="ag-tab-voice">
+        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
+          Meta Muse Voice 1.0 · ASR Neuronal & Turn Bracketing
+        </div>
+        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+          Transcripción temporalizada y acotación estricta de turnos sobre audio WAV PCM mono a 16 kHz.
+        </p>
+
+        <div style="background: #0f172a; padding: 20px; border-radius: 8px; margin: 16px 0; color: white;">
+          <div style="display:flex; justify-content:space-between; font-family: var(--mono); font-size: 12px; color: #94a3b8; margin-bottom: 12px;">
+            <span>NOTA DE VOZ: PROF. SALAS (CÁLCULO II)</span>
+            <span style="color: #38bdf8;">16 kHz / Mono / 16-bit PCM ✓</span>
+          </div>
+
+          <div class="ag-voice-wave">
+            <div class="ag-wave-bar" style="animation-delay: 0.1s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.3s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.2s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.4s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.15s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.35s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.25s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.05s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.45s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.2s"></div>
+            <div class="ag-wave-bar" style="animation-delay: 0.1s"></div>
+          </div>
+
+          <div style="margin-top: 16px; background: rgba(255,255,255,0.06); padding: 12px; border-radius: 4px; font-family: var(--mono); font-size: 12px;">
+            <div style="color: #fbbf24;">[00:04.400 - 00:08.600] <b>Prof. Salas:</b></div>
+            <div style="color: #e2e8f0; font-family: var(--sans); font-size: 14px; margin-top: 4px;">
+              «El examen final de Cálculo II se rinde presencialmente este jueves de 15:00 a 17:00 en el aula magna. La asistencia es obligatoria.»
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: MUSE SPARK 1.3 -->
+      <div class="ag-ai-content" id="ag-tab-spark">
+        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
+          Meta Muse Spark 1.3 · Detección de Conflictos Temporales
+        </div>
+        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+          Spark analiza las restricciones extraídas por SAM y Voice, identificando la colisión causal entre el trabajo y los estudios.
+        </p>
+
+        <div class="ag-spark-graph">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <span style="font-family: var(--ui); font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase;">
+              ⚠️ COLISIÓN TEMPORAL DETECTADA (SOLAPAMIENTO: 60 MINUTOS)
+            </span>
+            <span style="font-family: var(--mono); font-size: 11px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 3px;">
+              CRÍTICO
+            </span>
+          </div>
+
+          <div class="ag-spark-bar">
+            <div class="ag-spark-fill"></div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; font-size: 13px;">
+            <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 4px; border-left: 3px solid #38bdf8;">
+              <div style="font-family: var(--ui); font-weight: 700; color: #38bdf8;">COMPROMISO A (Mariana)</div>
+              <div style="color: #cbd5e1; margin-top: 4px;">Entrega landing page: <b>Jueves 16:00</b></div>
+              <div style="color: #94a3b8; font-size: 12px;">Recompensa: +$200 USD</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 4px; border-left: 3px solid #ef4444;">
+              <div style="font-family: var(--ui); font-weight: 700; color: #ef4444;">COMPROMISO B (Prof. Salas)</div>
+              <div style="color: #cbd5e1; margin-top: 4px;">Examen Cálculo: <b>Jueves 15:00 - 17:00</b></div>
+              <div style="color: #94a3b8; font-size: 12px;">Consecuencia: Reprobación si falta</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: SHA-256 LEDGER -->
+      <div class="ag-ai-content" id="ag-tab-ledger">
+        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
+          Spatial Verifiable Ledger · Criptografía SHA-256 Inmutable
+        </div>
+        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+          Cada evidencia analizada por Meta AI y cada decisión tomada por el jugador se sella en un bloque criptográfico enlazado por hash.
+        </p>
+
+        <div style="background: #0f172a; padding: 16px; border-radius: 6px; font-family: var(--mono); font-size: 12px; color: #e2e8f0; margin-top: 12px;">
+          <div style="color: #10b981; font-weight: 700; margin-bottom: 8px;">
+            ✓ ESTADO DE LA CADENA: VÁLIDA (TODOS LOS INVARIANTES PASS)
+          </div>
+          <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px;">GENESIS BLOCK: 0000000000000000000000000000000000000000000000000000000000000000</div>
+          <div style="color: #38bdf8; font-size: 11px;">EVENT FORMULA: SHA-256(seq + prevHash + payloadHash + timestamp)</div>
+          <div style="color: #cbd5e1; margin-top: 10px; font-size: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+            Incluso al usar el Eco de la Mariposa (Rebobinado temporal), los eventos pasados permanecen sellados como prueba auditable.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL GUIA DE MISION & PERSONAJES -->
+  <div class="ag-modal-overlay" id="ag-guide-modal">
+    <div class="ag-modal-sheet">
+      <div class="ag-modal-head">
+        <div>
+          <h2 class="ag-modal-title">Guía de Misión & Personajes</h2>
+          <div class="ag-modal-sub">Arcadia · The Verifiable Spatial Ledger (Meta Hackathon 2026)</div>
+        </div>
+        <button class="ag-modal-close" id="ag-close-guide" title="Cerrar (ESC)">✕</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div>
+          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 0;">¿Qué es Arcadia y cuál es tu objetivo?</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+            Arcadia es un <b>Spatial Verifiable Ledger</b> narrativo ambientado en una habitación 3D interactiva estilo <i>Life is Strange</i>.
+          </p>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+            Eres <b>Javier Quilumba</b>, estudiante de ingeniería y programador freelance. Te enfrentas a un dilema real: tu cliente Mariana te ofrece <b>$200 USD</b> por una landing urgente el jueves a las 4 PM, pero tu profesor Salas programó el <b>examen final de Cálculo II</b> exactamente a esa misma hora.
+          </p>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
+            Tu misión es investigar las evidencias con la suite de <b>Meta AI</b>, descubrir el conflicto temporal y elegir tu destino sin alterar la verdad del Ledger.
+          </p>
+
+          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 20px;">Controles & Heurísticas de Nielsen</h3>
+          <ul style="font-size: 13px; line-height: 1.7; padding-left: 20px; color: var(--ink);">
+            <li><b>W A S D:</b> Caminar por la habitación.</li>
+            <li><b>Click Izq + Arrastrar:</b> Rotar la cámara en 360°.</li>
+            <li><b>E:</b> Interactuar con objetos y avanzar la historia.</li>
+            <li><b>ESPACIO:</b> Continuar diálogos / Levantarse.</li>
+            <li><b>V:</b> Alternar entre 1ª y 3ª persona.</li>
+            <li><b>I:</b> Abrir Suite Meta AI Multimodal.</li>
+            <li><b>H:</b> Abrir esta Guía.</li>
+            <li><b>M:</b> Tocadiscos (Elegir pista o subir tu propio MP3).</li>
+            <li><b>R:</b> Rebobinar el tiempo (Eco de la mariposa).</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 0;">Los Personajes</h3>
+          
+          <div class="ag-guide-card">
+            <div class="ag-guide-role">Protagonista (Tú)</div>
+            <div class="ag-guide-name">Javier Quilumba</div>
+            <div class="ag-guide-desc">Estudiante universitario y desarrollador freelance. Necesitas dinero para pagar la matrícula, pero no puedes reprobar Cálculo II.</div>
+          </div>
+
+          <div class="ag-guide-card" style="border-left-color: #0284c7;">
+            <div class="ag-guide-role" style="color: #0284c7;">Cliente Freelance</div>
+            <div class="ag-guide-name">Mariana Rivera</div>
+            <div class="ag-guide-desc">Directora de proyectos. Te ofreció $200 USD por entregar una landing antes del jueves 16:00. No tolera retrasos.</div>
+          </div>
+
+          <div class="ag-guide-card" style="border-left-color: #ef4444;">
+            <div class="ag-guide-role" style="color: #ef4444;">Catedrático Inflexible</div>
+            <div class="ag-guide-name">Prof. Salas (Cálculo II)</div>
+            <div class="ag-guide-desc">Fijó el examen final presencial el jueves de 15:00 a 17:00 en el Aula Magna. Sin excepciones.</div>
+          </div>
+
+          <div class="ag-guide-card" style="border-left-color: #10b981;">
+            <div class="ag-guide-role" style="color: #10b981;">Compañera de Estudio</div>
+            <div class="ag-guide-name">Elena</div>
+            <div class="ag-guide-desc">Te advierte sobre la rigidez de Salas y comparte apuntes para preparar el examen.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+document.body.appendChild(root);
+document.body.classList.add('arcadia-game');
+
+// ---------------------------------------------------------------------------
+// RUNTIME STATE
+// ---------------------------------------------------------------------------
+let state = createInitialState();
+let phase = 'title';          // title | tutorial | dialogue | choice | explore | ending
+let openScreen = null;        // title | chapter | journal | pause | ending | evidence
+let currentSceneId = 'p.wake';
+let objective = null;
+let tutorial = null;
+let tutorialOnly = false;
+let beacon = null;
+let originalLabels = {};
+let soundOn = true;
+let uiAudio = null;
+
+const dialogueState = { lines: [], index: 0, full: '', typed: '', typing: false, timer: null, onDone: null, tickCounter: 0 };
+let choiceCtx = null;
+// Overlay continuity: opening the journal / pause menu during a scene must not
+// lose the current dialogue line, nor silently burn a timed choice. `phase` is
+// intentionally left untouched while an overlay is open, so closing it is just
+// a matter of restoring the UI for the phase that was already running.
+let pausedChoice = null;       // frozen countdown (deadline converted to `remaining`)
+let overlayReturn = null;      // 'pause' when the journal was opened from the pause menu
+let tutorialReturn = null;     // { screen, phase } for reviewing the controls mid-game
+let kbFocus = 0;
+let travelled = 0;
+let dragTotal = 0;
+let lastAvatarPos = null;
+
+// ---------------------------------------------------------------------------
+// UI SOUND (tiny synth, independent from the 3D world's foley)
+// ---------------------------------------------------------------------------
+function uiSfx(kind) {
+  if (!soundOn) return;
+  try {
+    if (!uiAudio) uiAudio = new (window.AudioContext || window.webkitAudioContext)();
+    if (uiAudio.state === 'suspended') uiAudio.resume();
+    const t = uiAudio.currentTime;
+    const presets = {
+      click: [520, 780, 0.075, 0.10, 'triangle'],
+      hover: [880, 1180, 0.035, 0.025, 'sine'],
+      choice: [180, 92, 0.34, 0.20, 'sawtooth'],
+      clue: [660, 1320, 0.42, 0.13, 'sine'],
+      chapter: [220, 440, 0.65, 0.12, 'triangle'],
+      rewind: [900, 110, 0.85, 0.18, 'sawtooth'],
+      error: [160, 120, 0.18, 0.10, 'square'],
+      flash: [1200, 300, 0.22, 0.08, 'sine'],
+    };
+    const p = presets[kind] || presets.click;
+    const osc = uiAudio.createOscillator();
+    const gain = uiAudio.createGain();
+    const filter = uiAudio.createBiquadFilter();
+    osc.type = p[4];
+    osc.frequency.setValueAtTime(p[0], t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(40, p[1]), t + p[2]);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2600, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(p[3], t + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + p[2]);
+    osc.connect(filter); filter.connect(gain); gain.connect(uiAudio.destination);
+    osc.start(t); osc.stop(t + p[2] + 0.02);
+  } catch { /* audio is optional */ }
+}
+
+// ---------------------------------------------------------------------------
+// FX
+// ---------------------------------------------------------------------------
+function flash() {
+  const el = $('ag-flash');
+  el.classList.remove('fire');
+  void el.offsetWidth;
+  el.classList.add('fire');
+  uiSfx('flash');
+}
+function shake() {
+  document.body.classList.add('ag-shake');
+  setTimeout(() => document.body.classList.remove('ag-shake'), 500);
+}
+function butterflyBurst(x = window.innerWidth / 2, y = window.innerHeight / 2, count = 9) {
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'ag-burst';
+    s.innerHTML = i % 3 === 0 ? icon('spark', { size: 16 }) : icon('butterfly', { size: 18 });
+    s.style.left = `${x}px`;
+    s.style.top = `${y}px`;
+    s.style.setProperty('--bx', `${(Math.random() - 0.5) * 340}px`);
+    s.style.setProperty('--by', `${-40 - Math.random() * 220}px`);
+    s.style.setProperty('--br', `${(Math.random() - 0.5) * 320}deg`);
+    s.style.animationDelay = `${i * 45}ms`;
+    root.appendChild(s);
+    setTimeout(() => s.remove(), 1700);
+  }
+}
+function toast(title, body, kind = '') {
+  const el = document.createElement('div');
+  el.className = `ag-toast ${kind}`;
+  el.innerHTML = `<div class="ag-toast-title">${esc(title)}</div><div class="ag-toast-body">${esc(body)}</div>`;
+  $('ag-toasts').appendChild(el);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 400); }, 4200);
+}
+
+// ---------------------------------------------------------------------------
+// SCREENS / LOCKING
+// ---------------------------------------------------------------------------
+const SCREENS = ['title', 'chapter', 'journal', 'pause', 'ending', 'evidence'];
+function showScreen(name) {
+  for (const s of SCREENS) $(`ag-${s}`).classList.add('ag-hidden');
+  if (name) $(`ag-${name}`).classList.remove('ag-hidden');
+  openScreen = name || null;
+  lock(!!openScreen);
+  if (name) cinematic(true);
+}
+function hideScreens() {
+  for (const s of SCREENS) $(`ag-${s}`).classList.add('ag-hidden');
+  openScreen = null;
+}
+function lock(v) {
+  document.body.classList.toggle('ag-locked', !!v);
+  bus.api.setInputLock?.(!!v);
+}
+function cinematic(v) {
+  document.body.classList.toggle('ag-cinematic', !!v);
+  $('ag-hud').classList.toggle('ag-fade', !!v);
+}
+
+/** Finish the typewriter instantly so no text is lost behind an overlay. */
+function freezeDialogue() {
+  if (!dialogueState.typing) return;
+  clearInterval(dialogueState.timer);
+  dialogueState.typed = dialogueState.full;
+  dialogueState.typing = false;
+  $('ag-text').textContent = dialogueState.full;
+  $('ag-continue').classList.add('on');
+}
+/** Park the countdown clock; `tickWorld` only advances a live `choiceCtx`. */
+function freezeChoice() {
+  if (!choiceCtx) return;
+  pausedChoice = { ...choiceCtx, remaining: Math.max(250, choiceCtx.deadline - performance.now()) };
+  choiceCtx = null;
+}
+function thawChoice() {
+  if (!pausedChoice) return;
+  choiceCtx = { ...pausedChoice, deadline: performance.now() + pausedChoice.remaining };
+  pausedChoice = null;
+}
+function canOpenOverlay(name) {
+  if (openScreen === 'title' || phase === 'title') return false;
+  // Chapter cards and evidence scans are scene beats, not menus: they own the
+  // screen and must be dismissed through their own continuation path.
+  if (openScreen === 'chapter' || openScreen === 'evidence') return false;
+  if (phase === 'ending' && name === 'pause') return false;
+  return true;
+}
+/** Single entry point for journal / pause overlays. Never changes `phase`. */
+function openOverlay(name) {
+  if (!canOpenOverlay(name)) return false;
+  if (!openScreen) { freezeDialogue(); freezeChoice(); }
+  showScreen(name);
+  uiSfx('click');
+  return true;
+}
+/** Restore whatever was on screen before an overlay took over. */
+function restorePhase() {
+  switch (phase) {
+    case 'ending':
+      showScreen('ending');
+      break;
+    case 'dialogue':
+      resumeDialogue();
+      break;
+    case 'choice':
+      resumeChoices();
+      break;
+    case 'tutorial':
+      lock(false); cinematic(false);
+      break;
+    default:
+      enterExplore();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HUD
+// ---------------------------------------------------------------------------
+function renderHUD() {
+  const ch = CHAPTERS[state.chapterId] || CHAPTERS.prologo;
+  $('ag-chap-kicker').textContent = ch.index;
+  $('ag-chap-title').textContent = ch.title;
+
+  // Icon + number only: the label lives in the tooltip, not on screen.
+  $('ag-stats').innerHTML = ['confianza', 'notas', 'integridad'].map((k) => {
+    const m = STAT_META[k];
+    const val = Math.round(state.stats[k] ?? 0);
+    const tone = val >= 70 ? 'high' : val <= 35 ? 'low' : '';
+    return `<div class="ag-stat ${tone}" data-key="${k}" title="${esc(m.label)}: ${val}">${icon(m.icon, { size: 16 })}<span>${val}</span></div>`;
+  }).join('');
+  $('ag-pips').innerHTML = Array.from({ length: MAX_CHARGES }, (_, i) => `<span class="ag-pip ${i < state.charges ? 'on' : ''}"></span>`).join('');
+  $('ag-pips').title = `Eco: ${state.charges}/${MAX_CHARGES} recargas`;
+  $('ag-money').innerHTML = `${icon('coin', { size: 14 })}<span>${STAT_META.dinero.prefix || ''}${state.stats.dinero}</span>`;
+  $('ag-clue-count').innerHTML = `${icon('search', { size: 14 })}${state.clues.length}/${TOTAL_CLUES}`;
+  $('ag-btn-rewind').disabled = !canRewind(state).ok;
+}
+function renderObjective() {
+  const box = $('ag-objective');
+  if (!objective) { box.classList.add('ag-hidden'); return; }
+  box.classList.remove('ag-hidden');
+  $('ag-obj-icon').innerHTML = icon(HOTSPOTS[objective.hotspot]?.icon || 'compass', { size: 18 });
+  $('ag-obj-text').textContent = objective.text;
+  const d = bus.api.distanceTo?.(objective.hotspot);
+  $('ag-obj-dist').textContent = Number.isFinite(d) ? `${d.toFixed(1)} m` : '';
+}
+
+// ---------------------------------------------------------------------------
+// 3D OBJECTIVE BEACON + SCREEN WAYPOINT
+// ---------------------------------------------------------------------------
+function ensureBeacon() {
+  if (beacon || !bus.api.scene) return;
+  const g = new THREE.Group();
+  const mk = (geo, color, opacity) => new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide }));
+  const ring = mk(new THREE.TorusGeometry(0.46, 0.028, 8, 48), 0xf5a524, 0.95);
+  ring.rotation.x = Math.PI / 2;
+  const ring2 = mk(new THREE.TorusGeometry(0.66, 0.014, 8, 48), 0xfbbf24, 0.5);
+  ring2.rotation.x = Math.PI / 2;
+  const beam = mk(new THREE.CylinderGeometry(0.10, 0.34, 3.4, 20, 1, true), 0xf5a524, 0.055);
+  beam.position.y = 1.7;
+  beam.material.blending = THREE.AdditiveBlending;
+  const arrow = mk(new THREE.ConeGeometry(0.16, 0.34, 16), 0xfbbf24, 0.9);
+  arrow.rotation.z = Math.PI;
+  arrow.position.y = 1.25;
+  g.add(ring, ring2, beam, arrow);
+  g.visible = false;
+  bus.api.scene.add(g);
+  beacon = { group: g, ring, ring2, beam, arrow };
+}
+function tickWorld(time) {
+  ensureBeacon();
+  const wp = $('ag-waypoint');
+  const active = objective || (tutorial && TUTORIAL_STEPS[tutorial.index]?.id === 'approach' ? { hotspot: 'desk', label: 'Escritorio' } : null);
+
+  if (beacon) {
+    beacon.group.visible = !!active;
+    if (active) {
+      const p = bus.api.hotspotPosition?.(active.hotspot);
+      if (p) {
+        beacon.group.position.set(p.x, 0.07, p.z);
+        beacon.ring.rotation.z = time * 0.7;
+        beacon.ring2.rotation.z = -time * 0.45;
+        beacon.arrow.position.y = 1.2 + Math.sin(time * 2.6) * 0.13;
+        const pulse = 0.75 + Math.sin(time * 3) * 0.25;
+        beacon.ring.material.opacity = pulse;
+        beacon.beam.material.opacity = 0.035 + pulse * 0.035;
+      }
+    }
+  }
+
+  if (!active) { wp.classList.remove('on'); }
+  else {
+    const p = bus.api.hotspotPosition?.(active.hotspot);
+    const proj = p ? bus.api.project?.(p.clone().add(new THREE.Vector3(0, 1.0, 0))) : null;
+    if (proj) {
+      const pad = 60;
+      const x = Math.max(pad, Math.min(window.innerWidth - pad, proj.x));
+      const y = Math.max(pad, Math.min(window.innerHeight - pad, proj.y));
+      wp.style.left = `${x}px`;
+      wp.style.top = `${y}px`;
+      wp.classList.add('on');
+      wp.classList.toggle('offscreen', !proj.visible);
+      const d = bus.api.distanceTo?.(active.hotspot);
+      wp.querySelector('.ag-waypoint-label').textContent = Number.isFinite(d) ? `${d.toFixed(1)} m` : '';
+      if (objective) $('ag-obj-dist').textContent = Number.isFinite(d) ? `${d.toFixed(1)} m` : '';
+    } else wp.classList.remove('on');
+  }
+
+  // Tutorial proximity checks.
+  if (phase === 'tutorial' && tutorial && !tutorial.checking) {
+    const step = TUTORIAL_STEPS[tutorial.index];
+    const pos = bus.api.avatarPosition?.();
+    if (pos && lastAvatarPos) {
+      travelled += Math.hypot(pos.x - lastAvatarPos.x, pos.z - lastAvatarPos.z);
+    }
+    if (pos) lastAvatarPos = { x: pos.x, z: pos.z };
+    if (step.id === 'move' && travelled > 2.0) completeTutorialStep();
+    if (step.id === 'approach' && (bus.api.distanceTo?.('desk') ?? 99) < 2.9) completeTutorialStep();
+  }
+
+  // Choice countdown.
+  if (choiceCtx) {
+    const remaining = Math.max(0, choiceCtx.deadline - performance.now());
+    const ratio = remaining / choiceCtx.duration;
+    $('ag-timer-fill').style.transform = `scaleX(${ratio})`;
+    $('ag-timer-text').textContent = remaining > 0 ? `DECIDE EN ${(remaining / 1000).toFixed(1)} s` : 'EL TIEMPO DECIDIÓ POR TI';
+    choiceCtx.container.querySelectorAll('.ag-choice').forEach((b) => b.dataset.urgent = remaining < 4000 ? 'true' : 'false');
+    if (remaining <= 0) {
+      const fallback = choiceCtx.available[0];
+      const ctx = choiceCtx;
+      choiceCtx = null;
+      toast('El tiempo decidió por ti', 'Dudar también es una respuesta.', 'red');
+      if (fallback) pickChoice(fallback, ctx);
+      else {
+        // Defensive only: the story graph always keeps one open branch, but a
+        // blank screen is worse than skipping a beat.
+        $('ag-choices').classList.remove('on');
+        const forced = SCENES[ctx.sceneId]?.choices?.[0];
+        if (forced) playScene(forced.next);
+        else enterExplore();
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DIALOGUE
+// ---------------------------------------------------------------------------
+function startDialogue(lines, onDone) {
+  phase = 'dialogue';
+  dialogueState.lines = lines || [];
+  dialogueState.index = 0;
+  dialogueState.onDone = onDone;
+  lock(true); cinematic(true);
+  $('ag-choices').classList.remove('on');
+  $('ag-dialogue').classList.add('on');
+  showLine(0);
+}
+function showLine(i, instant = false) {
+  clearInterval(dialogueState.timer);
+  const line = dialogueState.lines[i];
+  if (!line) { finishDialogue(); return; }
+  dialogueState.index = i;
+  const sp = SPEAKERS[line.who] || SPEAKERS.narrador;
+  $('ag-portrait').innerHTML = portraitSVG(line.who);
+  const roleHtml = sp.role ? `<span class="ag-speaker-role">${esc(sp.role)}</span>` : '';
+  $('ag-speaker').innerHTML = `<span>${esc(sp.name)}</span>${roleHtml}<span class="ag-speaker-rule"></span>`;
+  $('ag-dialogue').dataset.style = line.style || sp.style || 'default';
+  dialogueState.full = line.text;
+  dialogueState.typed = '';
+  dialogueState.tickCounter = 0;
+  // Restoring after an overlay shows the whole line at once: replaying the
+  // typewriter would feel like the character started the sentence over.
+  if (instant) {
+    dialogueState.typed = dialogueState.full;
+    dialogueState.typing = false;
+    $('ag-text').textContent = dialogueState.full;
+    $('ag-continue').classList.add('on');
+    return;
+  }
+  dialogueState.typing = true;
+  $('ag-continue').classList.remove('on');
+  $('ag-text').innerHTML = '<span class="ag-caret"></span>';
+  const speed = line.style === 'ledger' ? 12 : 19;
+  dialogueState.timer = setInterval(() => {
+    if (dialogueState.typed.length >= dialogueState.full.length) {
+      clearInterval(dialogueState.timer);
+      dialogueState.typing = false;
+      $('ag-text').textContent = dialogueState.full;
+      $('ag-continue').classList.add('on');
+      return;
+    }
+    dialogueState.typed += dialogueState.full[dialogueState.typed.length];
+    $('ag-text').innerHTML = `${esc(dialogueState.typed)}<span class="ag-caret"></span>`;
+    dialogueState.tickCounter++;
+    if (dialogueState.tickCounter % 7 === 0) uiSfx('hover');
+  }, speed);
+}
+function advanceDialogue() {
+  if (phase !== 'dialogue') return;
+  if (dialogueState.typing) {
+    clearInterval(dialogueState.timer);
+    dialogueState.typed = dialogueState.full;
+    dialogueState.typing = false;
+    $('ag-text').textContent = dialogueState.full;
+    $('ag-continue').classList.add('on');
+    return;
+  }
+  uiSfx('click');
+  if (dialogueState.index + 1 < dialogueState.lines.length) showLine(dialogueState.index + 1);
+  else finishDialogue();
+}
+function finishDialogue() {
+  clearInterval(dialogueState.timer);
+  $('ag-dialogue').classList.remove('on');
+  $('ag-continue').classList.remove('on');
+  const cb = dialogueState.onDone;
+  dialogueState.onDone = null;
+  if (cb) cb();
+}
+
+// ---------------------------------------------------------------------------
+// CHOICES
+// ---------------------------------------------------------------------------
+function showChoices(scene, sceneId) {
+  phase = 'choice';
+  lock(true); cinematic(true);
+  $('ag-dialogue').classList.remove('on');
+  const all = scene.choices || [];
+  const available = availableChoices(state, sceneId);
+  const list = $('ag-choice-list');
+  list.innerHTML = '';
+  all.forEach((c, idx) => {
+    const unlocked = requirementsMet(state, c.requires);
+    const btn = document.createElement('button');
+    btn.className = `ag-choice ${unlocked ? '' : 'locked'}`;
+    // Keyboard shortcuts must follow the number printed on screen, even when a
+    // locked branch sits above an unlocked one.
+    btn.dataset.num = String(idx + 1);
+    btn.dataset.choiceId = c.id;
+    btn.style.animationDelay = `${idx * 90}ms`;
+    btn.innerHTML = `
+      <span class="ag-choice-num">${idx + 1}</span>
+      <span class="ag-choice-label">${esc(c.label)}</span>
+      ${unlocked
+        ? `<span class="ag-choice-tag">${esc(c.tag || '')}</span>`
+        : `<span class="ag-choice-lock">${icon('lock', { size: 14 })}${c.requires?.allClues ? `${state.clues.length}/${TOTAL_CLUES}` : ''}</span>`}`;
+    if (unlocked) btn.addEventListener('click', () => pickChoice(c));
+    else btn.addEventListener('click', () => toast('Sendas cerradas', c.requires?.allClues ? `Encuentra las ${TOTAL_CLUES} pistas para abrir esta senda.` : 'Necesitas haber actuado de otra forma.', 'red'));
+    list.appendChild(btn);
+  });
+  kbFocus = 0;
+  updateKbFocus(list);
+  $('ag-choices').classList.add('on');
+  // Every authored scene has at least one open branch, but never let a fully
+  // locked scene hang the game on `Math.min(...[])` → Infinity.
+  const duration = available.length
+    ? Math.min(...available.map((c) => c.timeLimit || 15000))
+    : 15000;
+  choiceCtx = { sceneId, available, container: $('ag-choices'), deadline: performance.now() + duration, duration };
+  $('ag-timer-wrap').classList.remove('ag-hidden');
+  uiSfx('chapter');
+}
+function resumeChoices() {
+  lock(true); cinematic(true);
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.add('on');
+  $('ag-timer-wrap').classList.remove('ag-hidden');
+  thawChoice();
+  updateKbFocus($('ag-choice-list'));
+}
+function updateKbFocus(list) {
+  list.querySelectorAll('.ag-choice:not(.locked)').forEach((b, i) => b.classList.toggle('kbfocus', i === kbFocus));
+  list.querySelectorAll('.ag-choice.locked').forEach((b) => b.classList.remove('kbfocus'));
+}
+function pickChoice(choice, ctxOverride) {
+  const ctx = ctxOverride || choiceCtx;
+  if (!ctx) return;
+  choiceCtx = null;
+  $('ag-choices').classList.remove('on');
+  $('ag-timer-wrap').classList.add('ag-hidden');
+
+  const before = state;
+  const result = choose(state, ctx.sceneId, choice.id);
+  if (!result.ok) { toast('Esa senda está cerrada', result.reason || '', 'red'); showChoices(SCENES[ctx.sceneId], ctx.sceneId); return; }
+  state = result.state;
+
+  bus.api.appendLedger?.(choice.ledger?.type || 'decision.made', {
+    ...(choice.ledger || {}), scene: ctx.sceneId, choice: choice.id,
+    label: choice.label, effects: choice.effects, at: new Date().toISOString(),
+  });
+
+  uiSfx('choice'); flash(); butterflyBurst(window.innerWidth / 2, window.innerHeight * 0.52, 12);
+  if (choice.weather !== undefined) {
+    bus.api.setWorldState?.(choice.weather);
+    state.weather = choice.weather;
+    if (choice.weather === 1) shake();
+  }
+  showConsequence(choice.effects);
+  save();
+  const next = choice.next;
+  setTimeout(() => { hideConsequence(); playScene(next); }, 2050);
+}
+function showConsequence(effects = {}) {
+  const deltas = [];
+  for (const [k, v] of Object.entries(effects.stats || {})) {
+    const meta = STAT_META[k];
+    if (!meta) continue;
+    const sign = v > 0 ? '+' : '';
+    deltas.push(`<span class="ag-delta ${v > 0 ? 'up' : 'down'}" style="animation-delay:${deltas.length * 70}ms">${icon(meta.icon, { size: 14 })}${esc(meta.label)} ${sign}${v}${k === 'dinero' ? '$' : ''}</span>`);
+  }
+  if (effects.flags?.length) deltas.push(`<span class="ag-delta">${icon('pen', { size: 14 })}${effects.flags.length} marca${effects.flags.length > 1 ? 's' : ''} en tu historia</span>`);
+  $('ag-cons-deltas').innerHTML = deltas.join('');
+  $('ag-consequence').classList.add('on');
+}
+function hideConsequence() { $('ag-consequence').classList.remove('on'); }
+
+// ---------------------------------------------------------------------------
+// SCENE FLOW
+// ---------------------------------------------------------------------------
+function handleGrant(scene, before) {
+  if (!scene.grant) return;
+  const newClues = state.clues.filter((c) => !before.clues.includes(c));
+  for (const c of newClues) {
+    toast(`Nueva pista · ${CLUES[c]?.title || c}`, '+1 recarga de Eco', 'green');
+  }
+  if (scene.grant.charges && !newClues.length) toast('Eco recuperado', 'Una pista nueva te devuelve una recarga.', 'cyan');
+  if (newClues.length) { uiSfx('clue'); butterflyBurst(window.innerWidth * 0.72, window.innerHeight * 0.3, 6); }
+  if (scene.grant.ledger) bus.api.appendLedger?.(scene.grant.ledger.type, { ...scene.grant.ledger, scene: currentSceneId, at: new Date().toISOString() });
+  renderHUD();
+}
+function playScene(sceneId) {
+  if (!SCENES[sceneId]) { console.warn('[arcadia] unknown scene', sceneId); enterExplore(); return; }
+  const before = state;
+  const result = enterScene(state, sceneId);
+  state = result.state;
+  currentSceneId = sceneId;
+  save();
+  renderHUD();
+  const scene = result.scene;
+  const grantedNow = state.grantedScenes.length > before.grantedScenes.length;
+  if (scene.weather !== undefined && scene.weather !== before.weather) bus.api.setWorldState?.(scene.weather);
+  if (scene.grant && grantedNow) handleGrant(scene, before);
+
+  if (scene.chapterCard) {
+    showChapterCard(scene.chapter, () => runSceneBody(scene));
+    return;
+  }
+  runSceneBody(scene);
+}
+function runSceneBody(scene) {
+  if (scene.evidence) {
+    showEvidence(scene.evidence, () => {
+      if (scene.lines?.length) startDialogue(scene.lines, () => afterLines(scene));
+      else afterLines(scene);
+    });
+    return;
+  }
+  if (scene.lines?.length) { startDialogue(scene.lines, () => afterLines(scene)); return; }
+  afterLines(scene);
+}
+function afterLines(scene) {
+  if (scene.choices) { showChoices(scene, currentSceneId); return; }
+  if (scene.objective) { setObjective(scene.objective); return; }
+  if (scene.ending) { showEnding(); return; }
+  if (scene.next) { playScene(scene.next); return; }
+  enterExplore();
+}
+function setObjective(obj) {
+  objective = obj;
+  state.objective = obj;
+  phase = 'explore';
+  for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
+  bus.api.setHotspotLabel?.(obj.hotspot, obj.label || 'Interactuar');
+  renderObjective();
+  save();
+  lock(false); cinematic(false);
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.remove('on');
+}
+function clearObjective() {
+  objective = null;
+  state.objective = null;
+  $('ag-objective').classList.add('ag-hidden');
+  for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
+}
+function enterExplore() {
+  phase = 'explore';
+  lock(false); cinematic(false);
+  bus.api.clearFocus?.();
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.remove('on');
+  renderObjective();
+}
+function resumeDialogue() {
+  lock(true); cinematic(true);
+  $('ag-choices').classList.remove('on');
+  $('ag-dialogue').classList.add('on');
+  showLine(dialogueState.index, true);
+}
+
+// ---------------------------------------------------------------------------
+// FLAVOUR EXPLORATION (optional clues hidden around the room)
+// ---------------------------------------------------------------------------
+function playFlavor(hotspotId) {
+  const sceneId = FLAVOR[hotspotId];
+  const scene = SCENES[sceneId];
+  if (!scene) return;
+  const before = state;
+  if (scene.grant && !state.grantedScenes.includes(sceneId)) {
+    const tmp = cloneState(state);
+    const res = enterScene(tmp, sceneId);
+    const next = res.state;
+    next.sceneId = state.sceneId;
+    next.chapterId = state.chapterId;
+    next.weather = state.weather;
+    next.objective = state.objective;
+    state = next;
+    handleGrant(scene, before);
+    save();
+  }
+  uiSfx('click');
+  startDialogue(scene.lines || [], () => enterExplore());
+}
+
+// ---------------------------------------------------------------------------
+// INTERACTION / REWIND BUS BRIDGE
+// ---------------------------------------------------------------------------
+function onInteract(detail) {
+  if (!detail) return true;
+  // Always swallow interactions while a full-screen screen is open.
+  if (openScreen) return true;
+  if (phase === 'tutorial') {
+    if (detail.id === 'desk' && TUTORIAL_STEPS[tutorial?.index]?.id === 'interact') completeTutorialStep();
+    uiSfx('click');
+    return true;
+  }
+  if (phase === 'dialogue' || phase === 'choice' || phase === 'ending') return true;
+
+  if (objective && detail.id === objective.hotspot) {
+    const next = objective.next;
+    clearObjective();
+    uiSfx('click');
+    flash();
+    playScene(next);
+    return true;
+  }
+  // Posture hotspots also keep their legacy 3D animation.
+  playFlavor(detail.id);
+  return ['guitar', 'bed', 'armchair'].includes(detail.id) ? 'legacy' : true;
+}
+
+function requestRewind() {
+  if (openScreen === 'title' || openScreen === 'ending' || phase === 'ending') return;
+  if (phase === 'tutorial') {
+    if (TUTORIAL_STEPS[tutorial?.index]?.id === 'rewind') completeTutorialStep();
+    bus.emit('fx:rewind');
+    fxRewind();
+    return;
+  }
+  if (phase === 'dialogue' || phase === 'choice' || openScreen) {
+    toast('El Eco no responde', 'Termina la escena antes de doblar el tiempo.', 'red');
+    return;
+  }
+  const check = canRewind(state);
+  if (!check.ok) {
+    uiSfx('error');
+    const messages = {
+      NO_CHARGE: 'No te quedan recargas. Explora la habitación para recuperarlas.',
+      NO_DECISION: 'Aún no hay ninguna decisión que deshacer.',
+      NO_SNAPSHOT: 'Ese instante ya está demasiado lejos. Toma una decisión nueva.',
+      FINISHED: 'Esta línea de tiempo ya está cerrada.',
+    };
+    toast('El Eco no responde', messages[check.reason] || 'No se puede rebobinar ahora.', 'red');
+    return;
+  }
+  const res = rewind(state);
+  state = res.state;
+  bus.api.appendLedger?.('timeline.rewound', {
+    note: 'El tiempo se deshace; el registro permanece',
+    fromScene: res.entry.sceneId, undoneChoice: res.entry.choiceId,
+    remembered: res.entry.label, chargesLeft: state.charges,
+    at: new Date().toISOString(),
+  });
+  clearObjective();
+  choiceCtx = null;
+  $('ag-choices').classList.remove('on');
+  save(); renderHUD();
+  bus.emit('fx:rewind');
+  fxRewind();
+  toast('Línea de tiempo reescrita', `Recuerdas: ${res.entry.label}. El ledger conserva el bloque.`, 'cyan');
+}
+function fxRewind() {
+  document.body.classList.add('ag-rewinding');
+  uiSfx('rewind');
+  butterflyBurst(window.innerWidth / 2, window.innerHeight / 2, 10);
+  setTimeout(() => {
+    document.body.classList.remove('ag-rewinding');
+    bus.api.setWorldState?.(state.weather);
+    if (phase === 'tutorial') return;
+    playScene(state.sceneId);
+  }, 1450);
+}
+
+// ---------------------------------------------------------------------------
+// CHAPTER CARD / EVIDENCE
+// ---------------------------------------------------------------------------
+function showChapterCard(chapterId, done) {
+  const ch = CHAPTERS[chapterId] || CHAPTERS.prologo;
+  openScreen = 'chapter';
+  $('ag-chapter-inner').innerHTML = `
+    <div class="ag-chapter-sheet">
+      <div class="ag-tape wide"></div>
+      <div class="ag-chapter-num">${esc(ch.index)}</div>
+      <div class="ag-chapter-title">${esc(ch.title)}</div>
+      <div class="ag-chapter-sub">${esc(ch.subtitle)}</div>
+      <div class="ag-chapter-epigraph">${esc(ch.epigraph)}</div>
+    </div>`;
+  showScreen('chapter');
+  flash(); uiSfx('chapter');
+  setTimeout(() => { hideScreens(); openScreen = null; lock(true); cinematic(true); done(); }, 2900);
+}
+
+const EVIDENCE_VIEWS = {
+  mask: {
+    title: 'ANCLAJE PIXELAR · SAM 3.1', meta: 'Muse Spark 1.3 → SAM 3.1',
+    visual: `<div class="ag-ev-bubble"><span class="ag-ev-time">14:32</span>¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM.</div><div class="ag-ev-scan"></div><div class="ag-ev-line"></div>`,
+    stats: [['IoU', '96,1 %'], ['BOX', '[118,402,884,516]'], ['CONFIANZA', '0.961']],
+  },
+  voice: {
+    title: 'ANCLAJE DE AUDIO · MUSE VOICE 1.0', meta: '16 kHz · mono · PCM 16-bit',
+    visual: `<div class="ag-ev-wave">${Array.from({ length: 54 }, (_, i) => `<i style="height:${18 + Math.abs(Math.sin(i * 0.7)) * 90}px;animation-delay:${(i % 9) * 90}ms"></i>`).join('')}</div>`,
+    stats: [['TURNO', '2 · Speaker A'], ['INICIO', '00:04.400'], ['FIN', '00:08.600']],
+  },
+  schedule: {
+    title: 'DOCUMENTO ANCLADO · HORARIO', meta: 'Cálculo II · Departamento',
+    visual: `<div class="ag-ev-bubble" style="font-family:var(--ag-mono);font-size:12px;background:#f8f1e5;color:#33261a">JUEVES · 15:00–17:00<br><b>EXAMEN PARCIAL · CÁLCULO II</b><br>Asistencia obligatoria · Prof. Salas</div><div class="ag-ev-scan" style="border-color:#34d399"></div>`,
+    stats: [['SELLO', 'DEPT-114'], ['DÍA', 'JUEVES'], ['FRANJA', '15:00–17:00']],
+  },
+  conflict: {
+    title: 'CONFLICTO CAUSAL DETECTADO', meta: 'Bitemporal · asOf() · 1 coincidencia',
+    visual: `<div class="ag-ev-conflict"><div class="ag-ev-slip"><b>ENTREGA · MARIANA</b><span>16:00 → 17:00</span></div><div class="ag-ev-slip bad"><b>EXAMEN · CÁLCULO II</b><span>15:00 → 17:00</span></div><div class="ag-ev-overlap">${icon('warning', { size: 16 })} SOLAPAMIENTO · 60 MIN</div></div>`,
+    stats: [['ANCLAJES', '3'], ['CONFLICTOS', '1'], ['LEDGER', 'VÁLIDO']],
+  },
+};
+function showEvidence(type, done) {
+  const view = EVIDENCE_VIEWS[type];
+  if (!view) { done(); return; }
+  $('ag-evidence').innerHTML = `
+    <div class="ag-ev-card">
+      <div class="ag-ev-head"><h2>${esc(view.title)}</h2><span>${esc(view.meta)}</span></div>
+      <div class="ag-ev-visual">${view.visual}</div>
+      <div class="ag-ev-meta">${view.stats.map(([k, v]) => `<div><b>${esc(k)}</b><span>${esc(v)}</span></div>`).join('')}</div>
+      <div class="ag-ev-foot"><button class="ag-icon-btn primary" id="ag-ev-continue">Sellar evidencia →</button></div>
+    </div>`;
+  showScreen('evidence');
+  uiSfx('clue');
+  $('ag-ev-continue').addEventListener('click', () => {
+    uiSfx('click'); hideScreens(); openScreen = null; lock(true); cinematic(true); done();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// JOURNAL
+// ---------------------------------------------------------------------------
+function showJournal() {
+  const found = state.clues.length;
+  const clueSlips = Object.entries(CLUES).map(([id, c]) => {
+    const has = state.clues.includes(id);
+    return `<div class="ag-clue ${has ? '' : 'missing'}" title="${esc(has ? c.detail : 'Todavía no la has encontrado')}">
+      <span class="ag-clue-ic">${icon(has ? c.icon : 'lock', { size: 17 })}</span>
+      <span class="ag-clue-t">${esc(has ? c.title : 'sin encontrar')}</span>
+      ${has ? `<span class="ag-clue-mark">${icon('check', { size: 13 })}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  const decisionStamps = state.decisions.length
+    ? state.decisions.map((d) => `<div class="ag-stamp ${d.undone ? 'undone' : ''}">
+        <span class="ag-stamp-mark">${d.undone ? 'DESHECHA' : 'SELLADA'}</span>
+        <span class="ag-stamp-label">${esc(d.label)}</span>
+      </div>`).join('')
+    : '<p class="ag-hand-empty">Todavía no hay nada escrito aquí.</p>';
+
+  const statInk = Object.entries(STAT_META).map(([k, m]) => `<div class="ag-ink-row">
+      ${icon(m.icon, { size: 16 })}
+      <span class="ag-ink-name">${esc(m.label)}</span>
+      <span class="ag-ink-val">${m.prefix || ''}${Math.round(state.stats[k] ?? 0)}</span>
+    </div>`).join('');
+
+  const blocks = bus.api.ledgerCount?.() ?? '—';
+  const ch = CHAPTERS[state.chapterId] || CHAPTERS.prologo;
+
+  const pendientes = [
+    `<li>${esc(ch.title)} · ${esc(ch.subtitle)}</li>`,
+    objective ? `<li>${esc(objective.text)}</li>` : null,
+    found < TOTAL_CLUES
+      ? `<li>Me faltan <b>${TOTAL_CLUES - found}</b> pistas por encontrar.</li>`
+      : '<li>Tengo las ocho pistas. Falta sellarlas.</li>',
+    `<li>Eco: <b>${state.charges}</b> recargas disponibles.</li>`,
+  ].filter(Boolean).join('');
+
+  $('ag-journal').innerHTML = `
+    <div class="ag-book">
+      <button class="ag-book-close ag-interactive" id="ag-journal-close" title="Cerrar">${icon('close', { size: 20 })}</button>
+      <div class="ag-book-spiral">${notebookSpiral(20)}</div>
+      <div class="ag-book-spread">
+        <article class="ag-book-page" data-page="0">
+          <span class="ag-page-tab">la semana</span>
+          <div class="ag-page-paper">
+            <div class="ag-polaroid journal">
+              <div class="ag-tape"></div>
+              <div class="ag-photo">${polaroidScene(1)}</div>
+              <div class="ag-cap">el faro, octubre</div>
+            </div>
+            <h2 class="ag-hand-title">Lo que sé</h2>
+            <ul class="ag-hand-list">
+              <li><b>Martes.</b> Mariana pide el diseño. 200 $, jueves a las 4.</li>
+              <li><b>21:14.</b> Salas: examen el jueves de 3 a 5.</li>
+              <li><b>Jueves.</b> Las dos cosas no caben.</li>
+            </ul>
+            <p class="ag-hand-aside">${icon('arrowRight', { size: 16 })} si entrego, falto. si voy, incumplo.</p>
+            <p class="ag-hand-sign">${esc(ch.title)} · ${esc(ch.subtitle)}</p>
+          </div>
+          <span class="ag-page-num">1</span>
+        </article>
+
+        <article class="ag-book-page" data-page="1">
+          <span class="ag-page-tab">pistas</span>
+          <div class="ag-page-paper">
+            <h2 class="ag-hand-title">Pistas <em>${found}/${TOTAL_CLUES}</em></h2>
+            <div class="ag-clue-grid">${clueSlips}</div>
+            <p class="ag-hand-aside">${icon('butterfly', { size: 16 })} cada pista te devuelve una recarga de Eco.</p>
+            <div class="ag-page-doodle">${icon('lighthouse', { size: 64, stroke: 1.2 })}</div>
+          </div>
+          <span class="ag-page-num">2</span>
+        </article>
+
+        <article class="ag-book-page is-hidden" data-page="2">
+          <span class="ag-page-tab">decisiones</span>
+          <div class="ag-page-paper">
+            <h2 class="ag-hand-title">Pendientes</h2>
+            <ul class="ag-hand-list">${pendientes}</ul>
+            <h2 class="ag-hand-title small">Decisiones</h2>
+            <div class="ag-stamp-list">${decisionStamps}</div>
+            <p class="ag-hand-aside">${icon('pen', { size: 16 })} el ledger no borra: marca.</p>
+            <div class="ag-page-doodle">${icon('compass', { size: 68, stroke: 1.2 })}</div>
+          </div>
+          <span class="ag-page-num">3</span>
+        </article>
+
+        <article class="ag-book-page is-hidden" data-page="3">
+          <span class="ag-page-tab">otras líneas</span>
+          <div class="ag-page-paper">
+            <h2 class="ag-hand-title">Tu expediente</h2>
+            <div class="ag-ink-list">${statInk}</div>
+            <h2 class="ag-hand-title small">Otras líneas</h2>
+            <p class="ag-hand-body">${state.memories.length ? state.memories.map((m) => `«${esc(m)}»`).join('<br>') : 'Ninguna. Aún no has rebobinado.'}</p>
+            <p class="ag-hand-sign">${blocks} bloques SHA-256 · ${state.rewindCount} rebobinados</p>
+          </div>
+          <span class="ag-page-num">4</span>
+        </article>
+      </div>
+
+      <div class="ag-book-nav">
+        <button class="ag-nav-text ag-interactive" id="ag-journal-prev">${icon('arrowLeft', { size: 15 })} Anterior</button>
+        <span class="ag-nav-page" id="ag-journal-pageno">1–2</span>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-next">Siguiente ${icon('arrowRight', { size: 15 })}</button>
+        <span class="ag-nav-sep"></span>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-ledger">Ledger</button>
+        <button class="ag-nav-text ag-interactive" id="ag-journal-tutorial">Controles</button>
+      </div>
+    </div>`;
+
+  if (!openOverlay('journal')) return false;
+
+  let spread = 0;
+  const pages = [...$('ag-journal').querySelectorAll('.ag-book-page')];
+  const renderSpread = () => {
+    pages.forEach((p, i) => p.classList.toggle('is-hidden', Math.floor(i / 2) !== spread));
+    $('ag-journal-pageno').textContent = spread === 0 ? '1–2' : '3–4';
+    $('ag-journal-prev').disabled = spread === 0;
+    $('ag-journal-next').disabled = spread === 1;
+  };
+  renderSpread();
+  $('ag-journal-prev').addEventListener('click', () => { spread = 0; renderSpread(); uiSfx('hover'); });
+  $('ag-journal-next').addEventListener('click', () => { spread = 1; renderSpread(); uiSfx('hover'); });
+  $('ag-journal-close').addEventListener('click', closeOverlay);
+  $('ag-journal-ledger').addEventListener('click', () => { closeOverlay(); bus.api.toggleLedger?.(); });
+  $('ag-journal-tutorial').addEventListener('click', () => {
+    const screen = overlayReturn || (phase === 'ending' ? 'ending' : 'game');
+    tutorialReturn = { screen, phase };
+    overlayReturn = null;
+    hideScreens();
+    startTutorial(true);
+  });
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// PAUSE
+// ---------------------------------------------------------------------------
+function showPause() {
+  const ch = CHAPTERS[state.chapterId] || CHAPTERS.prologo;
+  const notes = {
+    resume: ['Volver a la escena', 'El tiempo sigue donde lo dejaste. Si había una decisión abierta, el contador está congelado.'],
+    journal: ['Cuaderno', 'La semana, las pistas que llevas, las decisiones selladas y lo que recuerdas de otras líneas.'],
+    tutorial: ['Controles', 'Repasa cómo moverte, orbitar la cámara e interactuar sin salir de la partida.'],
+    music: ['Tocadiscos', 'Tres piezas originales generadas en el navegador. Nada de audio con licencia.'],
+    sound: ['Sonido', 'Activa o silencia los clics y avisos de la interfaz.'],
+    restart: ['Reiniciar', 'Borra esta línea de tiempo y empieza de cero. El ledger anterior se queda en el disco.'],
+    title: ['Título', 'Vuelve a la portada. La partida queda guardada donde está.'],
+  };
+  $('ag-pause').innerHTML = `
+    <div class="ag-menu">
+      <div class="ag-menu-tabs" role="tablist">
+        <button class="ag-tab-btn is-active" data-tab="game">Partida</button>
+        <button class="ag-tab-btn" data-tab="audio">Audio</button>
+        <button class="ag-tab-btn" data-tab="system">Sistema</button>
+      </div>
+      <div class="ag-menu-body">
+        <div class="ag-menu-rows" data-panel="game">
+          <button class="ag-row" id="ag-p-resume" data-note="resume"><span class="ag-row-ic">${icon('play', { size: 18 })}</span><span class="ag-row-label">Continuar</span><span class="ag-row-val">ESC</span></button>
+          <button class="ag-row" id="ag-p-journal" data-note="journal"><span class="ag-row-ic">${icon('book', { size: 18 })}</span><span class="ag-row-label">Cuaderno</span><span class="ag-row-val">J</span></button>
+          <button class="ag-row" id="ag-p-tutorial" data-note="tutorial"><span class="ag-row-ic">${icon('compass', { size: 18 })}</span><span class="ag-row-label">Controles</span><span class="ag-row-val">?</span></button>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('butterfly', { size: 18 })}</span><span class="ag-row-label">Eco</span><span class="ag-row-val">${state.charges}/${MAX_CHARGES}</span></div>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('search', { size: 18 })}</span><span class="ag-row-label">Pistas</span><span class="ag-row-val">${state.clues.length}/${TOTAL_CLUES}</span></div>
+          <div class="ag-row static"><span class="ag-row-ic">${icon('chain', { size: 18 })}</span><span class="ag-row-label">Capítulo</span><span class="ag-row-val">${esc(ch.index)} · ${esc(ch.title)}</span></div>
+        </div>
+        <div class="ag-menu-rows is-hidden" data-panel="audio">
+          <button class="ag-row" id="ag-p-music" data-note="music"><span class="ag-row-ic">${icon('music', { size: 18 })}</span><span class="ag-row-label">Tocadiscos</span><span class="ag-row-val">M</span></button>
+          <button class="ag-row" id="ag-p-sound" data-note="sound"><span class="ag-row-ic">${icon(soundOn ? 'volume' : 'mute', { size: 18 })}</span><span class="ag-row-label">Sonido de interfaz</span><span class="ag-row-val">${soundOn ? 'ACTIVO' : 'SILENCIO'}</span></button>
+        </div>
+        <div class="ag-menu-rows is-hidden" data-panel="system">
+          <button class="ag-row" id="ag-p-restart" data-note="restart"><span class="ag-row-ic">${icon('restart', { size: 18 })}</span><span class="ag-row-label">Reiniciar partida</span><span class="ag-row-val">↺</span></button>
+          <button class="ag-row" id="ag-p-title" data-note="title"><span class="ag-row-ic">${icon('home', { size: 18 })}</span><span class="ag-row-label">Volver al título</span><span class="ag-row-val">⌂</span></button>
+        </div>
+        <aside class="ag-menu-note">
+          <div class="ag-polaroid tiny"><div class="ag-tape"></div><div class="ag-photo">${polaroidScene(2)}</div></div>
+          <h3 id="ag-note-title">${notes.resume[0]}</h3>
+          <p id="ag-note-text">${notes.resume[1]}</p>
+        </aside>
+      </div>
+      <div class="ag-menu-foot">
+        <span class="ag-key"><b>ESC</b> volver</span>
+        <span class="ag-key"><b>J</b> cuaderno</span>
+        <span class="ag-key"><b>R</b> rebobinar</span>
+      </div>
+    </div>`;
+  if (!openOverlay('pause')) return false;
+
+  const showTab = (name) => {
+    $('ag-pause').querySelectorAll('.ag-tab-btn').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === name));
+    $('ag-pause').querySelectorAll('.ag-menu-rows').forEach((p) => p.classList.toggle('is-hidden', p.dataset.panel !== name));
+  };
+  $('ag-pause').querySelectorAll('.ag-tab-btn').forEach((b) => b.addEventListener('click', () => { showTab(b.dataset.tab); uiSfx('hover'); }));
+  $('ag-pause').querySelectorAll('.ag-row[data-note]').forEach((row) => {
+    const paint = () => {
+      const n = notes[row.dataset.note];
+      if (!n) return;
+      $('ag-note-title').textContent = n[0];
+      $('ag-note-text').textContent = n[1];
+    };
+    row.addEventListener('mouseenter', paint);
+    row.addEventListener('focus', paint);
+  });
+
+  $('ag-p-resume').addEventListener('click', closeOverlay);
+  $('ag-p-journal').addEventListener('click', () => { overlayReturn = 'pause'; showJournal(); });
+  $('ag-p-tutorial').addEventListener('click', () => {
+    tutorialReturn = { screen: 'pause', phase };
+    overlayReturn = null;
+    hideScreens();
+    startTutorial(true);
+  });
+  $('ag-p-music').addEventListener('click', () => bus.api.openMusic?.());
+  $('ag-p-sound').addEventListener('click', () => { soundOn = !soundOn; showPause(); });
+  $('ag-p-restart').addEventListener('click', () => {
+    if (!confirm('¿Reiniciar la partida? Se perderán las decisiones y las pistas de esta línea de tiempo.')) return;
+    localStorage.removeItem(SAVE_KEY);
+    state = createInitialState();
+    hideScreens(); startNewGame(false);
+  });
+  $('ag-p-title').addEventListener('click', () => { hideScreens(); showTitle(); });
+  return true;
+}
+/**
+ * Close a journal / pause overlay and put the player back exactly where they
+ * were: same dialogue line, same choice with the same time left on the clock.
+ */
+function closeOverlay() {
+  const back = overlayReturn;
+  overlayReturn = null;
+  hideScreens();
+  if (back === 'pause' && showPause()) return;
+  restorePhase();
+}
+
+// ---------------------------------------------------------------------------
+// ENDING
+// ---------------------------------------------------------------------------
+function showEnding() {
+  phase = 'ending';
+  const ending = computeEnding(state);
+  state.finished = ending.id;
+  save();
+  bus.api.setWorldState?.(ending.weather);
+  if (ending.weather === 1) shake();
+  clearObjective();
+  const blocks = bus.api.ledgerCount?.() ?? '—';
+  $('ag-ending').innerHTML = `
+    <div class="ag-ending-inner">
+      <div class="ag-ending-sheet">
+        <div class="ag-tape wide"></div>
+        <div class="ag-ending-badge">${esc(ending.badge)}</div>
+        <h1 class="ag-ending-title">${esc(ending.title)}</h1>
+        <div class="ag-ending-verdict">${esc(ending.verdict)}</div>
+        <div class="ag-ending-paras">${ending.paragraphs.slice(0, 2).map((p) => `<p>${esc(p)}</p>`).join('')}</div>
+        <div class="ag-ending-stats">
+          <span>${icon('search', { size: 15 })}<b>${state.clues.length}/${TOTAL_CLUES}</b> pistas</span>
+          <span>${icon('rewind', { size: 15 })}<b>${state.rewindCount}</b> rebobinados</span>
+          <span>${icon('chain', { size: 15 })}<b>${blocks}</b> bloques</span>
+          <span>${icon('heart', { size: 15 })}<b>${Math.round(state.stats.confianza)}</b> confianza</span>
+        </div>
+      </div>
+      <div class="ag-ending-actions">
+        <button class="ag-menu-btn primary" id="ag-e-again"><span class="ag-menu-icon">${icon('restart')}</span><span class="ag-menu-label">Otra línea</span></button>
+        <button class="ag-menu-btn" id="ag-e-journal"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Cuaderno</span></button>
+        <button class="ag-menu-btn" id="ag-e-title"><span class="ag-menu-icon">${icon('home')}</span><span class="ag-menu-label">Título</span></button>
+      </div>
+    </div>`;
+  showScreen('ending');
+  flash(); uiSfx('chapter');
+  butterflyBurst(window.innerWidth / 2, window.innerHeight * 0.6, 14);
+  $('ag-e-again').addEventListener('click', () => { localStorage.removeItem(SAVE_KEY); state = createInitialState(); hideScreens(); openScreen = null; startNewGame(false); });
+  $('ag-e-journal').addEventListener('click', showJournal);
+  $('ag-e-title').addEventListener('click', () => { hideScreens(); openScreen = null; showTitle(); });
+}
+
+// ---------------------------------------------------------------------------
+// TUTORIAL
+// ---------------------------------------------------------------------------
+/**
+ * `standalone` = a review of the controls from the title / pause / journal.
+ * `tutorialReturn` (set by the caller) says which context to restore on exit,
+ * so reviewing controls mid-scene never drops a dialogue or a timed choice.
+ */
+function startTutorial(standalone = false) {
+  tutorialOnly = standalone;
+  if (!standalone) { state.tutorialDone = false; tutorialReturn = null; }
+  phase = 'tutorial';
+  tutorial = { index: 0, checking: false };
+  travelled = 0; dragTotal = 0; lastAvatarPos = null;
+  hideScreens(); openScreen = null;
+  lock(false); cinematic(false);
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.remove('on');
+  $('ag-tutorial').classList.remove('ag-hidden');
+  renderTutorial();
+  toast('Tutorial', 'Cinco pasos. Puedes saltarlo cuando quieras.', 'cyan');
+}
+function renderTutorial() {
+  if (!tutorial) return;
+  const step = TUTORIAL_STEPS[tutorial.index];
+  const box = $('ag-tutorial');
+  box.innerHTML = `
+    <div class="ag-tut-card">
+      <div class="ag-tape"></div>
+      <div class="ag-tut-top">
+        <span class="ag-tut-kicker">PASO ${tutorial.index + 1} / ${TUTORIAL_STEPS.length}</span>
+        <div class="ag-tut-steps">${TUTORIAL_STEPS.map((_, i) => `<span class="ag-tut-step ${i < tutorial.index ? 'done' : i === tutorial.index ? 'current' : ''}"></span>`).join('')}</div>
+      </div>
+      <div class="ag-tut-main">
+        <span class="ag-tut-icon">${icon(step.icon, { size: 34, stroke: 1.5 })}</span>
+        <div>
+          <div class="ag-tut-title">${esc(step.title)}</div>
+          <div class="ag-tut-text">${esc(step.text)}</div>
+        </div>
+      </div>
+      <div class="ag-tut-keys">${step.keys.map((k) => `<span class="ag-key">${esc(k)}</span>`).join('')}</div>
+      <div class="ag-tut-foot">
+        <span class="ag-tut-status" id="ag-tut-status">esperando tu acción…</span>
+        <button class="ag-link ag-interactive" id="ag-tut-skip">Saltar ${icon('arrowRight', { size: 13 })}</button>
+      </div>
+    </div>`;
+  $('ag-tut-skip').addEventListener('click', () => finishTutorial(true));
+  for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
+  if (step.id === 'approach' || step.id === 'interact') bus.api.setHotspotLabel?.('desk', 'Examinar el escritorio');
+}
+function completeTutorialStep() {
+  if (!tutorial || tutorial.checking) return;
+  tutorial.checking = true;
+  uiSfx('clue');
+  const st = $('ag-tut-status');
+  if (st) { st.innerHTML = `<span class="ag-tut-check">${icon('check', { size: 14 })} hecho</span>`; st.className = 'ag-tut-status'; }
+  butterflyBurst(window.innerWidth * 0.25, window.innerHeight * 0.75, 5);
+  setTimeout(() => {
+    tutorial.index++;
+    tutorial.checking = false;
+    if (tutorial.index >= TUTORIAL_STEPS.length) { finishTutorial(false); return; }
+    renderTutorial();
+  }, 950);
+}
+function finishTutorial(skipped) {
+  const wasStandalone = tutorialOnly;
+  const ret = tutorialReturn;
+  tutorialReturn = null;
+  tutorial = null;
+  $('ag-tutorial').classList.add('ag-hidden');
+  for (const [id, label] of Object.entries(originalLabels)) bus.api.setHotspotLabel?.(id, label);
+  if (wasStandalone) {
+    if (ret?.phase) phase = ret.phase;
+    if (ret?.screen === 'pause') showPause();
+    else if (ret?.screen === 'game' || ret?.screen === 'ending') restorePhase();
+    else showTitle();          // "Cómo se juega" from the title screen
+    return;
+  }
+  state.tutorialDone = true;
+  save();
+  toast(skipped ? 'Tutorial omitido' : 'Tutorial completado', 'Ya sabes moverte por Arcadia.', 'green');
+  beginStory();
+}
+
+// ---------------------------------------------------------------------------
+// TITLE / SAVE / GAME START
+// ---------------------------------------------------------------------------
+function readSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || data.v !== SAVE_VERSION || !data.state || !data.state.stats || !Array.isArray(data.state.clues)) return null;
+    return data.state;
+  } catch { return null; }
+}
+/**
+ * Timeline snapshots are full state clones, so an untrimmed save grows
+ * exponentially with the number of decisions. Keep only the last three real
+ * snapshots and strip deeper recursion: after loading, at least one rewind is
+ * still possible without blowing past the localStorage quota.
+ */
+function compactForSave(s, depth = 0) {
+  const c = cloneState(s);
+  if (depth >= 1) {
+    c.timeline = c.timeline.map((e) => ({ ...e, snapshot: null }));
+    return c;
+  }
+  const keepFrom = Math.max(0, c.timeline.length - 3);
+  c.timeline = c.timeline.map((e, i) => ({
+    ...e,
+    snapshot: i >= keepFrom && e.snapshot ? compactForSave(e.snapshot, depth + 1) : null,
+  }));
+  return c;
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: SAVE_VERSION, state: compactForSave(state), at: Date.now() })); } catch { /* storage disabled */ }
+}
+/** Drop every transient UI continuation when a new run / the title begins. */
+function resetOverlayState() {
+  choiceCtx = null;
+  pausedChoice = null;
+  overlayReturn = null;
+  tutorialReturn = null;
+  tutorial = null;
+  kbFocus = 0;
+  clearInterval(dialogueState.timer);
+  dialogueState.typing = false;
+  dialogueState.onDone = null;
+}
+function showTitle() {
+  phase = 'title';
+  resetOverlayState();
+  objective = null;
+  hideConsequence();
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.remove('on');
+  $('ag-tutorial').classList.add('ag-hidden');
+  $('ag-objective').classList.add('ag-hidden');
+  $('ag-waypoint').classList.remove('on');
+  const saved = readSave();
+  $('ag-continue').disabled = !saved;
+  $('ag-save-info').textContent = saved
+    ? `${saved.clues.length}/${TOTAL_CLUES} pistas${saved.finished ? ' · fin' : ''}`
+    : 'sin guardado';
+  $('ag-continue').title = saved
+    ? `${CHAPTERS[saved.chapterId]?.title || 'Partida'} · ${saved.clues.length}/${TOTAL_CLUES} pistas`
+    : 'No hay partida guardada';
+  showScreen('title');
+  renderHUD();
+}
+function startNewGame(withTutorial = true) {
+  resetOverlayState();
+  state = createInitialState();
+  currentSceneId = 'p.wake';
+  clearObjective();
+  hideConsequence();
+  hideScreens();
+  cinematic(false);
+  save();
+  if (withTutorial) startTutorial(false);
+  else beginStory();
+}
+function resumeGame() {
+  const saved = readSave();
+  if (!saved) return;
+  resetOverlayState();
+  state = saved;
+  state.tutorialDone = true;
+  // Saves are trusted but may come from an older build: normalise every array
+  // the runtime iterates so a single missing field cannot brick a run.
+  const base = createInitialState();
+  for (const key of ['clues', 'timeline', 'decisions', 'memories', 'grantedScenes']) {
+    if (!Array.isArray(state[key])) state[key] = base[key];
+  }
+  if (!state.flags || typeof state.flags !== 'object') state.flags = {};
+  if (!state.stats || typeof state.stats !== 'object') state.stats = base.stats;
+  for (const [key, value] of Object.entries(base.stats)) {
+    if (typeof state.stats[key] !== 'number' || !Number.isFinite(state.stats[key])) state.stats[key] = value;
+  }
+  if (typeof state.charges !== 'number') state.charges = base.charges;
+  if (typeof state.rewindCount !== 'number') state.rewindCount = 0;
+  objective = state.objective || null;
+  hideScreens();
+  cinematic(false);
+  renderHUD();
+  bus.api.setWorldState?.(state.weather ?? 0);
+  if (state.finished) { showEnding(); return; }
+  playScene(state.sceneId || 'p.wake');
+}
+function beginStory() {
+  hideScreens(); openScreen = null;
+  clearObjective();
+  currentSceneId = 'p.wake';
+  playScene('p.wake');
+}
+
+// ---------------------------------------------------------------------------
+// INPUT
+// ---------------------------------------------------------------------------
+window.addEventListener('keydown', (e) => {
+  const k = e.key.toLowerCase();
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (openScreen === 'evidence') { $('ag-ev-continue')?.click(); return; }
+    if (openScreen === 'journal' || openScreen === 'pause') { closeOverlay(); return; }
+    if (openScreen === 'title' || openScreen === 'ending' || openScreen === 'chapter') return;
+    showPause();
+    return;
+  }
+  if (openScreen === 'title') {
+    if (e.key === 'Enter' || k === ' ') { e.preventDefault(); startNewGame(true); }
+    return;
+  }
+  if (openScreen === 'chapter' || openScreen === 'ending') return;
+  if (openScreen === 'evidence') { if (e.key === 'Enter' || k === ' ') $('ag-ev-continue')?.click(); return; }
+  if (openScreen === 'journal' && (k === 'j' || e.key === 'Enter')) { e.preventDefault(); closeOverlay(); return; }
+  if (openScreen === 'pause') {
+    if (k === 'j') { e.preventDefault(); overlayReturn = 'pause'; showJournal(); }
+    return;
+  }
+
+  if (phase === 'dialogue' && (k === ' ' || e.key === 'Enter')) { e.preventDefault(); advanceDialogue(); return; }
+  if (phase === 'choice') {
+    if (/^[1-9]$/.test(k)) {
+      const btn = $('ag-choice-list').querySelector(`.ag-choice[data-num="${k}"]:not(.locked)`);
+      if (btn) { e.preventDefault(); btn.click(); }
+      return;
+    }
+    const list = $('ag-choice-list');
+    if (k === 'arrowdown' || k === 'arrowup') {
+      e.preventDefault();
+      const count = list.querySelectorAll('.ag-choice:not(.locked)').length;
+      kbFocus = (kbFocus + (k === 'arrowdown' ? 1 : -1) + count) % Math.max(1, count);
+      updateKbFocus(list);
+      uiSfx('hover');
+      return;
+    }
+    if (e.key === 'Enter' || k === ' ') {
+      e.preventDefault();
+      list.querySelectorAll('.ag-choice:not(.locked)')[kbFocus]?.click();
+      return;
+    }
+  }
+  if (phase === 'explore' || phase === 'tutorial' || phase === 'dialogue') {
+    if (k === 'j') { e.preventDefault(); showJournal(); }
+    if (k === 'h') { e.preventDefault(); showGuideModal(); return; }
+    if (k === 'i') { e.preventDefault(); showMetaAIModal(); return; }
+    if (k === 'l') { e.preventDefault(); bus.api.toggleLedger?.(); }
+    if (k === 'm') { e.preventDefault(); bus.api.openMusic?.(); }
+  }
+});
+
+$('ag-dialogue').addEventListener('click', () => advanceDialogue());
+$('ag-new').addEventListener('click', () => { uiSfx('click'); startNewGame(true); });
+$('ag-continue').addEventListener('click', () => { if ($('ag-continue').disabled) return; uiSfx('click'); resumeGame(); });
+$('ag-howto').addEventListener('click', () => { uiSfx('click'); showGuideModal(); });
+// Modales Meta AI y Guía
+function showMetaAIModal() {
+  uiSfx('clue');
+  $('ag-ai-modal')?.classList.add('on');
+}
+function closeMetaAIModal() {
+  uiSfx('click');
+  $('ag-ai-modal')?.classList.remove('on');
+}
+$('ag-btn-meta-ai')?.addEventListener('click', showMetaAIModal);
+$('ag-close-ai')?.addEventListener('click', closeMetaAIModal);
+
+// Pestañas de Meta AI
+document.querySelectorAll('.ag-ai-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ag-ai-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.ag-ai-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    const tabId = btn.dataset.tab;
+    const content = $('ag-tab-' + tabId);
+    if (content) content.classList.add('active');
+    uiSfx('hover');
+  });
+});
+
+function showGuideModal() {
+  uiSfx('click');
+  $('ag-guide-modal')?.classList.add('on');
+}
+function closeGuideModal() {
+  uiSfx('click');
+  $('ag-guide-modal')?.classList.remove('on');
+}
+$('ag-btn-guide')?.addEventListener('click', showGuideModal);
+$('ag-close-guide')?.addEventListener('click', closeGuideModal);
+
+$('ag-btn-journal').addEventListener('click', showJournal);
+$('ag-btn-ledger').addEventListener('click', () => { if (openScreen) return; uiSfx('click'); bus.api.toggleLedger?.(); });
+$('ag-btn-music').addEventListener('click', () => { if (openScreen) return; uiSfx('click'); bus.api.openMusic?.(); });
+$('ag-btn-rewind').addEventListener('click', () => requestRewind());
+$('ag-btn-pause').addEventListener('click', showPause);
+root.querySelectorAll('.ag-icon-btn, .ag-menu-btn, .ag-choice').forEach((el) => {
+  el.addEventListener('mouseenter', () => uiSfx('hover'));
+});
+
+// ---------------------------------------------------------------------------
+// BUS WIRING
+// ---------------------------------------------------------------------------
+bus.on('interact', (detail) => onInteract(detail));
+bus.on('input:rewind', () => requestRewind());
+// The 3D engine's legacy "open the journal" command (desk / butterfly) is
+// routed into the narrative Decision Journal instead of the hidden modal.
+bus.on('cmd:openJournal', () => showJournal());
+bus.on('cmd:pause', () => showPause());
+bus.on('camera:drag', (d) => {
+  dragTotal += Math.hypot(d?.dx || 0, d?.dy || 0);
+  if (phase === 'tutorial' && TUTORIAL_STEPS[tutorial?.index]?.id === 'look' && dragTotal > 85) completeTutorialStep();
+});
+bus.on('world:state', (d) => { if (typeof d?.mode === 'number') state.weather = d.mode; });
+
+// ---------------------------------------------------------------------------
+// BOOT (wait for the 3D engine to publish its capabilities)
+// ---------------------------------------------------------------------------
+function boot() {
+  originalLabels = {};
+  for (const h of bus.api.hotspots || []) originalLabels[h.id] = h.label;
+  ensureBeacon();
+  showTitle();
+  const loop = () => {
+    tickWorld(performance.now() / 1000);
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+let bootTries = 0;
+const bootTimer = setInterval(() => {
+  bootTries++;
+  if (bus.api.scene || bootTries > 60) {
+    clearInterval(bootTimer);
+    boot();
+  }
+}, 50);
