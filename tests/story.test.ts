@@ -208,7 +208,10 @@ test('choose snapshots the pre-choice state and seals a decision', () => {
   assert.equal(r.state.timeline.length, 1);
   assert.equal(r.state.decisions.length, 1);
   assert.equal(r.state.timeline[0]?.sceneId, 'c1.reply');
-  assert.equal(r.state.timeline[0]?.label, '«Cuenta conmigo, jueves a las 4.»');
+  // Assert against the authored copy, not a hardcoded string: the contract is
+  // "the timeline records the chosen label", not the wording of the label.
+  const acceptLabel = SCENES['c1.reply']!.choices!.find((c) => c.id === 'accept')!.label;
+  assert.equal(r.state.timeline[0]?.label, acceptLabel);
   assert.ok(r.state.timeline[0]?.snapshot, 'a live decision must carry a snapshot');
   assert.equal(r.state.timeline[0]!.snapshot!.stats.dinero, 0);
   assert.equal(s.timeline.length, 0, 'the caller state is immutable');
@@ -232,13 +235,14 @@ test('canRewind reports every refusal reason explicitly', () => {
 
 test('rewind restores the past but keeps memories and the append-only decision log', () => {
   const after = choose(createInitialState(), 'c1.reply', 'accept').state;
+  const acceptLabel = SCENES['c1.reply']!.choices!.find((c) => c.id === 'accept')!.label;
   const r = rewind(after);
   assert.equal(r.ok, true);
   assert.equal(r.entry?.sceneId, 'c1.reply');
   assert.equal(r.state.stats.dinero, 0, 'effects are undone');
   assert.equal(r.state.charges, 2, 'rewinding costs one Eco charge');
   assert.equal(r.state.rewindCount, 1);
-  assert.deepEqual(r.state.memories, ['«Cuenta conmigo, jueves a las 4.»']);
+  assert.deepEqual(r.state.memories, [acceptLabel]);
   assert.equal(r.state.timeline.length, 0);
   assert.equal(r.state.decisions.length, 1, 'the undone decision is kept, not deleted');
   assert.equal(r.state.decisions[0]?.undone, true);

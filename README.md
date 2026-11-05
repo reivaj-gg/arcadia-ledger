@@ -1,265 +1,286 @@
-# Arcadia — The Verifiable Spatial Ledger
+# Arcadia
 
-> **Meta Global AI Developer Hackathon Submission**  
-> *Category: Multimodal Systems & Autonomous Agents*  
-> *Author: Javier Quilumba*  
-> *Live Demo: [http://localhost:3000/](http://localhost:3000/)*  
-> *Test Suite: 132/132 Passing Tests · Conformance Harness: 3/3 Checks Green*  
-> *Now playable as a full narrative game — see [🎮 Arcadia, the game](#-arcadia-the-game)*
+**A room you can prove.**
 
----
+Arcadia is a 3D sanctuary you walk through, and an append-only ledger of everything you find in it. Every object you reconstruct — a sticky note, a voice memo, a bus ticket — is segmented from the real photograph, transcribed from the real audio, anchored to a position in the room, and sealed into a SHA-256 chain you can rewind but never rewrite.
 
-## 🎯 The Core Thesis
+It is a game about memory, and a working provenance engine at the same time.
 
-> *"An AI assistant that hallucinates or cannot prove where an agreement came from is not an assistant — it is an unhedged debt of trust. Arcadia converts chaotic human interactions into an auditable, cryptographically sealed ledger of proven facts."*
-
-Current AI productivity tools summarize conversations and calendar events using generic embeddings, frequently hallucinating deadlines, commitments, and details. When disputes arise, the user has no receipts.
-
-**Arcadia eliminates this by enforcing physical multimodal provenance**:
-1. Every claim is anchored to **pixel-level segmentations** from **SAM 3.1** and **turn-level speech utterances** from **Muse Voice Transcribe 1.0**.
-2. Claims are sealed into an **append-only bitemporal ledger** linked by a **SHA-256 cryptographic hash chain** (genesis block `0000...`).
-3. If an agreement changes, history is never rewritten with `UPDATE`: a new event is signed, and **Rewind (`asOf`)** allows exact time-travel reconstruction of what was true at any instant in the past.
-4. Spatially visualized in an interactive **3D WebGL sanctuary** (Three.js), where commitments occupy positions in the room and the ledger's bitemporal **Rewind** is exposed as an in-scene control.
+![Arcadia title screen](docs/screenshots/01-title.jpg)
 
 ---
 
-## 🎮 Arcadia, the game
+## Table of contents
 
-The 3D sanctuary is no longer just a technical showcase: it is the stage of a **playable narrative game** inspired by the structure of *Life is Strange* (cinematic framing, handwritten typography, a butterfly motif, emotionally weighted timed choices, and a rewind that is a **costly resource**, not a free undo). No protected assets are used — all portraits, lettering, FX and audio are generated procedurally.
+- [What it is](#what-it-is)
+- [Screenshots](#screenshots)
+- [Playing it](#playing-it)
+- [The Meta AI suite](#the-meta-ai-suite)
+- [The ledger](#the-ledger)
+- [Demo mode](#demo-mode)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Testing](#testing)
+- [License](#license)
 
-**Story.** Tuesday, 3 November. A WhatsApp message promises $200 for a Thursday 4 PM delivery; a voice memo fixes an exam for Thursday 3–5 PM; the department schedule confirms the overlap. Five chapters, 35 scenes, 8 collectible clues, 4 timed decision points, 2 locked secret branches and **6 endings** (`verdad`, `faro`, `tormenta`, `silencio`, `bucle`, `eco`).
+---
 
-**Systems that actually do something**
+## What it is
 
-| System | Behaviour |
-|---|---|
-| Interactive onboarding | Five real-action steps: walk (WASD), orbit camera (mouse drag), follow the 3D beacon, interact with the desk, feel the rewind (R). Skippable, replayable from the pause menu. |
-| Dialogue | Inline SVG portraits, typewriter text, speaker identities, style variants (phone / voice / ledger / thought / narration), click or Space to advance. |
-| Timed choices | 15–22 s countdowns; hesitation auto-selects the default branch. Keyboard `1–4`, arrows + Enter, or click. Locked branches show their exact requirement. |
-| Consequences | Five live stats (`confianza`, `notas`, `integridad`, `eco`, `dinero`) plus flags feed the ending calculation. Weather shifts with the story (golden hour → dusk → storm). |
-| Clues & Eco | 8 clues hidden in real 3D hotspots; each restores one Eco charge (max 5). No charges ⇒ no rewind. |
-| Rewind | Restores the pre-choice snapshot, spends a charge, keeps the *memory* of the undone branch, marks the decision `undone` (never deletes it) and seals a `narrative.rewound` ledger block. Time forgives; the chain does not. |
-| Objectives | Real 3D hotspots drive the plot. A pulsing world-space beacon and a screen-space waypoint show live distance in metres. |
-| Save / continue | `localStorage` (`arcadia.game.v3`) with compacted timeline snapshots so saves never grow exponentially. |
-| Journal & ledger | Two-page decision journal (clues, stats, sealed decisions, memories of other timelines) wired to the live SHA-256 block inspector. |
+You are Javier. It is the week of a deadline, and your room is full of the evidence you have been avoiding: a note on the desk, a voice memo recorded at two in the morning, a ticket for a bus that leaves before you are supposed to deliver.
 
-**Controls**
+The room is not decoration. It is the interface. You walk to the desk, and the thing on the desk becomes a segmented object with a bounding box and an IoU score. You open the suite, and the same photograph is being read by a vision model while a waveform reads the audio beside it. You seal the finding, and a block is appended to a chain that will still be there after you have changed your mind.
+
+Three things make it more than a demo:
+
+**Nothing is fake.** The bounding box in the suite is the bounding box the parser returns. The hash is computed with `sha256Hex` from `src/domain/ledger.ts`, not written into the markup. The waveform's transcript is timed against the same playhead that draws the bars.
+
+**Rewind is expensive.** You can undo a decision, but it costs an Eco charge, it never deletes the branch you abandoned, and it writes a `narrative.rewound` block. History keeps the scar.
+
+**The interface is made of paper.** Torn edges, tape, ring binding, handwriting. No glass, no neon, no icon font, no emoji — every surface and every icon is drawn in code.
+
+---
+
+## Screenshots
+
+### The room
+
+You arrive with no text on screen. Four corner notes teach you to walk, to open the suite, to reconstruct an object, and to sit down.
+
+![The room and the onboarding assistant](docs/screenshots/02-room.jpg)
+
+### The Meta AI suite — SAM 3.1
+
+A real segmentation pass: laser sweep, bounding box, confidence readout, and the model's token stream as it is produced.
+
+![SAM 3.1 segmentation panel](docs/screenshots/03-sam.jpg)
+
+### Muse Voice 1.0
+
+The voice note, with a 64-band equaliser, a playhead, and a transcript that lights up line by line against the audio.
+
+![Muse Voice transcription panel](docs/screenshots/04-voice.jpg)
+
+### Muse Spark 1.3
+
+The causal graph that links a photograph and a voice to a single conflict, projected onto the floor plan of the room.
+
+![Muse Spark causal graph](docs/screenshots/05-spark.jpg)
+
+### The SHA-256 ledger
+
+Blocks in a vertical chain, each one hashing the previous. Seal a finding and watch the digest settle from amber to green.
+
+![SHA-256 ledger panel](docs/screenshots/06-ledger.jpg)
+
+### Demo mode
+
+One click, a 90-second take with letterbox, subtitles and a progress bar. Built so the recording can be made without a single human error.
+
+![Cinematic demo mode](docs/screenshots/07-demo.jpg)
+
+---
+
+## Playing it
+
+### Controls
 
 | Key | Action |
 |---|---|
-| `W A S D` / arrows, `Shift` | Walk / sprint in the 3D room |
-| Mouse drag / wheel | Orbit / zoom the cinematic camera |
-| `E` or 3D click | Interact with the highlighted hotspot |
+| `W A S D` / arrows | Walk |
+| Mouse drag | Orbit the camera 360° (free look while seated) |
+| `E` or click a hotspot | Interact |
+| `I` | Open the Meta AI suite |
+| `J` | Decision journal |
+| `L` | Ledger inspector |
+| `M` | Turntable |
+| `R` | Rewind one decision (costs one Eco charge) |
+| `V` | Toggle first / third person while seated |
 | `Space` / `Enter` / click | Advance dialogue |
 | `1–4`, `↑ ↓`, `Enter` | Choose a branch |
-| `R` / ⏪ button | Rewind one decision (costs 1 Eco) |
-| `J` | Decision journal · `L` ledger · `M` music |
-| `Esc` | Pause menu (freezes timed choices) |
+| `Esc` | Pause |
 
-**Architecture.** The game is a separate layer; the Three.js renderer was **not rewritten**. `src/main.js` publishes a late-bound capability table (`bus.api`) and emits input/interaction events; `src/game/*` consumes them.
+### The story
 
-| File | Responsibility |
+Five chapters — *El aleteo*, *La captura*, *La nota de voz*, *La encrucijada*, *Epílogo* — across 35 scenes, 8 collectible clues and 6 endings.
+
+The conflict is small and specific: a delivery due at 17:00, a bus that leaves at 16:30, and 45 minutes that cannot be in two places. What you do about it is recorded, and the epilogue you get depends on what you were willing to lose.
+
+### Systems that do something
+
+| System | Behaviour |
 |---|---|
-| `src/game/bus.js` | Synchronous event bus + capability table (the only bridge to the 3D engine) |
-| `src/game/story.js` / `story.d.ts` | Pure, deterministic narrative graph and state machine (no DOM, no Three.js) |
-| `src/game/game.js` | Runtime: HUD, dialogue, choices, tutorial, save, pause, endings, FX |
-| `src/game/game.css` | The whole visual identity: paper/ink/tape tokens, torn-edge surfaces, ring-bound journal, tabbed pause menu |
-| `src/game/icons.js` | 55 hand-drawn 24×24 line icons + `notebookSpiral()` and `polaroidScene()` procedural assets. No emoji, no icon font, no network request |
-| `src/game/portraits.js` | Inline SVG character portraits (zero external assets) |
-| `tests/story.test.ts` | 18 deterministic tests for graph integrity, grants, locks, rewind, save compaction, endings and ledger events |
-
-Decisions, discovered evidence and rewinds are sealed into the **same** append-only SHA-256 chain as the multimodal evidence, through three new strict Zod payloads in `src/domain/schema.ts`: `narrative.decision`, `narrative.clue`, `narrative.rewound`. The game→ledger adapter in `src/main.js` normalises fields and is deliberately non-fatal: an optional audit write can never break a player's scene.
-
-**Look and feel.** The interface is built from paper, ink and tape rather than glass and neon. Every surface is a torn-edged sheet (`clip-path`) with depth from `drop-shadow` — `clip-path` discards `box-shadow`, so shadow is applied as a filter that follows the silhouette. The journal is a ring-bound notebook with four lined pages in two spreads, taped polaroids, stamp marks for sealed decisions and ink rows for stats. The pause menu is a tabbed paper folder; the HUD is a strip of taped chips.
-
-Type is a four-voice stack: **Caveat** (handwritten headings), **Kalam** (handwriting body), **Barlow Condensed** (UI labels), **JetBrains Mono** (ledger). All artwork is generated in code — `icons.js` draws 55 line icons, `notebookSpiral()` draws the binding, and `polaroidScene(seed)` renders a deterministic dusk-lighthouse photograph with unique gradient IDs per instance. There are no image files, no icon font, no emoji and no external asset request.
-
-The 3D room was re-lit for the same reason: ACES exposure dropped from `1.25` to `1.04`, the key light from a saturated amber `4.5` to a softer `2.9`, so highlights stop clipping to white and the paper UI no longer sits on a blown-out background.
-
-All music is original and self-titled (*Marea baja*, *Atardecer en Arcadia*, *Lluvia en la Ventana*); the procedural guitar plays original folk progressions. No licensed track, artist, character or franchise reference remains in the source.
+| Progressive onboarding | Four beats driven by real engine signals — distance walked, suite opened, first clue sealed, posture changed. Never a timer. |
+| Timed choices | Countdowns that auto-select the default branch if you hesitate. Keyboard or mouse. |
+| Consequences | Five live stats (confianza, memoria, integridad, eco, dinero) plus flags feed the ending calculation. Weather shifts with the story. |
+| Clues & Eco | 8 clues hidden in real 3D hotspots; each restores one Eco charge (max 5). No charges, no rewind. |
+| Rewind | Restores the pre-choice snapshot, spends a charge, keeps the memory of the undone branch, and seals a `narrative.rewound` block. |
+| First person | Sitting in the armchair or lying on the bed moves the camera to the eyes. Free head turn, `V` to step outside, `W` to stand up. |
+| Save / continue | `localStorage` with compacted timeline snapshots, so saves never grow exponentially. |
 
 ---
 
-## 🤝 The Meta Multimodal Handshake (25% Criteria)
+## The Meta AI suite
 
-Arcadia pairs Meta's flagship models in an explicit, complementary pipeline documented in Meta's research:
+Press `I` anywhere in the room. The suite deliberately breaks the paper metaphor — it is an instrument panel, dark and cool, with one electric accent per model. What is yours is paper; what the AI is doing to it is an instrument.
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        CHAOTIC HUMAN EVIDENCE                          │
-│          [ WhatsApp / Slack Screenshots ]        [ Voice Notes ]       │
-└───────────────────────────────┬────────────────────────────┬───────────┘
-                                │                            │
-                                ▼                            ▼
-                  ┌───────────────────────────┐┌───────────────────────────┐
-                  │      Muse Spark 1.3       ││ Muse Voice Transcribe 1.0 │
-                  │  Extracts structured claim││ Turns, startMs/endMs,     │
-                  │  & rough [y1,x1,y2,x2] box││ Speaker A/B diarization   │
-                  └─────────────┬─────────────┘└─────────────┬─────────────┘
-                                │                            │
-                                ▼                            │
-                  ┌───────────────────────────┐              │
-                  │          SAM 3.1          │              │
-                  │ Prompts with Spark box,   │              │
-                  │ emits pixel mask token    │              │
-                  └─────────────┬─────────────┘              │
-                                │                            │
-                                └─────────────┬──────────────┘
-                                              ▼
-                               ┌─────────────────────────────┐
-                               │     PROVENANCE ANCHOR       │
-                               │  Exact Pixels + Audio Turn  │
-                               └──────────────┬──────────────┘
-                                              ▼
-                               ┌─────────────────────────────┐
-                               │   APPEND-ONLY HASH CHAIN    │
-                               │ SHA-256 Event Ledger (Core) │
-                               └──────────────┬──────────────┘
-                                              ▼
-                    ┌─────────────────────────┴─────────────────────────┐
-                    ▼                                                   ▼
-      ┌───────────────────────────┐                       ┌───────────────────────────┐
-      │   Bitemporal Rewind Engine│                       │ 3D Spatial Sanctuary UI   │
-      │   asOf(t) Causal Timeline │                       │ Three.js WebGL + Audio    │
-      └───────────────────────────┘                       └───────────────────────────┘
+   photograph ──▶ SAM 3.1 ────────┐
+                                  ├──▶ Muse Spark 1.3 ──▶ conflict ──▶ SHA-256 block
+   voice note ──▶ Muse Voice 1.0 ─┘
 ```
 
-1. **Muse Spark 1.3 (Scene Interpretation):** Reads multimodal evidence, reasons over intent, extracts verifiable structured commitments, and proposes approximate bounding coordinates in normalized `0..1000` space.
-2. **SAM 3.1 (Pixel-Perfect Precision):** Receives Spark's box prompt through the token grammar `<|box;x1=..;y1=..;x2=..;y2=..|>` and refines it into a segmentation mask (`one_bit` or `lossless` encoding). Confidence is reported only when the model returns it; absence is never rendered as zero.
-3. **Muse Voice Transcribe 1.0 (Utterance Grounding):** Ingests mono 16-bit PCM WAV (16 kHz / 24 kHz) and outputs speaker diarization with exact turn boundaries (`startMs`/`endMs`), grounding spoken promises without hallucinated word timestamps.
-4. **Local-Only Privacy Policy:** Sensitive evidence marked `sensitivity: 'local-only'` is hard-blocked by adapter middleware and never leaves the local machine.
-
----
-
-## 📊 Conformance Harness (What Is Actually Measured)
-
-Arcadia ships a reproducible harness (`npm run eval`) that measures **pipeline behaviour**, not model quality. Every number is computed by running the real code on synthetic inputs; the report in `EVAL_RESULTS.md` states this in its first paragraph.
-
-| Check | What It Proves | Threshold |
+| Model | Role | What you see |
 |---|---|---|
-| **Coordinate round-trip IoU** (10 cases) | A domain box survives encode → wire grammar → parse → decode without losing a row or column. This is the check that catches the half-open vs. inclusive off-by-one. | worst case ≥ 85% |
-| **Audio contract verdicts** (10 cases) | Ten synthetic WAVs with known correct answers, through the real validator: stereo, 44.1 kHz, 8-bit, IEEE float, 11-minute and truncated files are refused locally before a paid round-trip. | 10/10 |
-| **Ledger invariants** | Hash chain verifies, a substituted evidence id is rejected on import, a planted one-hour overlap is detected exactly once, and the bitemporal rewind sees both commitments before reconciliation. | all four |
+| **SAM 3.1** | Pixel-level segmentation from a box prompt | Laser sweep, mask box `[24, 232, 519, 427]`, confidence, token stream, OCR result |
+| **Muse Voice 1.0** | Turn-level transcription | Equaliser at 16 kHz mono PCM, playhead, timestamped transcript |
+| **Muse Spark 1.3** | Cross-modal reasoning | Causal graph, 3D anchor position, floor-plan projection, overlap chart |
+| **SHA-256 ledger** | Append-only provenance | Live digest, chain link to genesis, verification status |
 
-**What this harness does not do:** it does not score Muse Spark, SAM 3.1 or Muse Voice Transcribe against real media. That requires a Model API key, real screenshots and real recordings, and the demo video is the evidence for it. An earlier revision compared hand-written predictions against hand-written ground truth and printed a hardcoded PASS; that number was arithmetic without measurement and has been removed.
+The pipeline is real code, not a mock-up of one:
 
-*Reproduce anytime by running `npm run eval`.*
+- **Coordinate round-trip.** A domain box survives encode → wire grammar → parse → decode without losing a row or a column. This is the check that catches half-open vs. inclusive off-by-one.
+- **Audio contract.** Ten synthetic WAVs with known correct answers, through the real validator: stereo, 44.1 kHz, 8-bit, IEEE float, 11-minute and truncated files are refused locally before a paid round-trip.
+- **Ledger invariants.** The chain verifies, a substituted evidence id is rejected on import, a planted one-hour overlap is detected exactly once, and bitemporal rewind sees both commitments before reconciliation.
+
+Run them yourself with `npm run eval`. The report is written to `EVAL_RESULTS.md`, and its first paragraph states plainly what the harness does *not* measure: model quality. That requires real media and a Model API key.
 
 ---
 
-## 🏛️ System Architecture & Codebase Layout
+## The ledger
+
+Events are immutable. Nothing is ever updated in place.
+
+```ts
+ledger.append('narrative.decision', { ... })   // sealed, never edited
+ledger.asOf(instant)                            // what was true at that moment
+ledger.verify()                                 // recompute the whole chain
+```
+
+Each block hashes its sequence number, the previous block's hash, the payload hash and its timestamp. Change a byte anywhere in the middle and every downstream block stops verifying — which is exactly what `verify()` reports.
+
+The narrative layer writes into the same chain as the multimodal evidence, through three strict Zod payloads in `src/domain/schema.ts`: `narrative.decision`, `narrative.clue`, `narrative.rewound`. The adapter is deliberately non-fatal: an optional audit write can never break a player's scene.
+
+---
+
+## Demo mode
+
+The **Demo automática** chip in the top corner runs a 90-second scripted take:
+
+```
+0:00  dolly through the golden-hour room
+0:12  Javier walks to the desk
+0:21  SAM 3.1 scans the photograph
+0:35  Muse Voice 1.0 reads the voice note
+0:47  Muse Spark 1.3 draws the conflict
+0:56  the block is sealed
+1:06  Javier walks to the armchair and sits
+1:14  first person, sunset, slow drift, end card
+```
+
+The sequence owns the camera, the avatar, the suite and its own subtitles, so there is no dead air and no human error. `Esc` aborts cleanly and hands control back. The recorded take ships as `arcadia-demo.mp4`.
+
+---
+
+## Architecture
+
+The narrative layer is separate from the renderer. The Three.js engine was **not** rewritten: `src/main.js` publishes a late-bound capability table (`bus.api`) and emits interaction events; `src/game/*` consumes them. The renderer stays a renderer.
 
 ```
 Myidea/
 ├── server/
-│   ├── index.ts             # Secure Node proxy (isolates MODEL_API_KEY from client)
-│   └── policy.ts            # Local-only privacy gate, key resolution & error mapping
+│   ├── index.ts             # Secure Node proxy (isolates MODEL_API_KEY from the client)
+│   └── policy.ts            # Local-only privacy gate, key resolution, error mapping
 ├── src/
 │   ├── domain/
 │   │   ├── schema.ts        # Pure Zod contracts (PixelBoundingBox, AudioTurn, DomainEvent)
-│   │   └── ledger.ts        # Immutable EventLedger, SHA-256 hash chaining, Rewind asOf()
+│   │   └── ledger.ts        # Immutable EventLedger, SHA-256 chaining, Rewind asOf()
 │   ├── services/
-│   │   ├── metaAdapter.ts   # Multimodal adapter for Spark 1.3, SAM 3.1 & Muse Voice
-│   │   ├── samParser.ts     # Official mask decode -> source-pixel contours & domain box
+│   │   ├── metaAdapter.ts   # Multimodal adapter for Spark 1.3, SAM 3.1 and Muse Voice
+│   │   ├── samParser.ts     # Official mask decode → source-pixel contours → domain box
 │   │   ├── audioContract.ts # WAV/ASR contract enforced before any byte is uploaded
-│   │   └── fixtures.ts      # Deterministic, self-contained SVG & turn fixtures
+│   │   └── fixtures.ts      # Deterministic, self-contained SVG and turn fixtures
 │   ├── game/
-│   │   ├── bus.js           # Event bus / late-bound 3D capability table
+│   │   ├── bus.js           # Event bus and late-bound 3D capability table
 │   │   ├── story.js         # Pure narrative graph: scenes, choices, rewind, endings
-│   │   ├── story.d.ts       # Typed surface for the plain-JS engine (TS test suite)
-│   │   ├── game.js          # Browser runtime: HUD, dialogue, tutorial, FX, saves
-│   │   ├── game.css         # Paper/ink design language, torn edges, journal, pause menu
-│   │   ├── icons.js         # Hand-drawn SVG icon set + procedural polaroid/spiral
-│   │   └── portraits.js     # Procedural inline SVG character portraits
-│   └── main.js              # Three.js 3D Sanctuary, procedural audio & spatial timeline
+│   │   ├── game.js          # Runtime: HUD, dialogue, tutorial, saves, endings
+│   │   ├── metaSuite.js     # The four-instrument Meta AI panel
+│   │   ├── assistant.js     # Four-beat onboarding driven by engine signals
+│   │   ├── demo.js          # The 90-second scripted take
+│   │   ├── icons.js         # 66 hand-drawn SVG icons + procedural polaroid/spiral
+│   │   └── portraits.js     # Procedural inline SVG portraits
+│   └── main.js              # Three.js room, procedural audio, spatial timeline
 ├── scripts/
-│   ├── eval.ts              # Conformance harness: round-trip, audio, ledger invariants
-│   ├── smoke.ts             # One live call per Meta model; writes SMOKE_RESULTS.md
-│   └── dev.mjs              # Concurrently launches Vite UI + Node API proxy
-├── tests/
-│   ├── ledger.test.ts       # 28 tests: hash chain, bitemporal rewind, tampering detection
-│   ├── metaAdapter.test.ts  # 42 tests: WAV contract, SAM prompt grammar, key resolution
-│   ├── samParser.test.ts    # 20 tests: mask decode, contour tracing, simplification
-│   ├── server.test.ts       # 21 tests: API proxy security, local-only privacy guard
-│   ├── smokeMedia.test.ts   # 2 tests: generated PNG/WAV satisfy the wire contract
-│   ├── story.test.ts        # 18 tests: narrative graph, grants, rewind, endings, ledger events
-│   └── e2e.test.ts          # Full end-to-end custody chain integration test
-├── EVAL_RESULTS.md          # Generated conformance report
-└── package.json             # Pure Node 24 + TypeScript (Zero Python dependency)
+│   ├── eval.ts              # Conformance harness
+│   ├── smoke.ts             # One live call per model
+│   └── dev.mjs              # Vite UI + Node API proxy, concurrently
+├── tests/                   # 132 tests across 7 suites
+├── docs/screenshots/        # The images in this README
+└── arcadia-demo.mp4         # The recorded take
 ```
 
----
+**Stack:** Vite 6, Three.js 0.180, TypeScript 5.9 (strict, `erasableSyntaxOnly`), Node 22 with native type stripping, Zod 4, `@noble/hashes`.
 
-## 🛡️ Anti-Project Compliance & Rubric Shield
-
-| Rule / Requirement | Status | How Arcadia Complies |
-|---|---|---|
-| **Meta Model Count** | **Super-compliant** | Uses **3 Meta models** (Muse Spark 1.3, SAM 3.1, Muse Voice Transcribe 1.0). |
-| **Banned: Mental Health Chatbot** | **Zero Risk** | Arcadia has no mood tracking, emotion gauges, or mental health advice. It is purely an agreement auditor. |
-| **Banned: Generic RAG** | **Zero Risk** | Does not use vector databases or naive embedding searches. Claims are linked via formal cryptographic anchors. |
-| **Banned: Simple Image Analyzer** | **Zero Risk** | Implements the full Spark $\to$ SAM $\to$ Ledger handshake: the box proposes, the mask measures, the ledger seals. |
-| **Data Privacy** | **Enforced** | Local-only evidence never crosses the network; verified by unit test `policy: local-only evidence never reaches the network`. |
-| **Public Video Demo** | **In preparation** | 3-minute structured walkthrough, recorded after the feature freeze. |
+**The pure core.** `src/game/story.js` is DOM-free, Three.js-free and fully deterministic, so the narrative graph can be unit-tested under plain Node. That is why 132 tests run in under a second.
 
 ---
 
-## 🚀 Quickstart & Local Reproduction
+## Getting started
 
-### Prerequisites
-- Node.js 22.6+ with native TypeScript type stripping (verified on v22.22.2; earlier releases cannot execute the `.ts` test files)
+### Requirements
+
+- Node.js 22.6+ with native TypeScript type stripping (verified on v22.22.2 — earlier releases cannot execute the `.ts` test files)
 - npm 10+
 
-### 1. Installation
+### Install and run
+
 ```bash
 git clone https://github.com/reivaj-gg/arcadia-ledger.git
 cd arcadia-ledger
 npm install
-```
-
-### 2. Configure the environment
-```bash
 cp .env.example .env
+npm run dev
 ```
-- Leave `MODEL_API_KEY` empty and `MOCK_MODE=true` to run entirely on deterministic fixtures with zero network calls.
-- Set `MODEL_API_KEY` and `MOCK_MODE=false` for live model calls. `MOCK_MODE=false` without a key is a boot error, never a silent downgrade to fixtures.
-- `META_API_KEY` is accepted as a legacy alias and warns at boot; `MODEL_API_KEY` is the documented name.
-- The key is read by `server/index.ts` only. It must never carry a `VITE_` prefix, because Vite inlines those into the client bundle.
 
-### 3. Run All Tests (132/132 Passing)
+Open [http://localhost:3000/](http://localhost:3000/).
+
+### Environment
+
+- `MOCK_MODE=true` with an empty `MODEL_API_KEY` runs entirely on deterministic fixtures with zero network calls.
+- `MOCK_MODE=false` requires a real key and is a boot error without one — never a silent downgrade to fixtures.
+- The key is read by `server/index.ts` only, and must never carry a `VITE_` prefix, because Vite inlines those into the client bundle.
+- Evidence marked `sensitivity: 'local-only'` is hard-blocked by adapter middleware and never leaves the machine.
+
+### Build
+
 ```bash
-npm test
-npx tsc --noEmit   # Node strips types without checking them; run both
+npm run build      # production bundle in dist/
+npm run preview    # serve the production build
 ```
-
-### 4. Run the Conformance Harness
-```bash
-npm run eval
-```
-
-### 5. Live Smoke Test (one call per model)
-```bash
-npm run smoke -- --check   # local only: validates the generated PNG/WAV, no credits
-npm run smoke              # one real call to Spark, SAM and Muse Voice
-```
-- Refuses to run without `MODEL_API_KEY`; it never falls back to fixtures.
-- Fails if any receipt says `mock: true`, because a smoke test that served a fixture answers the wrong question.
-- Writes `SMOKE_RESULTS.md` with latency, tokens, cost and request id per call.
-- The image is synthetic and the audio is a tone, so this proves the wire contract, not recognition quality.
-
-### 6. Play the game (3D Sanctuary + narrative layer)
-```bash
-npm run dev          # Vite UI on :3000 + secure API proxy
-npm run build        # production bundle in dist/
-npm run preview      # serve the production build locally
-```
-Open [http://localhost:3000/](http://localhost:3000/) in your browser. The **title screen** offers *Nueva partida* (with the interactive tutorial), *Continuar* (saved run) and *Cómo se juega* (tutorial only). Game controls are listed in [🎮 Arcadia, the game](#-arcadia-the-game).
-
-The legacy 3D systems still serve the game: the articulated avatar, floor foley, 360° orbital camera, procedural weather, guitar/bed/armchair postures, turntable and the live SHA-256 block inspector all remain functional. The narrative layer owns input during dialogue and menus; exploration returns control to the avatar. Rewind now plays the physical 240-frame avatar replay **and** restores the narrative snapshot, spending one Eco charge while writing an immutable `narrative.rewound` block.
-
-A headless CDP smoke test exercised the full chain (title → tutorial → dialogue → journal-over-dialogue → 3D raycast objective → timed choice → pause freeze → decision → ledger seal → rewind) with **21/21 checks green and zero console errors**, including an assertion that no emoji is rendered anywhere in the UI.
 
 ---
 
-## 📜 License
-MIT License. Built for the Meta Global AI Developer Hackathon 2026.
+## Testing
 
+```bash
+npm test           # 132/132 — narrative graph, ledger, adapters, parser, server
+npx tsc --noEmit   # Node strips types without checking them; run both
+npm run eval       # conformance harness → EVAL_RESULTS.md
+```
+
+| Suite | What it covers |
+|---|---|
+| `ledger.test.ts` | Hash chain, bitemporal rewind, tampering detection |
+| `metaAdapter.test.ts` | WAV contract, SAM prompt grammar, key resolution |
+| `samParser.test.ts` | Mask decode, contour tracing, simplification |
+| `server.test.ts` | API proxy security, local-only privacy guard |
+| `story.test.ts` | Narrative graph, grants, locks, rewind, save compaction, endings |
+| `e2e.test.ts` | Full custody chain, end to end |
+
+The production build is also verified in a real browser through a headless CDP harness: **25/25 checks, zero console errors**, including assertions that the HUD never overlaps itself, that no emoji reaches the rendered UI, and that no third-party character or franchise name appears on screen.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

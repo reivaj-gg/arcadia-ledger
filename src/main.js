@@ -1810,25 +1810,41 @@ scene.add(avatar);
 // Estados de acción y posturas cinematográficas
 let avatarActionState = 'standing'; // 'standing' | 'sitting_armchair' | 'lying_bed' | 'playing_guitar'
 let isFirstPerson = false;
+// Free head-look while seated. Orbit yaw is separate: first person must never
+// inherit the third-person orbit, or sitting down would snap the view.
+let fpYaw = 0;
+let fpPitch = 0;
 
 function setActionState(state) {
   avatarActionState = state;
-  if (!actionExitHint) return;
 
+  if (state === 'standing') {
+    isFirstPerson = false;
+    headGroup.visible = true;
+    if (actionExitHint) actionExitHint.classList.remove('visible');
+    return;
+  }
+
+  // Sitting down or lying back always drops you into the character's eyes.
+  // [V] toggles back out to a third-person view of Javier in the posture.
+  isFirstPerson = true;
+  headGroup.visible = false;
+  fpYaw = 0;
+  fpPitch = state === 'lying_bed' ? 0.16 : -0.02;
+
+  if (!actionExitHint) return;
   if (state === 'sitting_armchair') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('armchair', { size: 16 });
-    if (actionExitText) actionExitText.innerText = 'Descansando en el sillón vintage · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    if (actionExitText) actionExitText.innerText = 'Sentado en el sillón · arrastra para mirar · [V] 3ª persona · [W] levantarse';
     actionExitHint.classList.add('visible');
   } else if (state === 'lying_bed') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('bed', { size: 16 });
-    if (actionExitText) actionExitText.innerText = 'Recostado en la cama · Presiona [W][A][S][D] o [Espacio] para levantarte';
+    if (actionExitText) actionExitText.innerText = 'En la cama, mirando la ventana · [V] 3ª persona · [W] levantarse';
     actionExitHint.classList.add('visible');
   } else if (state === 'playing_guitar') {
     if (actionExitIcon) actionExitIcon.innerHTML = icon('guitar', { size: 16 });
     if (actionExitText) actionExitText.innerText = 'Tocando la guitarra acústica · Presiona [W][A][S][D] o [Espacio] para levantarte';
     actionExitHint.classList.add('visible');
-  } else {
-    actionExitHint.classList.remove('visible');
   }
 }
 
@@ -1837,17 +1853,24 @@ function exitActionState() {
   const prevState = avatarActionState;
   avatarActionState = 'standing';
   isFirstPerson = false;
+  fpYaw = 0;
+  fpPitch = 0;
   headGroup.visible = true;
 
-  // Reposicionar al avatar de pie con seguridad fuera de los colisionadores
+  // Reposicionar al avatar de pie con seguridad fuera de los colisionadores.
+  // Se interpola: levantarse de golpe rompía la ilusión del primer plano.
+  let standTarget = null;
   if (prevState === 'sitting_armchair') {
-    avatar.position.set(-2.3, 0, 2.3);
+    standTarget = new THREE.Vector3(-2.3, 0, 2.3);
     avatar.rotation.set(0, -Math.PI / 2, 0);
   } else if (prevState === 'lying_bed') {
-    avatar.position.set(-2.8, 0, -3.2);
+    standTarget = new THREE.Vector3(-2.8, 0, -3.2);
     avatar.rotation.set(0, 0, 0);
   } else if (prevState === 'playing_guitar') {
-    avatar.position.set(-4.8, 0, -1.2);
+    standTarget = new THREE.Vector3(-4.8, 0, -1.2);
+  }
+  if (standTarget) {
+    standTween = { from: avatar.position.clone(), to: standTarget, start: performance.now(), ms: 680 };
   }
 
   hipsGroup.position.set(0, 0.72, 0);
@@ -1868,6 +1891,7 @@ function togglePerspective() {
   }
   isFirstPerson = !isFirstPerson;
   headGroup.visible = !isFirstPerson;
+  if (isFirstPerson) { fpYaw = 0; fpPitch = avatarActionState === 'lying_bed' ? 0.16 : -0.02; }
   if (btnToggleView) {
     btnToggleView.innerText = isFirstPerson ? '[V] Cambiar a 3ª Persona' : '[V] Cambiar a 1ª Persona';
   }
@@ -2142,9 +2166,30 @@ let clickStartX = 0;
 let clickStartY = 0;
 let prevMouseX = 0;
 let prevMouseY = 0;
+
+// Demo mode owns the camera and the avatar: while it is on, player input is
+// ignored and the render loop follows the scripted shot list.
+let demoMode = false;
+let demoShotAnim = null;
+let demoWalk = null;
+let standTween = null;
+const demoCam = { pos: new THREE.Vector3(0, 4.2, 7.2), look: new THREE.Vector3(0, 1.35, 0), ready: false };
+
+// Orbit targets vs. smoothed values. Dragging writes to the targets; the
+// render loop eases the camera toward them, which is what makes a 360° turn
+// feel like a camera and not like a slider.
 let cameraAngleY = -0.15;
-let cameraPitch = 0.22; // Inclinación vertical
+let cameraPitch = 0.24;      // vertical inclination of the orbit
 let cameraDistance = 5.2;
+let camAngleY = -0.15;       // smoothed
+let camPitch = 0.24;
+let camDistance = 5.2;
+let lastLook = new THREE.Vector3(0, 1.35, 0);
+
+// Room the camera is allowed to occupy. Walls are handled by *shortening the
+// distance* (see `maxDistanceInside`), never by clamping the position — that
+// clamp was what made the old camera stutter against the walls.
+const CAM_BOUNDS = { minX: -5.25, maxX: 5.25, minZ: -5.25, maxZ: 5.95, minY: 1.15, maxY: 5.35 };
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -2172,11 +2217,23 @@ window.addEventListener('mouseup', (e) => {
 });
 
 window.addEventListener('mousemove', (e) => {
-  if (isDragging) {
-    const deltaX = e.clientX - prevMouseX;
-    const deltaY = e.clientY - prevMouseY;
-    cameraAngleY -= deltaX * 0.005;
-    cameraPitch = Math.max(0.12, Math.min(1.05, cameraPitch + deltaY * 0.003));
+  const deltaX = e.clientX - prevMouseX;
+  const deltaY = e.clientY - prevMouseY;
+
+  // While seated, the mouse looks around without holding a button: that is
+  // the whole point of the first-person shot.
+  const freeLook = isFirstPerson && avatarActionState !== 'standing' && !isDragging && !gameInputLocked && !demoMode;
+
+  if (isDragging || freeLook) {
+    if (isFirstPerson && avatarActionState !== 'standing') {
+      // Look direction: drag right turns right, drag down looks down.
+      fpYaw -= deltaX * 0.0032;
+      fpPitch = Math.max(-0.72, Math.min(0.72, fpPitch - deltaY * 0.0026));
+    } else {
+      // Orbit: drag right turns the view right, drag down looks down.
+      cameraAngleY -= deltaX * 0.0042;
+      cameraPitch = Math.max(-0.08, Math.min(1.12, cameraPitch + deltaY * 0.0032));
+    }
     bus.emit('camera:drag', { dx: Math.abs(deltaX), dy: Math.abs(deltaY) });
     prevMouseX = e.clientX;
     prevMouseY = e.clientY;
@@ -2187,8 +2244,27 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('wheel', (e) => {
-  cameraDistance = Math.max(3.2, Math.min(8.5, cameraDistance + e.deltaY * 0.004));
-});
+  if (isFirstPerson && avatarActionState !== 'standing') return;
+  cameraDistance = Math.max(2.6, Math.min(8.5, cameraDistance + e.deltaY * 0.004));
+}, { passive: true });
+
+/**
+ * Largest distance along `dir` from `origin` that stays inside the room box.
+ * Returning a distance (instead of clamping a position) keeps the camera on
+ * the same sight line, so orbiting into a corner slides in instead of jamming.
+ */
+function maxDistanceInside(origin, dir, maxD) {
+  let dmax = maxD;
+  const axisLimit = (p, d, lo, hi) => {
+    if (Math.abs(d) < 1e-6) return Infinity;
+    const t = d > 0 ? (hi - p) / d : (lo - p) / d;
+    return t > 0 ? t : 0;
+  };
+  dmax = Math.min(dmax, axisLimit(origin.x, dir.x, CAM_BOUNDS.minX, CAM_BOUNDS.maxX));
+  dmax = Math.min(dmax, axisLimit(origin.z, dir.z, CAM_BOUNDS.minZ, CAM_BOUNDS.maxZ));
+  dmax = Math.min(dmax, axisLimit(origin.y, dir.y, CAM_BOUNDS.minY, CAM_BOUNDS.maxY));
+  return Math.max(1.05, dmax);
+}
 
 // Click en el marcador flotante HUD para interactuar
 if (worldHotspotPrompt) {
@@ -3083,6 +3159,13 @@ function animate() {
   }
 
   // 6. MOVIMIENTO FÍSICO DEL AVATAR CON INERCIA, SPRINT Y COLISIONES
+  if (standTween) {
+    const p = Math.min(1, (performance.now() - standTween.start) / standTween.ms);
+    const e = 1 - Math.pow(1 - p, 3);
+    avatar.position.lerpVectors(standTween.from, standTween.to, e);
+    if (p >= 1) standTween = null;
+  }
+
   const inputVector = new THREE.Vector3();
   if (keys.w) inputVector.z -= 1;
   if (keys.s) inputVector.z += 1;
@@ -3093,9 +3176,42 @@ function animate() {
     inputVector.lengthSq() > 0 &&
     !isRewinding &&
     !gameInputLocked &&
+    !demoMode &&
+    !standTween &&
     (!journalModal || !journalModal.classList.contains('active'));
 
-  if (isInputActive) {
+  if (demoWalk) {
+    // Scripted walk: the demo needs Javier to cross the room on cue, with the
+    // real walk cycle, and to stop exactly on the hotspot.
+    const p = Math.min(1, (performance.now() - demoWalk.start) / demoWalk.ms);
+    const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    avatar.position.x = THREE.MathUtils.lerp(demoWalk.from.x, demoWalk.to.x, e);
+    avatar.position.z = THREE.MathUtils.lerp(demoWalk.from.z, demoWalk.to.z, e);
+
+    const heading = Math.atan2(demoWalk.to.x - demoWalk.from.x, demoWalk.to.z - demoWalk.from.z);
+    if (Math.abs(demoWalk.to.x - demoWalk.from.x) + Math.abs(demoWalk.to.z - demoWalk.from.z) > 0.05) {
+      avatar.rotation.y = lerpAngle(avatar.rotation.y, heading, 0.18);
+    }
+
+    walkCycle += delta * 7.4;
+    leftLegPivot.rotation.x = Math.sin(walkCycle) * 0.62;
+    rightLegPivot.rotation.x = -Math.sin(walkCycle) * 0.62;
+    leftArmPivot.rotation.x = -Math.sin(walkCycle) * 0.5;
+    rightArmPivot.rotation.x = Math.sin(walkCycle) * 0.5;
+    upperBodyGroup.rotation.y = Math.sin(walkCycle) * 0.07;
+    hipsGroup.position.y = 0.72 + Math.abs(Math.sin(walkCycle * 2)) * 0.035;
+
+    if (p >= 1) {
+      const done = demoWalk.resolve;
+      demoWalk = null;
+      leftLegPivot.rotation.x = 0;
+      rightLegPivot.rotation.x = 0;
+      leftArmPivot.rotation.x = 0;
+      rightArmPivot.rotation.x = 0;
+      upperBodyGroup.rotation.y = 0;
+      if (done) done();
+    }
+  } else if (isInputActive) {
     exitCinematicFocus();
     inputVector.normalize();
     inputVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngleY);
@@ -3236,70 +3352,166 @@ function animate() {
     }
   }
 
-  // 7. CÁMARA CINEMÁTICA CON ENFOQUE DINÁMICO Y LÍMITES DE PARED
-  let targetCamX, targetCamY, targetCamZ, lookTargetX, lookTargetY, lookTargetZ;
-
-  if (isFirstPerson && avatarActionState !== 'standing') {
-    // MODO PRIMERA PERSONA (POV DEL PROTAGONISTA)
-    if (avatarActionState === 'sitting_armchair') {
-      // Mirar hacia el centro cálido de la habitación: escritorio, ventana y haz de sol
-      targetCamX = avatar.position.x;
-      targetCamY = avatar.position.y + 1.05;
-      targetCamZ = avatar.position.z + 0.2;
-      lookTargetX = 0.5;
-      lookTargetY = 1.6;
-      lookTargetZ = -1.5;
-    } else if (avatarActionState === 'lying_bed') {
-      // Mirar hacia la ventana y las partículas de sol desde la almohada
-      targetCamX = avatar.position.x;
-      targetCamY = avatar.position.y + 0.52;
-      targetCamZ = avatar.position.z - 0.15;
-      lookTargetX = -2.5;
-      lookTargetY = 2.4;
-      lookTargetZ = -4.5;
-    } else {
-      targetCamX = avatar.position.x;
-      targetCamY = avatar.position.y + 1.25;
-      targetCamZ = avatar.position.z;
-      lookTargetX = avatar.position.x + Math.sin(avatar.rotation.y) * 4;
-      lookTargetY = avatar.position.y + 1.2;
-      lookTargetZ = avatar.position.z + Math.cos(avatar.rotation.y) * 4;
-    }
-  } else if (cinematicFocus) {
-    targetCamX = cinematicFocus.camPos.x;
-    targetCamY = cinematicFocus.camPos.y;
-    targetCamZ = cinematicFocus.camPos.z;
-
-    lookTargetX = cinematicFocus.camLook.x;
-    lookTargetY = cinematicFocus.camLook.y;
-    lookTargetZ = cinematicFocus.camLook.z;
-  } else {
-    const horizontalDist = cameraDistance * Math.cos(cameraPitch);
-    targetCamX = avatar.position.x + Math.sin(cameraAngleY) * horizontalDist;
-    targetCamZ = avatar.position.z + Math.cos(cameraAngleY) * horizontalDist;
-    targetCamY = avatar.position.y + 1.2 + cameraDistance * Math.sin(cameraPitch);
-
-    // Evitar que la cámara traspase los muros de la habitación
-    targetCamX = Math.max(-5.2, Math.min(5.2, targetCamX));
-    targetCamZ = Math.max(-5.2, Math.min(6.2, targetCamZ));
-    targetCamY = Math.max(1.6, Math.min(5.4, targetCamY));
-
-    lookTargetX = avatar.position.x;
-    lookTargetY = avatar.position.y + 1.25;
-    lookTargetZ = avatar.position.z;
+  // 7. CÁMARA · ÓRBITA AMORTIGUADA, PRIMERA PERSONA Y SHOTS DE DEMO
+  if (demoMode && demoShotAnim) {
+    const p = Math.min(1, (performance.now() - demoShotAnim.start) / demoShotAnim.ms);
+    const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    demoCam.pos.lerpVectors(demoShotAnim.fromPos, demoShotAnim.toPos, e);
+    demoCam.look.lerpVectors(demoShotAnim.fromLook, demoShotAnim.toLook, e);
+    if (p >= 1) demoShotAnim = null;
   }
 
-  camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, 0.09);
-  camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, 0.09);
-  camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, 0.09);
+  if (demoMode && demoCam.ready) {
+    // The demo owns the camera outright: no smoothing, no player input.
+    camera.position.copy(demoCam.pos);
+    camera.lookAt(demoCam.look);
+    lastLook.copy(demoCam.look);
+  } else {
+    let targetCam = new THREE.Vector3();
+    let lookTarget = new THREE.Vector3();
+    let followRate = 0.1;
 
-  const desiredLook = new THREE.Vector3(lookTargetX, lookTargetY, lookTargetZ);
-  camera.lookAt(desiredLook);
+    if (isFirstPerson && avatarActionState !== 'standing') {
+      // POV. Sitting: eyes above the seat, free 360° head turn. Lying: cheek on
+      // the pillow, looking at the window and the sun on the ceiling.
+      const eye = new THREE.Vector3();
+      let baseYaw;
+      let basePitch;
+
+      if (avatarActionState === 'sitting_armchair') {
+        eye.set(avatar.position.x, avatar.position.y + 1.12, avatar.position.z + 0.08);
+        baseYaw = 2.35;
+        basePitch = -0.03;
+      } else if (avatarActionState === 'lying_bed') {
+        eye.set(avatar.position.x + 0.05, avatar.position.y + 0.52, avatar.position.z - 0.18);
+        baseYaw = 2.85;
+        basePitch = 0.1;
+      } else {
+        eye.set(avatar.position.x, avatar.position.y + 1.25, avatar.position.z);
+        baseYaw = avatar.rotation.y + Math.PI;
+        basePitch = 0;
+      }
+
+      const yaw = baseYaw + fpYaw;
+      const pitch = basePitch + fpPitch;
+      const dir = new THREE.Vector3(
+        -Math.sin(yaw) * Math.cos(pitch),
+        Math.sin(pitch),
+        -Math.cos(yaw) * Math.cos(pitch),
+      );
+      targetCam.copy(eye);
+      lookTarget.copy(eye).addScaledVector(dir, 4);
+      followRate = 0.16;
+    } else if (cinematicFocus) {
+      targetCam.copy(cinematicFocus.camPos);
+      lookTarget.copy(cinematicFocus.camLook);
+      followRate = 0.075;
+    } else {
+      // Smooth the orbit inputs, then shorten the distance if the sight line
+      // would leave the room. This is the fix for the camera "sticking" to the
+      // walls: the position is never clamped, only the radius.
+      camAngleY = THREE.MathUtils.lerp(camAngleY, cameraAngleY, 1 - Math.pow(0.001, delta));
+      camPitch = THREE.MathUtils.lerp(camPitch, cameraPitch, 1 - Math.pow(0.001, delta));
+      camDistance = THREE.MathUtils.lerp(camDistance, cameraDistance, 1 - Math.pow(0.002, delta));
+
+      const focus = new THREE.Vector3(avatar.position.x, avatar.position.y + 1.28, avatar.position.z);
+      const dir = new THREE.Vector3(
+        Math.sin(camAngleY) * Math.cos(camPitch),
+        Math.sin(camPitch),
+        Math.cos(camAngleY) * Math.cos(camPitch),
+      );
+      const allowed = maxDistanceInside(focus, dir, camDistance);
+      targetCam.copy(focus).addScaledVector(dir, allowed);
+      lookTarget.set(avatar.position.x, avatar.position.y + 1.3, avatar.position.z);
+      followRate = 0.12;
+    }
+
+    camera.position.lerp(targetCam, followRate);
+    lastLook.lerp(lookTarget, Math.min(1, followRate * 1.5));
+    camera.lookAt(lastLook);
+  }
 
   // 8. PROXIMIDAD A HOTSPOTS Y MARCADORES EN PANTALLA
   updateHotspotsProximity();
 
   renderer.render(scene, camera);
+}
+
+// ============================================================================
+// SCRIPTED CAMERA / MOVEMENT (used by the 90-second demo sequence)
+// ============================================================================
+
+/** Glide the camera to a position and a look-at point over `ms`. */
+function demoShot(pos, look, ms = 1400) {
+  if (!demoCam.ready) {
+    demoCam.pos.copy(camera.position);
+    demoCam.look.copy(lastLook);
+    demoCam.ready = true;
+  }
+  demoShotAnim = {
+    fromPos: demoCam.pos.clone(),
+    toPos: new THREE.Vector3(pos[0], pos[1], pos[2]),
+    fromLook: demoCam.look.clone(),
+    toLook: new THREE.Vector3(look[0], look[1], look[2]),
+    start: performance.now(),
+    ms,
+  };
+}
+
+/** Walk the avatar to a floor position on cue, with the real walk cycle. */
+function walkTo(x, z, ms = 2200) {
+  return new Promise((resolve) => {
+    demoWalk = {
+      from: { x: avatar.position.x, z: avatar.position.z },
+      to: { x, z },
+      start: performance.now(),
+      ms,
+      resolve,
+    };
+  });
+}
+
+function setDemoMode(on) {
+  demoMode = !!on;
+  if (!demoMode) {
+    demoCam.ready = false;
+    demoShotAnim = null;
+    demoWalk = null;
+    // Hand the orbit back to the player without a jump.
+    cameraAngleY = camAngleY;
+    cameraPitch = camPitch;
+    cameraDistance = camDistance;
+  }
+}
+
+/**
+ * Hand the camera back to the engine while the take keeps ownership of the
+ * input. The seated first-person view is computed from the avatar's real
+ * position and the chair's orientation, so it is correct by construction —
+ * scripting eye coordinates by hand put the lens inside the backrest.
+ */
+function releaseDemoCamera() {
+  demoCam.ready = false;
+  demoShotAnim = null;
+  cameraAngleY = camAngleY;
+  cameraPitch = camPitch;
+  cameraDistance = camDistance;
+}
+
+function sealBlock(label = 'Anclaje verificado') {
+  try {
+    const event = ledger.append('narrative.clue', {
+      kind: 'evidence.pixel_anchored',
+      sceneId: 'c1.evidence',
+      label,
+      recordedAt: new Date().toISOString(),
+    });
+    renderLedgerUI();
+    return event;
+  } catch (error) {
+    console.warn('[arcadia] demo seal skipped:', error);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -3407,6 +3619,36 @@ Object.assign(bus.api, {
   toggleLedger() { if (ledgerDrawer) ledgerDrawer.classList.toggle('active'); },
   openMusic() { if (musicModal) musicModal.classList.add('active'); },
   closeMusic() { if (musicModal) musicModal.classList.remove('active'); },
+
+  /* ── demo / cinematic control ───────────────────────────────────────── */
+  demoShot,
+  walkTo,
+  setDemoMode,
+  releaseDemoCamera,
+  sealBlock,
+  isDemoMode: () => demoMode,
+  setPosture(id) {
+    if (id === 'stand' || !id) { exitActionState(); return; }
+    setActionState(id);
+  },
+  setFirstPerson(v) {
+    if (avatarActionState === 'standing') return;
+    isFirstPerson = !!v;
+    headGroup.visible = !isFirstPerson;
+    if (!isFirstPerson) { fpYaw = 0; fpPitch = 0; }
+  },
+  isFirstPerson: () => isFirstPerson,
+  /** Offset the POV head from its rest yaw/pitch, for scripted takes. */
+  setHeadTurn(yaw = 0, pitch = 0) {
+    fpYaw = yaw;
+    fpPitch = pitch;
+  },
+  posture: () => avatarActionState,
+  cameraLookAt(pos, look) {
+    demoCam.pos.copy(pos);
+    demoCam.look.copy(look);
+    demoCam.ready = true;
+  },
 });
 
 bus.on('fx:rewind', () => executeRewind({ force: true }));

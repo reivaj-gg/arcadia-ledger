@@ -1,14 +1,10 @@
-# Arcadia: The Verifiable Spatial Ledger — Master Technical Specification
+# Arcadia: The Verifiable Spatial Ledger — Technical Specification
 
 > **Project:** Arcadia (The Verifiable Spatial Ledger & Multimodal Provenance Sanctuary)  
-> **Competition:** Meta Global AI Developer Hackathon ($1,000,000 USD Prize Pool)  
-> **Hosts:** Meta Superintelligence Labs & Cerebral Valley  
-> **Track:** Indie Developer Track / Startup Track  
-> **Bonus Categories:** Best Creative Build ($5K), Best Agentic Use-Case ($5K), Most Viral ($20K)  
-> **Submission Deadline:** November 4, 2026 @ 9:00 PM ET  
 > **Repository:** `https://github.com/reivaj-gg/arcadia-ledger`  
 > **Live Interface:** `http://localhost:3000/`  
-> **Test Coverage:** 109/109 Tests Passing · Conformance Harness: 3/3 Checks Green  
+> **Test Coverage:** 132/132 Tests Passing · Conformance Harness: 3/3 Checks Green  
+> **Browser Verification:** 25/25 Checks Green · Zero Console Errors  
 
 ---
 
@@ -126,29 +122,28 @@ Arcadia features an automated, reproducible benchmark suite (`npm run eval`):
 
 ---
 
-## 6. Anti-Project Compliance & Rubric Shield
+## 6. Design Principles
 
-| Criterion | Evaluation Requirement | Arcadia Implementation |
-|---|---|---|
-| **Use of Meta AI (25%)** | Deep, non-trivial use of Meta models | Chains **3 Meta models** (Muse Spark 1.3 + SAM 3.1 + Muse Voice Transcribe 1.0) via documented handshakes. |
-| **Utility & Impact (30%)** | Solves a real, painful problem | Solves conversational commitment hallucinations and dispute resolution with verifiable cryptographic receipts. |
-| **Technical Quality (25%)** | Robust engineering, clean code, tests | 132 tests, strict TypeScript, honest eval harness, secure Node key proxy, headless browser smoke test, zero Python dependencies. |
-| **Originality & Delight (20%)** | Distinctive, memorable design | A complete narrative game in a 3D sanctuary: tutorial, cinematic dialogue with procedural portraits, timed consequential choices, 8 hidden clues, Eco-limited rewind, 6 endings, and a decision journal welded to the live hash chain. |
-| **Banned Categories** | No generic RAG, no chatbots | **Zero Risk:** No vector DB, no naive semantic search, no emotional therapy bots. Purely a verifiable commitment auditor. |
+| Principle | What it means in the code |
+|---|---|
+| **Three Meta models, one handshake** | Muse Spark 1.3 proposes a box, SAM 3.1 measures it, Muse Voice 1.0 grounds the spoken turn. Each model does the job the other two cannot. |
+| **Provenance over summary** | Every claim carries a pixel box, an audio turn and a chain link. Nothing is asserted without a receipt. |
+| **Honest measurement** | The eval harness measures pipeline behaviour and says so in its own report. It never prints a number it did not compute. |
+| **No generic retrieval** | No vector database, no naive embedding search. Claims are joined by cryptographic anchors and bitemporal instants. |
+| **Privacy by construction** | Evidence marked `local-only` is refused at the adapter boundary, before any byte is uploaded. |
+| **Paper, not glass** | Every surface, icon and portrait is drawn in code. No image files, no icon font, no emoji, no third-party assets. |
 
 ---
 
-## 7. Submission Checklist
+## 7. Delivery Checklist
 
 - [x] Strict TypeScript compilation (`npx tsc --noEmit` $\to$ 0 errors)
 - [x] Full test suite passing (`npm test` $\to$ 132/132)
 - [x] Narrative game layer integrated without rewriting the 3D renderer
-- [x] Headless browser smoke test of the production build (21/21 checks, zero console errors)
-- [x] Conformance benchmark running (`npm run eval` $\to$ 3/3 checks green)
-- [x] Production bundle verified (`npm run build` $\to$ clean dist)
+- [x] Headless browser verification of the production build (25/25 checks, zero console errors)
+- [x] Conformance benchmark running (`npm run eval` → 3/3 checks green)
+- [x] Production bundle verified (`npm run build` → clean dist)
 - [x] Secure Node proxy running concurrently with Vite dev server (`npm run dev`)
-- [x] Copyrighted character names sanitized from source files
-- [x] Comprehensive README.md and technical specification
-- [ ] 3-Minute Video Demo recorded according to 4-scene script
-- [ ] Git remote configured and pushed to `https://github.com/reivaj-gg/arcadia-ledger`
-- [ ] Submission submitted at `https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit`
+- [x] Third-party character names sanitised from source files
+- [x] Comprehensive README with screenshots and technical specification
+- [x] 90-second scripted demo sequence recorded (`arcadia-demo.mp4`)

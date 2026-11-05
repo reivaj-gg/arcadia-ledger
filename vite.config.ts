@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
  *
  * There is deliberately no `define` block injecting the Model API key: any
  * value placed there is inlined into the shipped JavaScript, and a leaked key
- * in a public hackathon repo is a leaked key. The key lives in the Node
+ * in a public repo is a leaked key. The key lives in the Node
  * process started by `server/index.ts`; the browser talks to it through the
  * `/api` proxy below, so in production the same paths can be served by a
  * reverse proxy without touching a single line of client code.

@@ -4,6 +4,14 @@
  * Pure data + pure functions. No DOM, no Three.js, no I/O. Everything here is
  * deterministic and can be exercised by `tests/story.test.ts` under plain Node.
  *
+ * The fiction
+ * -----------
+ * Arcadia is not a story about invented characters. It is Javier rebuilding
+ * his own room from his own evidence — a photograph of his desk, a voice note
+ * he recorded at 2 a.m., a bus ticket — and the Meta AI suite proving, pixel
+ * by pixel and millisecond by millisecond, that those things are real. The
+ * room is a reconstruction; the ledger is what keeps it honest.
+ *
  * Design notes
  *  - A "scene" is either: a dialogue beat, a timed choice, an exploration
  *    objective anchored to a 3D hotspot, a chapter card, or an ending.
@@ -21,7 +29,7 @@ export const MAX_CHARGES = 5;
 
 export const STAT_META = {
   confianza: { label: 'Confianza', icon: 'heart', min: 0, max: 100 },
-  notas: { label: 'Expediente', icon: 'pen', min: 0, max: 100 },
+  notas: { label: 'Memoria', icon: 'pen', min: 0, max: 100 },
   integridad: { label: 'Integridad', icon: 'shield', min: 0, max: 100 },
   eco: { label: 'Eco', icon: 'butterfly', min: 0, max: 100 },
   dinero: { label: 'Dinero', icon: 'coin', min: 0, max: 999, prefix: '$' },
@@ -36,9 +44,9 @@ export const CHAPTERS = {
   },
   c1: {
     index: '01',
-    title: 'El mensaje',
+    title: 'La captura',
     subtitle: 'Martes · 16:47 · Atardecer dorado',
-    epigraph: '«Toda promesa empieza siendo un mensaje que alguien decide creer.»',
+    epigraph: '«Un recuadro no interpreta: señala.»',
   },
   c2: {
     index: '02',
@@ -74,26 +82,26 @@ export const HOTSPOTS = {
 
 export const CLUES = {
   mask_whatsapp: {
-    title: 'Captura de WhatsApp',
-    detail: 'El recuadro «jueves 4 PM · $200» queda segmentado a nivel de píxel. IoU 96,1 %. Ya no es una interpretación: son coordenadas.',
+    title: 'Nota en el escritorio',
+    detail: 'SAM 3.1 segmenta el post-it del escritorio: «ENTREGA · JUEVES 17:00 · $200». IoU 99,96 %. Ya no es un recuerdo: es una caja de píxeles.',
     icon: 'image',
     seals: true,
   },
   voice_turn: {
-    title: 'Turno de voz · 00:04–00:08',
-    detail: 'La voz del profesor Salas fija el examen de 15:00 a 17:00. El audio no admite resumen creativo: tiene milisegundos.',
+    title: 'Mi nota de voz · 00:04–00:08',
+    detail: 'Tu propia voz, grabada a las 2:10 de la madrugada: «el bus sale el jueves a las 16:30». El audio no admite resumen creativo: tiene milisegundos.',
     icon: 'mic',
     seals: true,
   },
   schedule_photo: {
-    title: 'Horario firmado',
-    detail: 'Una foto del horario de cálculo, con el sello del departamento. Confirma el solapamiento sin depender de la memoria de nadie.',
+    title: 'Billete de bus',
+    detail: 'Una foto del billete, con la hora impresa y el número de asiento. Confirma la salida sin depender de la memoria de nadie.',
     icon: 'calendar',
     seals: true,
   },
   polaroid_faro: {
     title: 'Polaroid del faro',
-    detail: 'Al dorso, a lápiz: «Mariana y yo, el verano en que aún no prometíamos nada».',
+    detail: 'Al dorso, a lápiz: «el verano en que aún no prometía nada».',
     icon: 'camera',
   },
   mariposa_azul: {
@@ -129,8 +137,8 @@ export const ENDINGS = {
     tone: 'gold',
     verdict: 'Pusiste todas las pruebas sobre la mesa antes de decidir.',
     paragraphs: [
-      'Mariana leyó el chat, escuchó la nota de voz y vio el horario. No hizo falta que le juraras nada: el ledger habló por ti.',
-      'Movieron la entrega al viernes a las 11, fuiste al examen y la feria del faro terminó con tu diseño colgado en la pared principal. Nadie tuvo que elegir entre dos personas.',
+      'Enviaste la captura, la nota de voz y el billete. No hizo falta jurar nada: el ledger habló por ti, y habló con horas exactas.',
+      'La entrega se movió al viernes. El bus salió el jueves a las 16:30 y tú estabas en él. Llegaste a casa antes de que se apagara la luz del portal.',
       'El cuaderno se cerró con ocho pistas y una sola cadena de bloques sin ramas. Por primera vez, no sentiste la necesidad de rebobinar.',
     ],
   },
@@ -140,10 +148,10 @@ export const ENDINGS = {
     badge: 'BUEN FINAL',
     weather: 0,
     tone: 'gold',
-    verdict: 'Protegiste tu expediente sin soltar la mano de Mariana.',
+    verdict: 'Cumpliste la promesa sin romper el encargo.',
     paragraphs: [
-      'Renegociaste la entrega, fuiste a clase y escribiste un mensaje honesto. No fue la opción más fácil ni la más rápida, pero fue la que dejó menos ruido.',
-      'El jueves llovió, y el viernes el faro amaneció dorado. Mariana te envió una foto del diseño impreso con un simple «gracias por decírmelo».',
+      'Renegociaste el plazo, entregaste el viernes y cogiste el bus. No fue la opción más fácil ni la más rápida, pero fue la que dejó menos ruido.',
+      'El jueves llovió, y el viernes el faro amaneció dorado. En casa nadie preguntó por qué llegabas justo a tiempo: se dieron por hecho.',
       'Quedan cosas pendientes, sí. Pero esta vez sabes exactamente cuáles.',
     ],
   },
@@ -153,10 +161,10 @@ export const ENDINGS = {
     badge: 'FINAL AMARGO',
     weather: 1,
     tone: 'storm',
-    verdict: 'Ganaste el encargo. Algo más se fue con él.',
+    verdict: 'Entregaste a tiempo. El bus salió sin ti.',
     paragraphs: [
-      'Los $200 llegaron a tiempo. El examen, no. El profesor Salas no hizo preguntas: solo anotó una ausencia en una hoja que tampoco se puede editar.',
-      'Mariana quedó contenta. Tú pasaste la tarde mirando la ventana con la sensación de haber cambiado algo que ya no sabes cómo devolver.',
+      'Los $200 llegaron puntuales. A las 16:31 el billete dejó de servir y en casa pusieron otro plato que nadie tocó.',
+      'El encargo quedó perfecto. Tú pasaste la tarde mirando la ventana con la sensación de haber cambiado algo que ya no sabes cómo devolver.',
       'La tormenta sobre Arcadia duró tres días. El ledger, en cambio, durará más.',
     ],
   },
@@ -168,8 +176,8 @@ export const ENDINGS = {
     tone: 'dusk',
     verdict: 'Callar también es una decisión, y también se sella.',
     paragraphs: [
-      'Nunca le contaste a Mariana lo del examen. El jueves llegaste tarde a los dos sitios y a ninguno del todo.',
-      'Ella no reclamó. Eso fue lo peor. Hay silencios que pesan más que cualquier bloque de la cadena.',
+      'No dijiste nada hasta el jueves. Llegaste tarde a los dos sitios y a ninguno del todo.',
+      'Nadie reclamó. Eso fue lo peor. Hay silencios que pesan más que cualquier bloque de la cadena.',
       'En el cuaderno queda una página en blanco. La mariposa azul sigue posada en el marco de la ventana.',
     ],
   },
@@ -210,16 +218,16 @@ export const SCENES = {
   'p.wake': {
     chapter: 'prologo', weather: 0,
     lines: [
-      { who: 'narrador', style: 'narration', text: 'Martes, 3 de noviembre · 16:42. El otoño se filtra por la ventana como si el tiempo fuera miel.' },
-      { who: 'javier', text: 'Otra tarde en Arcadia. La cámara, el cuaderno, el tocadiscos... y esa sensación de que hoy algo se va a romper.' },
-      { who: 'narrador', style: 'thought', text: 'Tienes un don que no pediste: puedes deshacer un instante. Pero cada vez que lo haces, algo queda escrito.' },
+      { who: 'narrador', style: 'narration', text: 'Martes, 3 de noviembre · 16:42. La habitación está a medio reconstruir: hay paredes que todavía son memoria y objetos que ya son píxeles.' },
+      { who: 'javier', text: 'Llevo tres semanas rehaciendo este cuarto con la suite de Meta. Cada cosa que vuelve a su sitio tiene que estar probada. Nada de «creo que estaba aquí».' },
+      { who: 'narrador', style: 'thought', text: 'Arcadia no dibuja una habitación bonita. Reconstruye la tuya, y sella cada objeto que recupera.' },
     ],
     next: 'p.butterfly',
   },
   'p.butterfly': {
     chapter: 'prologo',
     lines: [
-      { who: 'mariposa', style: 'thought', text: 'Una mariposa azul se posa en el aire. No debería estar aquí en noviembre.' },
+      { who: 'mariposa', style: 'thought', text: 'Una mariposa azul se posa sobre el haz de luz. Esa no la he reconstruido yo.' },
       { who: 'javier', text: '«Lo que elijas queda escrito». Lo apunté en la primera página del cuaderno y todavía no sé por qué.' },
     ],
     next: 'p.phone',
@@ -227,14 +235,13 @@ export const SCENES = {
   'p.phone': {
     chapter: 'prologo', sfx: 'phone', weather: 0,
     lines: [
-      { who: 'narrador', style: 'narration', text: 'El teléfono vibra sobre el escritorio. Una notificación. Luego otra.' },
-      { who: 'mariana', style: 'phone', text: '¿Javi? ¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM.' },
-      { who: 'mariana', style: 'phone', text: 'Es para la feria del faro. Si no lo mandamos el jueves, perdemos el espacio.' },
+      { who: 'narrador', style: 'narration', text: 'El móvil vibra sobre el escritorio. No es un mensaje: es Arcadia avisando de que ha terminado de leer tus archivos.' },
+      { who: 'muse', style: 'voice', text: 'Tres evidencias cargadas. Una fotografía, una nota de voz, un billete. Listo para reconstruir.' },
     ],
     objective: {
       hotspot: 'desk',
-      text: 'Acércate al escritorio y abre el teléfono',
-      label: 'Leer el mensaje completo',
+      text: 'Acércate al escritorio y abre la evidencia',
+      label: 'Abrir la evidencia',
       next: 'c1.open',
     },
   },
@@ -247,12 +254,12 @@ export const SCENES = {
   'c1.reply': {
     chapter: 'c1',
     lines: [
-      { who: 'javier', style: 'thought', text: 'Jueves a las 4. Doscientos dólares. Dos mensajes y ya estoy haciendo cuentas mentales con una agenda que no he abierto.' },
-      { who: 'mariana', style: 'phone', text: '¿?? (escribiendo...)' },
+      { who: 'javier', style: 'thought', text: 'Jueves a las 17:00. Doscientos dólares. Ya estoy haciendo cuentas con una agenda que todavía no he abierto.' },
+      { who: 'muse', style: 'ledger', text: 'La nota está anclada. El compromiso, no: aceptarlo o no sigue siendo tuyo.' },
     ],
     choices: [
       {
-        id: 'accept', label: '«Cuenta conmigo, jueves a las 4.»', hint: 'Responder sin mirar la agenda', tag: 'IMPULSIVO',
+        id: 'accept', label: '«Cuento con el encargo. Jueves a las 17:00.»', hint: 'Aceptar sin mirar la agenda', tag: 'IMPULSIVO',
         timeLimit: 15000,
         effects: { stats: { confianza: 12, dinero: 200, notas: -8, eco: 8, integridad: -3 }, flags: ['acceptedFast'] },
         ledger: { type: 'commitment.accepted', note: 'Aceptado sin verificar agenda' },
@@ -266,7 +273,7 @@ export const SCENES = {
         weather: 0, next: 'c1.b',
       },
       {
-        id: 'negotiate', label: '«¿$200 por todo el diseño? Hablemos del alcance.»', hint: 'Negociar antes de decir que sí', tag: 'DIRECTO',
+        id: 'negotiate', label: '«Puedo hacerlo, pero necesito hasta el viernes.»', hint: 'Negociar el plazo antes de decir que sí', tag: 'DIRECTO',
         timeLimit: 15000,
         effects: { stats: { confianza: -6, integridad: 6, dinero: 80, eco: 3 }, flags: ['negotiated'] },
         ledger: { type: 'commitment.renegotiated', note: 'Alcance cuestionado antes del acuerdo' },
@@ -277,24 +284,24 @@ export const SCENES = {
   'c1.a': {
     chapter: 'c1',
     lines: [
-      { who: 'mariana', style: 'phone', text: '¡Sabía que podía contar contigo! Te paso los archivos esta noche.' },
-      { who: 'javier', style: 'thought', text: 'El «sí» fue facilísimo. Lo difícil suele llegar después, cuando alguien te pregunta por qué.' },
+      { who: 'javier', style: 'thought', text: 'Dicho. El «sí» fue facilísimo. Lo difícil suele llegar después, cuando alguien te pregunta por qué.' },
+      { who: 'narrador', style: 'narration', text: 'En el tablón, el post-it sigue clavado con una chincheta roja. Arcadia lo ha rodeado con una caja azul.' },
     ],
     objective: { hotspot: 'corkboard', text: 'Comprueba la captura en el tablón de evidencias', label: 'Verificar con SAM 3.1', next: 'c1.evidence' },
   },
   'c1.b': {
     chapter: 'c1',
     lines: [
-      { who: 'mariana', style: 'phone', text: 'Vale, pero dime hoy, que tengo que cerrar el pedido.' },
       { who: 'javier', style: 'thought', text: 'Un «todavía no» también es una respuesta. Lo que no puede ser es un «sí» inventado.' },
+      { who: 'narrador', style: 'narration', text: 'En el tablón, el post-it sigue clavado con una chincheta roja. Arcadia lo ha rodeado con una caja azul.' },
     ],
     objective: { hotspot: 'corkboard', text: 'Comprueba la captura en el tablón de evidencias', label: 'Verificar con SAM 3.1', next: 'c1.evidence' },
   },
   'c1.c': {
     chapter: 'c1',
     lines: [
-      { who: 'mariana', style: 'phone', text: 'Buen punto. Es portada + 3 piezas. Si te parece poco lo vemos, ¿sí?' },
-      { who: 'javier', style: 'thought', text: 'Ahora hay un alcance escrito. Antes solo había una ilusión con precio.' },
+      { who: 'javier', style: 'thought', text: 'Ahora hay un plazo escrito. Antes solo había una ilusión con precio.' },
+      { who: 'narrador', style: 'narration', text: 'En el tablón, el post-it sigue clavado con una chincheta roja. Arcadia lo ha rodeado con una caja azul.' },
     ],
     objective: { hotspot: 'corkboard', text: 'Comprueba la captura en el tablón de evidencias', label: 'Verificar con SAM 3.1', next: 'c1.evidence' },
   },
@@ -302,20 +309,20 @@ export const SCENES = {
     chapter: 'c1', evidence: 'mask',
     grant: {
       clues: ['mask_whatsapp'], charges: 1,
-      ledger: { type: 'evidence.pixel_anchored', note: 'SAM 3.1 · IoU 96.1% · box normalizado 0..1000' },
+      ledger: { type: 'evidence.pixel_anchored', note: 'SAM 3.1 · IoU 99.96% · box normalizado 0..1000' },
       sfx: 'clue',
     },
     lines: [
-      { who: 'ledger', style: 'ledger', text: 'ANCLAJE PIXELAR · SAM 3.1 → «Entrega Jueves 4 PM / $200». IoU 96,1 %. Sin interpretación: coordenadas.' },
-      { who: 'javier', text: 'Vale. Ya no es «creo que me pidió...». Es exactamente esto, en estos píxeles, a esta hora. Ahora puedo decidir de verdad.' },
+      { who: 'ledger', style: 'ledger', text: 'ANCLAJE PIXELAR · SAM 3.1 → «ENTREGA JUEVES 17:00 · $200». IoU 99,96 %. Caja [24,232,519,427].' },
+      { who: 'javier', text: 'Ya no es «creo que apunté algo». Es este píxel, esta hora, este número. Ahora puedo decidir de verdad.' },
     ],
     next: 'c1.close',
   },
   'c1.close': {
     chapter: 'c1',
     lines: [
-      { who: 'narrador', style: 'narration', text: 'El sol baja sobre el faro. En algún lugar de la casa, una notificación de voz espera a ser escuchada.' },
-      { who: 'javier', style: 'thought', text: 'Antes de contestar del todo, debería oír lo que dejó el profesor en el contestador.' },
+      { who: 'narrador', style: 'narration', text: 'El sol baja sobre el faro. En el tocadiscos hay una nota de voz que todavía no has escuchado.' },
+      { who: 'javier', style: 'thought', text: 'Antes de contestar del todo, debería oír lo que me dije a las dos de la mañana.' },
     ],
     next: 'c2.open',
   },
@@ -341,20 +348,20 @@ export const SCENES = {
       sfx: 'clue',
     },
     lines: [
-      { who: 'profesor', style: 'voice', text: 'Javier, soy Salas. Recordatorio: el examen de cálculo es el jueves de 3 a 5, sin excepciones. Nos vemos allí.' },
+      { who: 'muse', style: 'voice', text: 'Javier, son las dos y diez. El bus sale el jueves a las 16:30 y no pienso perderlo otra vez. Voy a llegar. Lo prometo.' },
       { who: 'ledger', style: 'ledger', text: 'ANCLAJE DE AUDIO · Turno 2 · 00:04.400 → 00:08.600. El turno existe; las palabras no se inventan.' },
-      { who: 'javier', style: 'thought', text: 'Cuatro de la tarde. Entre tres y cinco. Dos verdades selladas, perfectamente incompatibles.' },
+      { who: 'javier', style: 'thought', text: 'Las 16:30. Y la entrega a las 17:00. Dos verdades selladas, perfectamente incompatibles.' },
     ],
     next: 'c2.tell',
   },
   'c2.tell': {
     chapter: 'c2',
     lines: [
-      { who: 'javier', text: 'Mariana sigue esperando una respuesta. Y ahora sé algo que ella no sabe.' },
+      { who: 'javier', text: 'Ahora sé algo que esta mañana no sabía. Y el que lo dijo fui yo.' },
     ],
     choices: [
       {
-        id: 'honest', label: '«Tengo examen a esa hora. Busquemos otra fecha.»', hint: 'Decírselo todo, ahora', tag: 'HONESTO',
+        id: 'honest', label: '«No voy a llegar a las 17:00. Te lo digo hoy.»', hint: 'Decírselo todo, ahora', tag: 'HONESTO',
         timeLimit: 16000,
         effects: { stats: { integridad: 14, confianza: 8, eco: -8 }, flags: ['honestEarly'] },
         ledger: { type: 'conflict.disclosed', note: 'Conflicto comunicado a la contraparte' },
@@ -379,18 +386,18 @@ export const SCENES = {
   'c2.honest': {
     chapter: 'c2',
     lines: [
-      { who: 'mariana', style: 'phone', text: 'Gracias por decírmelo ahora y no el jueves a las 4. ¿Viernes por la mañana? Yo aviso a la feria.' },
-      { who: 'javier', style: 'thought', text: 'Se me quitó un peso de encima. Decir la verdad pronto es mucho más barato que decirla tarde.' },
+      { who: 'javier', style: 'thought', text: 'Lo escribí y lo envié antes de arrepentirme. «Puedo entregar el viernes por la mañana». Tardaron once segundos en contestar que sí.' },
+      { who: 'narrador', style: 'narration', text: 'Se te quitó un peso de encima. Decir la verdad pronto es mucho más barato que decirla tarde.' },
     ],
-    objective: { hotspot: 'bookshelf', text: 'Busca el horario oficial en la biblioteca', label: 'Fotografiar el horario', next: 'c2.schedule' },
+    objective: { hotspot: 'bookshelf', text: 'Busca el billete en la biblioteca', label: 'Fotografiar el billete', next: 'c2.schedule' },
   },
   'c2.wait': {
     chapter: 'c2',
     lines: [
-      { who: 'mariana', style: 'phone', text: '¡Genial! Entonces quedamos el jueves. Te mando los archivos ahora.' },
       { who: 'javier', style: 'thought', text: '«Puedo con las dos cosas». Lo dije en voz alta para convencerme. No funcionó.' },
+      { who: 'narrador', style: 'narration', text: 'El billete lleva tres días en el mismo libro. Todavía no lo has mirado.' },
     ],
-    objective: { hotspot: 'bookshelf', text: 'Busca el horario oficial en la biblioteca', label: 'Fotografiar el horario', next: 'c2.schedule' },
+    objective: { hotspot: 'bookshelf', text: 'Busca el billete en la biblioteca', label: 'Fotografiar el billete', next: 'c2.schedule' },
   },
   'c2.silent': {
     chapter: 'c2',
@@ -398,17 +405,17 @@ export const SCENES = {
       { who: 'narrador', style: 'narration', text: 'Dejaste el teléfono boca abajo. El silencio también ocupa sitio en una conversación.' },
       { who: 'javier', style: 'thought', text: 'Mañana lo arreglo. Eso me dije ayer. Y anteayer.' },
     ],
-    objective: { hotspot: 'bookshelf', text: 'Busca el horario oficial en la biblioteca', label: 'Fotografiar el horario', next: 'c2.schedule' },
+    objective: { hotspot: 'bookshelf', text: 'Busca el billete en la biblioteca', label: 'Fotografiar el billete', next: 'c2.schedule' },
   },
   'c2.schedule': {
     chapter: 'c2', evidence: 'schedule',
     grant: {
       clues: ['schedule_photo'], charges: 1,
-      ledger: { type: 'evidence.document_anchored', note: 'Horario departamental · Cálculo II · Jue 15:00–17:00' },
+      ledger: { type: 'evidence.document_anchored', note: 'Billete · Jue 16:30 · asiento 14C' },
       sfx: 'clue',
     },
     lines: [
-      { who: 'ledger', style: 'ledger', text: 'CONFLICTO CAUSAL DETECTADO · Entrega 16:00–17:00 ⟷ Examen 15:00–17:00 · Solapamiento: 60 min. Detectado 1 vez.' },
+      { who: 'ledger', style: 'ledger', text: 'CONFLICTO CAUSAL DETECTADO · Entrega 17:00 ⟷ Bus 16:30 · Salida necesaria 16:15 · Solapamiento: 45 min. Detectado 1 vez.' },
       { who: 'javier', text: 'Tres pruebas, un conflicto, cero dudas. Lo único que falta es elegir. Y esta vez no podré decir que no lo sabía.' },
     ],
     next: 'c2.close',
@@ -443,21 +450,21 @@ export const SCENES = {
     ],
     choices: [
       {
-        id: 'deliver', label: 'Entregar el jueves y faltar a clase', hint: '$200 hoy, una ausencia para siempre', tag: 'ALTO RIESGO',
+        id: 'deliver', label: 'Quedarme y entregar a las 17:00', hint: '$200 hoy, el bus de mañana', tag: 'ALTO RIESGO',
         timeLimit: 22000,
-        effects: { stats: { dinero: 200, confianza: 10, notas: -35, integridad: -12, eco: 25 }, flags: ['skippedExam'] },
+        effects: { stats: { dinero: 200, confianza: 10, notas: -35, integridad: -12, eco: 25 }, flags: ['missedBus'] },
         ledger: { type: 'decision.final', note: 'Senda A · Encargo prioritario' },
         weather: 1, next: 'c3.a',
       },
       {
-        id: 'study', label: 'Ir al examen y renegociar la entrega', hint: 'Proteger lo que ya estaba comprometido', tag: 'EQUILIBRIO',
+        id: 'study', label: 'Irme en el bus y entregar el viernes', hint: 'Proteger lo que ya prometiste', tag: 'EQUILIBRIO',
         timeLimit: 22000,
-        effects: { stats: { notas: 20, integridad: 16, dinero: 80, confianza: -4, eco: -12 }, flags: ['protectedClass'] },
-        ledger: { type: 'decision.final', note: 'Senda B · Expediente protegido' },
+        effects: { stats: { notas: 20, integridad: 16, dinero: 80, confianza: -4, eco: -12 }, flags: ['protectedPromise'] },
+        ledger: { type: 'decision.final', note: 'Senda B · Promesa protegida' },
         weather: 0, next: 'c3.b',
       },
       {
-        id: 'together', label: 'Enseñarle las tres pruebas y decidir juntos', hint: 'La verdad completa, sin atajos', tag: 'VALIENTE',
+        id: 'together', label: 'Enseñar las tres pruebas y renegociar', hint: 'La verdad completa, sin atajos', tag: 'VALIENTE',
         requires: { any: [{ flags: ['honestEarly'] }, { minStats: { integridad: 72 } }] },
         timeLimit: 22000,
         effects: { stats: { notas: 14, confianza: 18, integridad: 18, dinero: 120, eco: -20 }, flags: ['sharedTruth'] },
@@ -477,21 +484,21 @@ export const SCENES = {
   'c3.a': {
     chapter: 'c3', ending: true,
     lines: [
-      { who: 'narrador', style: 'narration', text: 'Marcaste «enviado» a las 15:58. A las 16:03, el aula de cálculo cerró la puerta.' },
+      { who: 'narrador', style: 'narration', text: 'Marcaste «enviado» a las 16:58. A las 16:31, el bus había salido de la estación sin nadie que lo esperara.' },
       { who: 'javier', style: 'thought', text: 'El bloque ya está sellado. Podría rebobinar... pero el ledger recordaría incluso eso.' },
     ],
   },
   'c3.b': {
     chapter: 'c3', ending: true,
     lines: [
-      { who: 'narrador', style: 'narration', text: 'Escribiste el mensaje más difícil de la semana. Lo enviaste. Y fuiste a clase.' },
+      { who: 'narrador', style: 'narration', text: 'Cerraste el portátil a las 16:10, cogiste la mochila y llegaste a la estación con cuatro minutos de sobra.' },
       { who: 'javier', style: 'thought', text: 'No todos los finales son fuegos artificiales. Algunos son simplemente llegar a tiempo.' },
     ],
   },
   'c3.c': {
     chapter: 'c3', ending: true,
     lines: [
-      { who: 'narrador', style: 'narration', text: 'Le pasaste la captura, el turno de voz y el horario. No hubo discusión: hubo dos personas mirando el mismo hecho.' },
+      { who: 'narrador', style: 'narration', text: 'Les pasaste la captura, la nota de voz y el billete. No hubo discusión: hubo dos partes mirando el mismo hecho.' },
       { who: 'javier', style: 'thought', text: 'Compartir la prueba fue más fácil que cargar con ella.' },
     ],
   },
@@ -508,7 +515,7 @@ export const SCENES = {
     grant: { clues: ['polaroid_faro'], charges: 1, stats: { integridad: 2 }, sfx: 'clue' },
     lines: [
       { who: 'narrador', style: 'narration', text: 'Una polaroid sujeta con cinta al marco de la ventana. El faro, diminuto, resistiendo el viento.' },
-      { who: 'javier', style: 'thought', text: '«Mariana y yo, el verano en que aún no prometíamos nada». Qué raro escribir algo tan cierto.' },
+      { who: 'javier', style: 'thought', text: '«El verano en que aún no prometía nada». Qué raro escribir algo tan cierto.' },
     ],
   },
   'f.butterfly': {
@@ -556,7 +563,7 @@ export const SCENES = {
   },
   'f.bookshelf': {
     lines: [
-      { who: 'javier', style: 'thought', text: 'Entre apuntes viejos debe estar el horario firmado. Ahora mismo solo hay polvo y paciencia.' },
+      { who: 'javier', style: 'thought', text: 'Entre apuntes viejos debe estar el billete. Ahora mismo solo hay polvo y paciencia.' },
     ],
   },
 };
@@ -582,6 +589,34 @@ export const TUTORIAL_STEPS = [
   { id: 'rewind', title: 'Siente el Eco', text: 'Pulsa R. El tiempo se dobla hacia atrás. Es tu don y un recurso limitado.', keys: ['R'], icon: 'rewind' },
 ];
 
+/**
+ * Progressive onboarding: four visual beats that teach the loop by making the
+ * player *do* it, not by showing a wall of text. Each step declares the real
+ * signal that completes it, so the assistant never lies about progress.
+ */
+export const ONBOARDING_STEPS = [
+  {
+    id: 'explore', icon: 'walk', title: 'Explora tu espacio',
+    text: 'Muévete con W A S D y arrastra el ratón para girar la cámara 360°.',
+    keys: ['W', 'A', 'S', 'D'],
+  },
+  {
+    id: 'meta', icon: 'spark', title: 'Activa la Suite Meta AI',
+    text: 'Pulsa I o el botón Meta AI. SAM y Muse Voice están a punto de leer tus evidencias.',
+    keys: ['I'],
+  },
+  {
+    id: 'rebuild', icon: 'desk', title: 'Reconstruye un objeto',
+    text: 'Acércate al escritorio y haz clic. SAM 3.1 lo escanea y el ledger lo sella.',
+    keys: ['E'],
+  },
+  {
+    id: 'reflect', icon: 'armchair', title: 'Siéntate a reflexionar',
+    text: 'Interactúa con el sillón o la cama. La cámara pasa a primera persona.',
+    keys: ['V'],
+  },
+];
+
 // ---------------------------------------------------------------------------
 // STATE
 // ---------------------------------------------------------------------------
@@ -603,6 +638,7 @@ export function createInitialState() {
     rewindCount: 0,
     objective: null,
     tutorialDone: false,
+    onboardingDone: false,
     finished: null,
     startedAt: Date.now(),
   };
@@ -748,4 +784,12 @@ export function validateStory() {
   return errors;
 }
 
-export const STORY = { chapters: CHAPTERS, scenes: SCENES, flavor: FLAVOR, clues: CLUES, hotspots: HOTSPOTS, endings: ENDINGS };
+export const STORY = {
+  chapters: CHAPTERS,
+  scenes: SCENES,
+  flavor: FLAVOR,
+  clues: CLUES,
+  hotspots: HOTSPOTS,
+  endings: ENDINGS,
+  onboarding: ONBOARDING_STEPS,
+};

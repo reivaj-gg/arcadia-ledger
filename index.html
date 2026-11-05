@@ -283,7 +283,7 @@
     }
 
 
-    /* Viñeta cinematográfica cómic (Life is Strange) */
+    /* Viñeta cinematográfica (viñeta de cómic) */
     .comic-vignette {
       position: absolute;
       inset: 0;
@@ -588,39 +588,35 @@
         </svg>
         <div>
           <div style="font-size:11px;color:#a89a87;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Arcadia · Verifiable Spatial Ledger</div>
-          <div style="font-size:17px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;letter-spacing:0.3px;">"This action will have consequences..."</div>
+          <div style="font-size:17px;font-weight:bold;color:#f59e0b;font-family:'Patrick Hand',cursive;letter-spacing:0.3px;">"Lo que elijas queda escrito"</div>
         </div>
       </div>
 
       <!-- BOTONES DE CONTROL DE CLIMA, AUDIO Y LEDGER -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;" class="interactive">
         <button id="btn-onboarding" class="btn-action" style="color:#f59e0b;border-color:rgba(245,158,11,0.6);background:rgba(35,26,16,0.9);">
-          <span>🧭</span>
-          <span>Misión & Guía</span>
+          <span>Misión</span>
         </button>
 
         <button id="btn-music-manager" class="btn-action" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);background:rgba(18,24,36,0.9);">
-          <span>🎵</span>
-          <span id="music-btn-label">Música & Subir</span>
+          <span id="music-btn-label">Música</span>
         </button>
 
         <button id="btn-quick-rewind" class="btn-action" style="color:#f59e0b;border-color:rgba(245,158,11,0.5);">
-          <span>⏪</span>
-          <span>Rebobinar (Rewind [R])</span>
+          <span>Rebobinar [R]</span>
         </button>
 
         <div id="btn-toggle-ledger" class="ledger-badge">
-          <span>⛓️</span>
-          <span>Ledger: <strong id="hud-ledger-count">5</strong> eventos · <span id="hud-chain-status" style="color:#10b981;">✓ Validado</span></span>
+          <span>Ledger: <strong id="hud-ledger-count">5</strong> eventos · <span id="hud-chain-status" style="color:#10b981;"> Validado</span></span>
         </div>
 
         <button id="btn-weather" class="btn-action">
-          <span id="weather-icon">☀️</span>
+          <span id="weather-icon"></span>
           <span id="weather-text">Atardecer Dorado</span>
         </button>
 
         <button id="btn-audio" class="btn-action" style="color:#38bdf8;border-color:rgba(56,189,248,0.35);">
-          <span>🎸</span>
+          <span></span>
           <span id="audio-text">Música Acústica Indie</span>
         </button>
       </div>
@@ -629,18 +625,18 @@
     <!-- BARRA INFERIOR DE CONTROLES -->
     <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <div class="controls-pill">
-        <span>🎮 <strong>[W][A][S][D]</strong> Caminar</span>
-        <span>⚡ <strong>[Shift]</strong> Correr</span>
-        <span>🖱️ <strong>[Click 3D]</strong> Interactuar</span>
-        <span>🔄 <strong>[Arrastrar]</strong> Cámara 360°</span>
-        <span>🔍 <strong>[Rueda]</strong> Zoom</span>
-        <span>✨ <strong>[E]</strong> Interactuar</span>
-        <span>⏪ <strong>[R]</strong> Rebobinar</span>
+        <span> <strong>[W][A][S][D]</strong> Caminar</span>
+        <span> <strong>[Shift]</strong> Correr</span>
+        <span> <strong>[Click 3D]</strong> Interactuar</span>
+        <span> <strong>[Arrastrar]</strong> Cámara 360°</span>
+        <span> <strong>[Rueda]</strong> Zoom</span>
+        <span> <strong>[E]</strong> Interactuar</span>
+        <span><strong>[R]</strong> Rebobinar</span>
         <span>ESC <strong>[Cámara Libre]</strong></span>
       </div>
 
       <div style="background:rgba(22,17,13,0.85);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(14px);border-radius:14px;padding:9px 18px;font-size:11px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;">
-        Meta Multimodal: <span style="color:#f59e0b;font-weight:700;">Muse Spark 1.3</span> ➔ <span style="color:#38bdf8;font-weight:700;">SAM 3.1</span> + <span style="color:#10b981;font-weight:700;">Muse Voice 1.0</span>
+        Meta Multimodal: <span style="color:#f59e0b;font-weight:700;">Muse Spark 1.3</span>  <span style="color:#38bdf8;font-weight:700;">SAM 3.1</span> + <span style="color:#10b981;font-weight:700;">Muse Voice 1.0</span>
       </div>
     </div>
 
@@ -666,181 +662,10 @@
     </div>
   </div>
 
-  <!-- MODAL DEL CUADERNO DE DECISIONES DE JAVIER -->
-  <div id="journal-modal" class="interactive">
-    <div class="moleskine-book">
-      <div class="book-fold"></div>
-
-      <!-- PÁGINA IZQUIERDA: POLAROID Y PROVENIENCIA MULTIMODAL -->
-      <div style="padding: 30px 34px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #d4c5b2; overflow-y: auto;">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 8px;">
-            <span style="font-family: 'Patrick Hand', cursive; font-size: 26px; color: #7c2d12; font-weight: bold;">Martes, 3 de Noviembre</span>
-            <span class="seal-verified">✓ Provenance Sealed</span>
-          </div>
-
-          <!-- Polaroid con el chat de WhatsApp resaltado por SAM 3.1 -->
-          <div style="position:relative; background: white; padding: 12px 12px 28px 12px; margin: 20px auto 0; width: 300px; box-shadow: 0 12px 30px rgba(0,0,0,0.22); transform: rotate(-2deg); text-align: center; border-radius: 2px;">
-            <div class="washi-tape"></div>
-            
-            <div style="background: #0b141a; width: 100%; height: 180px; border-radius: 4px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; padding: 12px; text-align: left;">
-              <!-- Chat Bubble con Bounding Box y Máscara de SAM 3.1 -->
-              <div style="background: #202c33; border: 2px solid #38bdf8; border-radius: 8px; padding: 10px; font-size: 11px; color: #e9edef; box-shadow: 0 0 14px rgba(56, 189, 248, 0.5); position:relative;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                  <span style="font-size: 9px; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-weight:bold;">[SAM 3.1 Mask: IoU 96.1%]</span>
-                  <span style="font-size: 8px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">14:32</span>
-                </div>
-                <div style="line-height:1.4;">"¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM."</div>
-              </div>
-            </div>
-
-            <div style="font-family: 'Patrick Hand', cursive; font-size: 16px; color: #3d2e1f; margin-top: 10px; letter-spacing: 0.5px;">"Mariana · Captura de WhatsApp"</div>
-          </div>
-
-          <!-- Turno de Audio Transcrito por Muse Voice -->
-          <div style="margin-top: 16px; background: #e8dcc8; border-radius: 12px; padding: 12px; font-size: 12px; color: #3b2c1d; border-left: 4px solid #10b981; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-            <div style="font-weight: bold; font-size: 11px; color: #047857; display: flex; justify-content: space-between; align-items:center;">
-              <span style="display:flex;align-items:center;gap:6px;">🎙️ Muse Voice Transcribe (Turno 2)</span>
-              <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">00:04.400 - 00:08.600</span>
-            </div>
-            <div style="font-style: italic; margin-top: 6px; font-family: 'Patrick Hand', cursive; font-size: 16px; color: #291c10;">
-              "Pero a las 3 tengo clase de cálculo y no puedo faltar..."
-            </div>
-          </div>
-        </div>
-
-        <div style="font-size: 11px; color: #786551; font-family: 'JetBrains Mono', monospace; border-top: 1px dashed #b8a791; padding-top: 10px; margin-top: 12px;">
-          Root Hash: <span style="color:#0284c7;font-weight:bold;">7f8a91c4...e69a</span> · Append-Only Ledger
-        </div>
-      </div>
-
-      <!-- PÁGINA DERECHA: EL DILEMA, RAMAS CAUSALES Y REWIND -->
-      <div style="padding: 30px 34px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow-y: auto;">
-        <button id="btn-close-journal" style="position: absolute; top: 18px; right: 22px; background: #e0d0bd; border: none; font-size: 16px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; color: #523e2b; font-weight: bold; transition: all 0.2s;">✕</button>
-
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #b8a791; padding-bottom: 8px;">
-            <h3 style="font-family: 'Patrick Hand', cursive; font-size: 26px; color: #0f172a;">
-              Encrucijada Temporal Activa
-            </h3>
-            <button id="btn-rewind" style="background:#fef3c7;border:1px solid #f59e0b;color:#b45309;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;transition:all 0.2s;">
-              ⏪ Rebobinar (Rewind)
-            </button>
-          </div>
-
-          <!-- Alerta de Conflicto Real Detectado por el Ledger -->
-          <div style="margin-top: 14px; background: #fee2e2; border: 1px solid #ef4444; padding: 12px; border-radius: 12px; font-size: 12px; color: #991b1b; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);">
-            <div style="font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-              <span>⚠️</span> <span>Solapamiento Causal Detectado</span>
-            </div>
-            <div>La entrega acordada con Mariana (16:00 - 17:00) colisiona directamente con tu Clase de Cálculo (15:00 - 17:00).</div>
-          </div>
-
-          <!-- Botones de elección interactivos -->
-          <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
-            <button id="choice-a" style="text-align: left; background: #fff5f5; border: 2px solid #ef4444; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight: bold; color: #b91c1c; font-size: 13px;">⚡ Senda A: Aceptar jueves y faltar a clase</span>
-                <span style="font-size: 10px; background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-weight: bold;">ALTO RIESGO</span>
-              </div>
-              <div style="font-size: 11px; color: #7f1d1d; margin-top: 6px; line-height: 1.4;">+$200 ingresos · Inasistencia a examen · Tormenta y colapso temporal en el santuario.</div>
-            </button>
-
-            <button id="choice-b" style="text-align: left; background: #f0fdf4; border: 2px solid #10b981; border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-weight: bold; color: #047857; font-size: 13px;">✨ Senda B: Proteger clase y renegociar entrega</span>
-                <span style="font-size: 10px; background: #bbf7d0; color: #166534; padding: 2px 8px; border-radius: 6px; font-weight: bold;">CALMA Y ORDEN</span>
-              </div>
-              <div style="font-size: 11px; color: #065f46; margin-top: 6px; line-height: 1.4;">Asistencia salvada · Entrega viernes 11 AM acordada · Atardecer dorado y paz mental.</div>
-            </button>
-          </div>
-        </div>
-
-        <div style="text-align: center; font-size: 11px; color: #8a735c; margin-top: 14px;">
-          Cada elección añade un bloque sellado con SHA-256 al Ledger. Presiona <strong>[ESC]</strong> para salir.
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- 3D sanctuary renderer first (publishes bus.api), narrative game second. -->
   <script type="module" src="/src/main.js"></script>
   <script type="module" src="/src/game/game.js"></script>
 
-  <!-- MODAL DE ONBOARDING / MISIÓN DEL JUGADOR (legado, oculto por la capa de juego) -->
-  <div id="onboarding-modal" class="interactive active">
-    <div class="onboarding-sheet">
-      <div class="washi-tape" style="top:-12px;width:120px;"></div>
-      <button id="btn-close-onboarding" style="position: absolute; top: 18px; right: 22px; background: #e0d0bd; border: none; font-size: 16px; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; color: #523e2b; font-weight: bold; transition: all 0.2s;">✕</button>
-
-      <div style="display:flex;align-items:center;gap:14px;border-bottom:2px solid #b8a791;padding-bottom:12px;margin-bottom:18px;">
-        <svg style="width:34px;height:34px;color:#38bdf8;" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C9 5 4 6 2 9c-2 3-1 7 1 9 3 3 7 1 9-2 2 3 6 5 9 2 2-2 3-6 1-9-2-3-7-4-10-7zm-1 9c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2zm2 0c-1 0-2-1-2-2s1-2 2-2 2 1 2 2-1 2-2 2z"/>
-        </svg>
-        <div>
-          <h2 style="font-family:'Patrick Hand',cursive;font-size:32px;color:#7c2d12;margin:0;">Bienvenido a Arcadia: The Verifiable Spatial Ledger</h2>
-          <div style="font-size:12px;color:#786551;font-family:'JetBrains Mono',monospace;">Candidatura Oficial · Meta Global AI Developer Hackathon 2026</div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:24px;font-size:14px;line-height:1.5;">
-        <div>
-          <h3 style="font-family:'Patrick Hand',cursive;font-size:22px;color:#1e293b;margin-bottom:8px;">🎯 Tu Identidad y el Dilema</h3>
-          <p style="margin-top:0;color:#3d2f22;">
-            Eres <strong>Javier Quilumba</strong>, estudiante y desarrollador independiente en Arcadia. La vida real está llena de acuerdos informales:
-          </p>
-          <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:10px 14px;border-radius:8px;margin-bottom:10px;font-size:12px;color:#991b1b;">
-            <strong>⚠️ Conflicto Causal Detectado:</strong> Mariana te pide por WhatsApp una entrega urgente el jueves a las 4 PM por $200. Tu profesor de cálculo te recuerda en una nota de voz que el examen es de 3 a 5 PM.
-          </div>
-          <p style="color:#3d2f22;">
-            A diferencia de los asistentes de IA comunes que alucinan fechas o inventan resúmenes, <strong>Arcadia demuestra físicamente la proveniencia de cada hecho</strong>.
-          </p>
-
-          <h3 style="font-family:'Patrick Hand',cursive;font-size:22px;color:#1e293b;margin:14px 0 8px;">🤝 El Handshake de Meta AI (25% Rúbrica)</h3>
-          <ul style="padding-left:18px;margin:0;font-size:13px;color:#443324;">
-            <li><strong>Meta SAM 3.1:</strong> Segmenta a nivel de píxel exacto el mensaje de WhatsApp (IoU 99.96%).</li>
-            <li><strong>Meta Muse Voice 1.0:</strong> Fija el turno de audio en milisegundos sin alucinar palabras.</li>
-            <li><strong>Meta Muse Spark 1.3:</strong> Razona sobre la causalidad y genera las sendas de decisión.</li>
-            <li><strong>Ledger SHA-256:</strong> Sella cada acuerdo en una cadena criptográfica auditable.</li>
-          </ul>
-        </div>
-
-        <div style="background:#f4ece0;border-radius:14px;padding:20px;border:1px solid #d5c4b1;">
-          <h3 style="font-family:'Patrick Hand',cursive;font-size:22px;color:#0f172a;margin-top:0;margin-bottom:12px;">🕹️ Cómo se Juega</h3>
-          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#3d2f22;color:#fef3c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:11px;">[W][A][S][D]</span>
-              <span>Caminar con físicas y sonidos de pisadas.</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#3d2f22;color:#fef3c7;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:11px;">[Shift]</span>
-              <span>Correr / Sprint con inclinación corporal.</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#0284c7;color:white;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:11px;">[E] / Click 3D</span>
-              <span>Interactuar con el escritorio, sillón, cama, guitarra o tocadiscos.</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#b45309;color:white;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:11px;">[R] / Rewind</span>
-              <span>Rebobinar el tiempo para explorar realidades alternativas (Life is Strange).</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <span style="background:#166534;color:white;padding:3px 8px;border-radius:6px;font-weight:bold;font-size:11px;">[V]</span>
-              <span>Alternar entre Primera y Tercera persona al descansar.</span>
-            </div>
-          </div>
-
-          <div style="margin-top:18px;border-top:1px dashed #b8a791;padding-top:14px;text-align:center;">
-            <button id="btn-start-game" style="background:#f59e0b;color:#1c130b;font-weight:bold;font-size:16px;padding:12px 28px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 6px 18px rgba(245,158,11,0.4);font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.2s;">
-              ✨ ¡Entrar al Santuario de Arcadia!
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOCADISCOS · pistas originales generadas en el navegador -->
   <div id="music-modal" class="interactive">
     <div class="music-sheet">
       <div class="music-head">

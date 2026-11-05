@@ -10,9 +10,12 @@ import * as THREE from 'three';
 import { bus } from './bus.js';
 import { portraitSVG } from './portraits.js';
 import { icon, polaroidScene, notebookSpiral } from './icons.js';
+import { openMetaSuite, closeMetaSuite, isMetaSuiteOpen } from './metaSuite.js';
+import { startAssistant, assistantSignal, stopAssistant, isAssistantActive } from './assistant.js';
+import { startDemo, isDemoRunning } from './demo.js';
 import {
   SAVE_VERSION, MAX_CHARGES, TOTAL_CLUES, STAT_META, CHAPTERS, HOTSPOTS, CLUES,
-  SCENES, FLAVOR, TUTORIAL_STEPS,
+  SCENES, FLAVOR, TUTORIAL_STEPS, ONBOARDING_STEPS,
   createInitialState, cloneState, enterScene, availableChoices, choose,
   canRewind, rewind, computeEnding, requirementsMet,
 } from './story.js';
@@ -23,12 +26,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const SPEAKERS = {
-  javier: { name: 'Javier', role: 'Tú · Estudiante & Freelancer', style: 'default' },
-  mariana: { name: 'Mariana Rivera', role: 'Cliente Freelance · $200 USD', style: 'phone' },
-  profesor: { name: 'Prof. Salas', role: 'Cálculo II · Examen Presencial', style: 'voice' },
+  javier: { name: 'Javier', role: 'Tú · Reconstruyendo tu habitación', style: 'default' },
   narrador: { name: 'Narración', role: 'Entorno', style: 'narration' },
   mariposa: { name: 'El Eco', role: 'Meta Muse Spark 1.3', style: 'thought' },
   ledger: { name: 'Ledger Criptográfico', role: 'SHA-256 Inmutable', style: 'ledger' },
+  muse: { name: 'Meta AI', role: 'SAM 3.1 · Muse Voice 1.0', style: 'voice' },
 };
 
 // ---------------------------------------------------------------------------
@@ -65,17 +67,24 @@ root.innerHTML = `
         </div>
         <div class="ag-hud-buttons">
           <button class="ag-icon-btn highlight" id="ag-btn-meta-ai" title="Suite Meta AI Multimodal (SAM 3.1 · Muse Voice · Muse Spark)">${icon('spark')}<span>Meta AI</span></button>
-          <button class="ag-icon-btn" id="ag-btn-guide" title="Guía de Misión y Personajes (H)">${icon('compass')}<span>Guía</span></button>
           <button class="ag-icon-btn" id="ag-btn-journal" title="Cuaderno (J)">${icon('book')}<span>Cuaderno</span></button>
           <button class="ag-icon-btn" id="ag-btn-ledger" title="Ledger (L)">${icon('chain')}<span>Ledger</span></button>
-          <button class="ag-icon-btn" id="ag-btn-music" title="Música (M)">${icon('music')}<span>Música</span></button>
-          <button class="ag-icon-btn" id="ag-btn-rewind" title="Rebobinar (R)">${icon('rewind')}<span>Eco</span></button>
-          <button class="ag-icon-btn primary" id="ag-btn-pause" title="Menú (ESC)">${icon('menu')}<span>Menú</span></button>
+          <button class="ag-icon-btn" id="ag-btn-music" title="Tocadiscos (M)">${icon('music')}<span>Música</span></button>
+          <button class="ag-icon-btn" id="ag-btn-rewind" title="Rebobinar (R)">${icon('butterfly')}<span>Eco</span></button>
+          <button class="ag-icon-btn" id="ag-btn-pause" title="Menú (ESC)">${icon('menu')}<span>Menú</span></button>
         </div>
       </div>
     </div>
-    <div class="ag-bottom-hint"><b>ESPACIO</b> seguir <i>·</i> <b>1–4</b> elegir <i>·</i> <b>I</b> Meta AI <i>·</i> <b>H</b> Guía <i>·</i> <b>M</b> Música <i>·</i> <b>R</b> Eco <i>·</i> <b>ESC</b> menú</div>
+    <div class="ag-bottom-hint"><b>WASD</b> caminar <i>·</i> <b>ARRASTRA</b> 360° <i>·</i> <b>E</b> interactuar <i>·</i> <b>I</b> Meta AI <i>·</i> <b>M</b> música <i>·</i> <b>R</b> Eco <i>·</i> <b>ESC</b> menú</div>
     <div id="ag-waypoint"><div class="ag-waypoint-inner"><div class="ag-waypoint-diamond"></div><div class="ag-waypoint-label"></div></div></div>
+  </div>
+
+  <!-- Outside the HUD on purpose: the demo has to be one click from the title
+       screen, which fades the whole HUD out. -->
+  <div class="ag-demo-chip" id="ag-demo-chip" title="Secuencia cinemática de 90 s para grabar el vídeo">
+    <span class="ag-demo-dot"></span>
+    <span class="ag-demo-label">Demo automática</span>
+    <span class="ag-demo-sub">para grabar</span>
   </div>
 
   <div id="ag-toasts"></div>
@@ -115,7 +124,7 @@ root.innerHTML = `
         <div class="ag-title-kicker">Martes, 3 de noviembre · 16:42</div>
         <h1 class="ag-title-main">Arcadia</h1>
         <div class="ag-title-sub">El tiempo perdona. El ledger, no.</div>
-        <p class="ag-title-desc">Dos mensajes. Una nota de voz. Una hora que no puede ser cierta.</p>
+        <p class="ag-title-desc">Reconstruye tu habitación con la suite Meta AI. Cada objeto, probado. Cada decisión, sellada.</p>
         <div class="ag-title-menu">
           <button class="ag-menu-btn primary" id="ag-new"><span class="ag-menu-icon">${icon('play')}</span><span class="ag-menu-label">Nueva partida</span><span class="ag-menu-key">ENTER</span></button>
           <button class="ag-menu-btn" id="ag-continue"><span class="ag-menu-icon">${icon('book')}</span><span class="ag-menu-label">Continuar</span><span class="ag-menu-key" id="ag-save-info">—</span></button>
@@ -137,236 +146,6 @@ root.innerHTML = `
   <div class="ag-screen ag-hidden" id="ag-ending"></div>
   <div class="ag-screen ag-hidden" id="ag-evidence"></div>
 
-  <!-- MODAL SUITE META AI MULTIMODAL -->
-  <div class="ag-modal-overlay" id="ag-ai-modal">
-    <div class="ag-modal-sheet">
-      <div class="ag-modal-head">
-        <div>
-          <h2 class="ag-modal-title">Suite Meta AI Multimodal</h2>
-          <div class="ag-modal-sub">Modelos de IA oficiales y verificación de contratos en Arcadia</div>
-        </div>
-        <button class="ag-modal-close" id="ag-close-ai" title="Cerrar (ESC)">✕</button>
-      </div>
-
-      <div class="ag-ai-tabs">
-        <button class="ag-ai-tab-btn active" data-tab="sam">
-          ${icon('camera')} SAM 3.1 (Visión)
-        </button>
-        <button class="ag-ai-tab-btn" data-tab="voice">
-          ${icon('waveform')} Muse Voice 1.0 (Audio)
-        </button>
-        <button class="ag-ai-tab-btn" data-tab="spark">
-          ${icon('spark')} Muse Spark 1.3 (Razonamiento)
-        </button>
-        <button class="ag-ai-tab-btn" data-tab="ledger">
-          ${icon('chain')} SHA-256 Spatial Ledger
-        </button>
-      </div>
-
-      <!-- TAB 1: SAM 3.1 -->
-      <div class="ag-ai-content active" id="ag-tab-sam">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div>
-            <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
-              Segment Anything Model 3.1 · Pixel-Accurate OCR
-            </div>
-            <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-              SAM 3.1 localiza y segmenta el texto del mensaje de Mariana dentro de la captura de WhatsApp (720x1280 px).
-            </p>
-            <div style="background: rgba(0,0,0,0.05); padding: 12px; border-radius: 4px; font-family: var(--mono); font-size: 12px; margin-top: 10px;">
-              <div><b>Gramática:</b> &lt;0f&gt;1&lt;|box;x1=24;y1=232;x2=519;y2=427;w=720;h=1280|&gt;</div>
-              <div style="margin-top: 4px;"><b>Espacio Normalizado:</b> [24, 232, 519, 427]</div>
-              <div style="margin-top: 4px; color: #15803d;"><b>Conformidad Eval:</b> IoU 99.96% round-trip PASS ✓</div>
-            </div>
-            <div style="margin-top: 14px; font-size: 13px; color: var(--ink-2);">
-              <i>«Javi! Necesito la landing para el jueves a las 4pm sí o sí. Te pago $200 USD.»</i>
-            </div>
-          </div>
-          <div class="ag-sam-preview">
-            <div class="ag-sam-laser"></div>
-            <div style="font-family: var(--mono); font-size: 11px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 10px;">
-              CAPTURA WHATSAPP (MEDIA ID: VIS-01)
-            </div>
-            <div class="ag-sam-box">
-              <span class="ag-sam-badge">SAM 3.1 · IoU 100%</span>
-              <div style="font-size: 13px; line-height: 1.4; color: #e2e8f0; font-family: var(--sans);">
-                "Javi! Necesito la landing para el jueves a las 4pm sí o sí. Te pago $200 USD si está antes de las 16:00."
-              </div>
-            </div>
-            <div style="font-family: var(--mono); font-size: 11px; color: #38bdf8; margin-top: 12px;">
-              [BBOX TARGET SEALED: SHA-256 HASH VERIFIED]
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 2: MUSE VOICE 1.0 -->
-      <div class="ag-ai-content" id="ag-tab-voice">
-        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
-          Meta Muse Voice 1.0 · ASR Neuronal & Turn Bracketing
-        </div>
-        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-          Transcripción temporalizada y acotación estricta de turnos sobre audio WAV PCM mono a 16 kHz.
-        </p>
-
-        <div style="background: #0f172a; padding: 20px; border-radius: 8px; margin: 16px 0; color: white;">
-          <div style="display:flex; justify-content:space-between; font-family: var(--mono); font-size: 12px; color: #94a3b8; margin-bottom: 12px;">
-            <span>NOTA DE VOZ: PROF. SALAS (CÁLCULO II)</span>
-            <span style="color: #38bdf8;">16 kHz / Mono / 16-bit PCM ✓</span>
-          </div>
-
-          <div class="ag-voice-wave">
-            <div class="ag-wave-bar" style="animation-delay: 0.1s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.3s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.2s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.4s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.15s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.35s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.25s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.05s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.45s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.2s"></div>
-            <div class="ag-wave-bar" style="animation-delay: 0.1s"></div>
-          </div>
-
-          <div style="margin-top: 16px; background: rgba(255,255,255,0.06); padding: 12px; border-radius: 4px; font-family: var(--mono); font-size: 12px;">
-            <div style="color: #fbbf24;">[00:04.400 - 00:08.600] <b>Prof. Salas:</b></div>
-            <div style="color: #e2e8f0; font-family: var(--sans); font-size: 14px; margin-top: 4px;">
-              «El examen final de Cálculo II se rinde presencialmente este jueves de 15:00 a 17:00 en el aula magna. La asistencia es obligatoria.»
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 3: MUSE SPARK 1.3 -->
-      <div class="ag-ai-content" id="ag-tab-spark">
-        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
-          Meta Muse Spark 1.3 · Detección de Conflictos Temporales
-        </div>
-        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-          Spark analiza las restricciones extraídas por SAM y Voice, identificando la colisión causal entre el trabajo y los estudios.
-        </p>
-
-        <div class="ag-spark-graph">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
-            <span style="font-family: var(--ui); font-size: 12px; font-weight: 700; color: #ef4444; text-transform: uppercase;">
-              ⚠️ COLISIÓN TEMPORAL DETECTADA (SOLAPAMIENTO: 60 MINUTOS)
-            </span>
-            <span style="font-family: var(--mono); font-size: 11px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 3px;">
-              CRÍTICO
-            </span>
-          </div>
-
-          <div class="ag-spark-bar">
-            <div class="ag-spark-fill"></div>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; font-size: 13px;">
-            <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 4px; border-left: 3px solid #38bdf8;">
-              <div style="font-family: var(--ui); font-weight: 700; color: #38bdf8;">COMPROMISO A (Mariana)</div>
-              <div style="color: #cbd5e1; margin-top: 4px;">Entrega landing page: <b>Jueves 16:00</b></div>
-              <div style="color: #94a3b8; font-size: 12px;">Recompensa: +$200 USD</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.04); padding: 10px; border-radius: 4px; border-left: 3px solid #ef4444;">
-              <div style="font-family: var(--ui); font-weight: 700; color: #ef4444;">COMPROMISO B (Prof. Salas)</div>
-              <div style="color: #cbd5e1; margin-top: 4px;">Examen Cálculo: <b>Jueves 15:00 - 17:00</b></div>
-              <div style="color: #94a3b8; font-size: 12px;">Consecuencia: Reprobación si falta</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB 4: SHA-256 LEDGER -->
-      <div class="ag-ai-content" id="ag-tab-ledger">
-        <div style="font-family: var(--ui); font-size: 13px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 8px;">
-          Spatial Verifiable Ledger · Criptografía SHA-256 Inmutable
-        </div>
-        <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-          Cada evidencia analizada por Meta AI y cada decisión tomada por el jugador se sella en un bloque criptográfico enlazado por hash.
-        </p>
-
-        <div style="background: #0f172a; padding: 16px; border-radius: 6px; font-family: var(--mono); font-size: 12px; color: #e2e8f0; margin-top: 12px;">
-          <div style="color: #10b981; font-weight: 700; margin-bottom: 8px;">
-            ✓ ESTADO DE LA CADENA: VÁLIDA (TODOS LOS INVARIANTES PASS)
-          </div>
-          <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px;">GENESIS BLOCK: 0000000000000000000000000000000000000000000000000000000000000000</div>
-          <div style="color: #38bdf8; font-size: 11px;">EVENT FORMULA: SHA-256(seq + prevHash + payloadHash + timestamp)</div>
-          <div style="color: #cbd5e1; margin-top: 10px; font-size: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-            Incluso al usar el Eco de la Mariposa (Rebobinado temporal), los eventos pasados permanecen sellados como prueba auditable.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL GUIA DE MISION & PERSONAJES -->
-  <div class="ag-modal-overlay" id="ag-guide-modal">
-    <div class="ag-modal-sheet">
-      <div class="ag-modal-head">
-        <div>
-          <h2 class="ag-modal-title">Guía de Misión & Personajes</h2>
-          <div class="ag-modal-sub">Arcadia · The Verifiable Spatial Ledger (Meta Hackathon 2026)</div>
-        </div>
-        <button class="ag-modal-close" id="ag-close-guide" title="Cerrar (ESC)">✕</button>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div>
-          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 0;">¿Qué es Arcadia y cuál es tu objetivo?</h3>
-          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-            Arcadia es un <b>Spatial Verifiable Ledger</b> narrativo ambientado en una habitación 3D interactiva estilo <i>Life is Strange</i>.
-          </p>
-          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-            Eres <b>Javier Quilumba</b>, estudiante de ingeniería y programador freelance. Te enfrentas a un dilema real: tu cliente Mariana te ofrece <b>$200 USD</b> por una landing urgente el jueves a las 4 PM, pero tu profesor Salas programó el <b>examen final de Cálculo II</b> exactamente a esa misma hora.
-          </p>
-          <p style="font-size: 14px; line-height: 1.5; color: var(--ink);">
-            Tu misión es investigar las evidencias con la suite de <b>Meta AI</b>, descubrir el conflicto temporal y elegir tu destino sin alterar la verdad del Ledger.
-          </p>
-
-          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 20px;">Controles & Heurísticas de Nielsen</h3>
-          <ul style="font-size: 13px; line-height: 1.7; padding-left: 20px; color: var(--ink);">
-            <li><b>W A S D:</b> Caminar por la habitación.</li>
-            <li><b>Click Izq + Arrastrar:</b> Rotar la cámara en 360°.</li>
-            <li><b>E:</b> Interactuar con objetos y avanzar la historia.</li>
-            <li><b>ESPACIO:</b> Continuar diálogos / Levantarse.</li>
-            <li><b>V:</b> Alternar entre 1ª y 3ª persona.</li>
-            <li><b>I:</b> Abrir Suite Meta AI Multimodal.</li>
-            <li><b>H:</b> Abrir esta Guía.</li>
-            <li><b>M:</b> Tocadiscos (Elegir pista o subir tu propio MP3).</li>
-            <li><b>R:</b> Rebobinar el tiempo (Eco de la mariposa).</li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 style="font-family: var(--hand); font-size: 22px; color: #7c2d12; margin-top: 0;">Los Personajes</h3>
-          
-          <div class="ag-guide-card">
-            <div class="ag-guide-role">Protagonista (Tú)</div>
-            <div class="ag-guide-name">Javier Quilumba</div>
-            <div class="ag-guide-desc">Estudiante universitario y desarrollador freelance. Necesitas dinero para pagar la matrícula, pero no puedes reprobar Cálculo II.</div>
-          </div>
-
-          <div class="ag-guide-card" style="border-left-color: #0284c7;">
-            <div class="ag-guide-role" style="color: #0284c7;">Cliente Freelance</div>
-            <div class="ag-guide-name">Mariana Rivera</div>
-            <div class="ag-guide-desc">Directora de proyectos. Te ofreció $200 USD por entregar una landing antes del jueves 16:00. No tolera retrasos.</div>
-          </div>
-
-          <div class="ag-guide-card" style="border-left-color: #ef4444;">
-            <div class="ag-guide-role" style="color: #ef4444;">Catedrático Inflexible</div>
-            <div class="ag-guide-name">Prof. Salas (Cálculo II)</div>
-            <div class="ag-guide-desc">Fijó el examen final presencial el jueves de 15:00 a 17:00 en el Aula Magna. Sin excepciones.</div>
-          </div>
-
-          <div class="ag-guide-card" style="border-left-color: #10b981;">
-            <div class="ag-guide-role" style="color: #10b981;">Compañera de Estudio</div>
-            <div class="ag-guide-name">Elena</div>
-            <div class="ag-guide-desc">Te advierte sobre la rigidez de Salas y comparte apuntes para preparar el examen.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 `;
 
 document.body.appendChild(root);
@@ -408,7 +187,7 @@ function uiSfx(kind) {
   if (!soundOn) return;
   try {
     if (!uiAudio) uiAudio = new (window.AudioContext || window.webkitAudioContext)();
-    if (uiAudio.state === 'suspended') uiAudio.resume();
+    if (uiAudio.state === 'suspended') uiAudio.resume().catch(() => {});
     const t = uiAudio.currentTime;
     const presets = {
       click: [520, 780, 0.075, 0.10, 'triangle'],
@@ -646,6 +425,16 @@ function tickWorld(time) {
     } else wp.classList.remove('on');
   }
 
+  // Onboarding assistant: step 1 completes on real movement or a real drag.
+  if (isAssistantActive()) {
+    const pos = bus.api.avatarPosition?.();
+    if (pos) {
+      if (lastAvatarPos) travelled += Math.hypot(pos.x - lastAvatarPos.x, pos.z - lastAvatarPos.z);
+      lastAvatarPos = { x: pos.x, z: pos.z };
+    }
+    if (travelled > 1.8 || dragTotal > 70) assistantSignal('explore');
+  }
+
   // Tutorial proximity checks.
   if (phase === 'tutorial' && tutorial && !tutorial.checking) {
     const step = TUTORIAL_STEPS[tutorial.index];
@@ -867,6 +656,9 @@ function handleGrant(scene, before) {
   if (scene.grant.charges && !newClues.length) toast('Eco recuperado', 'Una pista nueva te devuelve una recarga.', 'cyan');
   if (newClues.length) { uiSfx('clue'); butterflyBurst(window.innerWidth * 0.72, window.innerHeight * 0.3, 6); }
   if (scene.grant.ledger) bus.api.appendLedger?.(scene.grant.ledger.type, { ...scene.grant.ledger, scene: currentSceneId, at: new Date().toISOString() });
+  // The first sealed object is the third onboarding beat: the player has just
+  // watched SAM anchor a real thing and the ledger accept it.
+  if (newClues.length) assistantSignal('rebuild');
   renderHUD();
 }
 function playScene(sceneId) {
@@ -985,6 +777,9 @@ function onInteract(detail) {
     playScene(next);
     return true;
   }
+  // Sitting down / lying back is the fourth and last onboarding beat.
+  if (detail.id === 'armchair' || detail.id === 'bed') assistantSignal('reflect');
+
   // Posture hotspots also keep their legacy 3D animation.
   playFlavor(detail.id);
   return ['guitar', 'bed', 'armchair'].includes(detail.id) ? 'legacy' : true;
@@ -1064,8 +859,8 @@ function showChapterCard(chapterId, done) {
 const EVIDENCE_VIEWS = {
   mask: {
     title: 'ANCLAJE PIXELAR · SAM 3.1', meta: 'Muse Spark 1.3 → SAM 3.1',
-    visual: `<div class="ag-ev-bubble"><span class="ag-ev-time">14:32</span>¿Me ayudas con el diseño para el jueves? Te pago $200. Entrega a las 4 PM.</div><div class="ag-ev-scan"></div><div class="ag-ev-line"></div>`,
-    stats: [['IoU', '96,1 %'], ['BOX', '[118,402,884,516]'], ['CONFIANZA', '0.961']],
+    visual: `<div class="ag-ev-bubble"><span class="ag-ev-time">post-it</span>ENTREGA · jueves 17:00 · $200</div><div class="ag-ev-scan"></div><div class="ag-ev-line"></div>`,
+    stats: [['IoU', '99,96 %'], ['BOX', '[24,232,519,427]'], ['CONFIANZA', '0.9996']],
   },
   voice: {
     title: 'ANCLAJE DE AUDIO · MUSE VOICE 1.0', meta: '16 kHz · mono · PCM 16-bit',
@@ -1073,13 +868,13 @@ const EVIDENCE_VIEWS = {
     stats: [['TURNO', '2 · Speaker A'], ['INICIO', '00:04.400'], ['FIN', '00:08.600']],
   },
   schedule: {
-    title: 'DOCUMENTO ANCLADO · HORARIO', meta: 'Cálculo II · Departamento',
-    visual: `<div class="ag-ev-bubble" style="font-family:var(--ag-mono);font-size:12px;background:#f8f1e5;color:#33261a">JUEVES · 15:00–17:00<br><b>EXAMEN PARCIAL · CÁLCULO II</b><br>Asistencia obligatoria · Prof. Salas</div><div class="ag-ev-scan" style="border-color:#34d399"></div>`,
-    stats: [['SELLO', 'DEPT-114'], ['DÍA', 'JUEVES'], ['FRANJA', '15:00–17:00']],
+    title: 'DOCUMENTO ANCLADO · BILLETE', meta: 'Jueves · asiento 14C',
+    visual: `<div class="ag-ev-bubble" style="font-family:var(--ag-mono);font-size:12px;background:#f8f1e5;color:#33261a">JUEVES · 16:30<br><b>SALIDA · ESTACIÓN CENTRAL</b><br>Andén 3 · asiento 14C</div><div class="ag-ev-scan" style="border-color:#34d399"></div>`,
+    stats: [['SELLO', 'BUS-1430'], ['DÍA', 'JUEVES'], ['SALIDA', '16:30']],
   },
   conflict: {
     title: 'CONFLICTO CAUSAL DETECTADO', meta: 'Bitemporal · asOf() · 1 coincidencia',
-    visual: `<div class="ag-ev-conflict"><div class="ag-ev-slip"><b>ENTREGA · MARIANA</b><span>16:00 → 17:00</span></div><div class="ag-ev-slip bad"><b>EXAMEN · CÁLCULO II</b><span>15:00 → 17:00</span></div><div class="ag-ev-overlap">${icon('warning', { size: 16 })} SOLAPAMIENTO · 60 MIN</div></div>`,
+    visual: `<div class="ag-ev-conflict"><div class="ag-ev-slip"><b>ENTREGA · 17:00</b><span>16:15 → 17:00</span></div><div class="ag-ev-slip bad"><b>BUS · 16:30</b><span>16:15 → 16:30</span></div><div class="ag-ev-overlap">${icon('warning', { size: 16 })} SOLAPAMIENTO · 45 MIN</div></div>`,
     stats: [['ANCLAJES', '3'], ['CONFLICTOS', '1'], ['LEDGER', 'VÁLIDO']],
   },
 };
@@ -1154,11 +949,11 @@ function showJournal() {
             </div>
             <h2 class="ag-hand-title">Lo que sé</h2>
             <ul class="ag-hand-list">
-              <li><b>Martes.</b> Mariana pide el diseño. 200 $, jueves a las 4.</li>
-              <li><b>21:14.</b> Salas: examen el jueves de 3 a 5.</li>
+              <li><b>Martes.</b> El post-it dice: entrega jueves a las 17:00. 200 $.</li>
+              <li><b>21:14.</b> Mi nota de voz: el bus sale a las 16:30.</li>
               <li><b>Jueves.</b> Las dos cosas no caben.</li>
             </ul>
-            <p class="ag-hand-aside">${icon('arrowRight', { size: 16 })} si entrego, falto. si voy, incumplo.</p>
+            <p class="ag-hand-aside">${icon('arrowRight', { size: 16 })} si entrego, pierdo el bus. si me voy, incumplo.</p>
             <p class="ag-hand-sign">${esc(ch.title)} · ${esc(ch.subtitle)}</p>
           </div>
           <span class="ag-page-num">1</span>
@@ -1536,8 +1331,50 @@ function startNewGame(withTutorial = true) {
   hideScreens();
   cinematic(false);
   save();
-  if (withTutorial) startTutorial(false);
-  else beginStory();
+  if (withTutorial) {
+    // The room opens with no text on it at all. The first onboarding beat is
+    // pure exploration, so the story cannot start locked behind a dialogue the
+    // player is still being taught how to walk around.
+    enterExplore();
+    startOnboarding();
+  } else {
+    beginStory();
+  }
+}
+
+/**
+ * Four visual beats in the corner of the screen. The assistant watches the
+ * engine for real signals (distance walked, suite opened, first clue, posture)
+ * and never advances on a timer.
+ */
+let pendingStory = false;
+let demoObjective = null;
+
+function openPendingStory() {
+  if (!pendingStory) return;
+  pendingStory = false;
+  beginStory();
+}
+
+function startOnboarding() {
+  travelled = 0;
+  dragTotal = 0;
+  lastAvatarPos = null;
+  pendingStory = true;
+
+  startAssistant({
+    // Beat 1 is the only one that gates the story: once the player has moved
+    // through the room, the narration earns its place.
+    onStep: (id) => { if (id === 'explore') openPendingStory(); },
+    onDone: (skipped) => {
+      state.onboardingDone = true;
+      state.tutorialDone = true;
+      save();
+      // Skipping still has to leave a playable game — but never mid-demo.
+      if (pendingStory) { if (!isDemoRunning()) openPendingStory(); return; }
+      if (!skipped) toast('Listo', 'Ya sabes reconstruir, verificar y sentarte a mirar.', 'green');
+    },
+  });
 }
 function resumeGame() {
   const saved = readSave();
@@ -1578,6 +1415,16 @@ function beginStory() {
 // ---------------------------------------------------------------------------
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
+
+  // The demo owns every key while it runs; its own listener handles Escape.
+  if (isDemoRunning()) return;
+
+  // The Meta AI suite is a modal in its own right and closes first.
+  if (isMetaSuiteOpen()) {
+    if (e.key === 'Escape' || k === 'i') { e.preventDefault(); closeMetaSuite(); }
+    return;
+  }
+
   if (e.key === 'Escape') {
     e.preventDefault();
     if (openScreen === 'evidence') { $('ag-ev-continue')?.click(); return; }
@@ -1622,8 +1469,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (phase === 'explore' || phase === 'tutorial' || phase === 'dialogue') {
     if (k === 'j') { e.preventDefault(); showJournal(); }
-    if (k === 'h') { e.preventDefault(); showGuideModal(); return; }
-    if (k === 'i') { e.preventDefault(); showMetaAIModal(); return; }
+    if (k === 'i') { e.preventDefault(); openSuite(); return; }
     if (k === 'l') { e.preventDefault(); bus.api.toggleLedger?.(); }
     if (k === 'm') { e.preventDefault(); bus.api.openMusic?.(); }
   }
@@ -1632,42 +1478,67 @@ window.addEventListener('keydown', (e) => {
 $('ag-dialogue').addEventListener('click', () => advanceDialogue());
 $('ag-new').addEventListener('click', () => { uiSfx('click'); startNewGame(true); });
 $('ag-continue').addEventListener('click', () => { if ($('ag-continue').disabled) return; uiSfx('click'); resumeGame(); });
-$('ag-howto').addEventListener('click', () => { uiSfx('click'); showGuideModal(); });
-// Modales Meta AI y Guía
-function showMetaAIModal() {
+$('ag-howto').addEventListener('click', () => { uiSfx('click'); startTutorial(true); });
+
+// ---------------------------------------------------------------------------
+// META AI SUITE
+// ---------------------------------------------------------------------------
+function openSuite(tab) {
+  if (openScreen === 'title' || openScreen === 'chapter' || openScreen === 'evidence') return;
   uiSfx('clue');
-  $('ag-ai-modal')?.classList.add('on');
+  freezeDialogue();
+  freezeChoice();
+  lock(true);
+  openMetaSuite({ tab, onClose: () => { lock(!!openScreen); restorePhase(); } });
+  assistantSignal('meta');
 }
-function closeMetaAIModal() {
-  uiSfx('click');
-  $('ag-ai-modal')?.classList.remove('on');
+function toggleSuite() {
+  if (isMetaSuiteOpen()) { closeMetaSuite(); return; }
+  openSuite();
 }
-$('ag-btn-meta-ai')?.addEventListener('click', showMetaAIModal);
-$('ag-close-ai')?.addEventListener('click', closeMetaAIModal);
+$('ag-btn-meta-ai')?.addEventListener('click', () => { if (openScreen) return; toggleSuite(); });
 
-// Pestañas de Meta AI
-document.querySelectorAll('.ag-ai-tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.ag-ai-tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.ag-ai-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    const tabId = btn.dataset.tab;
-    const content = $('ag-tab-' + tabId);
-    if (content) content.classList.add('active');
-    uiSfx('hover');
-  });
+// ---------------------------------------------------------------------------
+// DEMO
+// ---------------------------------------------------------------------------
+$('ag-demo-chip')?.addEventListener('click', () => {
+  if (isDemoRunning()) return;
+  uiSfx('chapter');
+  startDemo();
 });
-
-function showGuideModal() {
-  uiSfx('click');
-  $('ag-guide-modal')?.classList.add('on');
-}
-function closeGuideModal() {
-  uiSfx('click');
-  $('ag-guide-modal')?.classList.remove('on');
-}
-$('ag-btn-guide')?.addEventListener('click', showGuideModal);
-$('ag-close-guide')?.addEventListener('click', closeGuideModal);
+bus.on('demo:start', () => {
+  stopAssistant(true);
+  hideScreens();
+  closeMetaSuite();
+  openScreen = null;
+  // The take owns the screen: no dialogue card, no choice list, no objective
+  // strip, no hotspot prompt bleeding into a cinematic shot.
+  freezeDialogue();
+  choiceCtx = null;
+  pausedChoice = null;
+  demoObjective = objective;
+  clearObjective();
+  $('ag-dialogue').classList.remove('on');
+  $('ag-choices').classList.remove('on');
+  bus.api.clearFocus?.();
+  lock(true);
+  cinematic(true);
+  document.body.classList.add('ag-demo');
+});
+bus.on('demo:end', () => {
+  document.body.classList.remove('ag-demo');
+  cinematic(false);
+  lock(false);
+  if (phase === 'title') { showTitle(); return; }
+  // A demo started before the first beat was finished still owes the player
+  // the opening narration.
+  if (pendingStory) { openPendingStory(); return; }
+  restorePhase();
+  // The demo clears the objective strip so no HUD text lands in a shot; put the
+  // player's current errand back once the camera is theirs again.
+  if (demoObjective && phase === 'explore') setObjective(demoObjective);
+  demoObjective = null;
+});
 
 $('ag-btn-journal').addEventListener('click', showJournal);
 $('ag-btn-ledger').addEventListener('click', () => { if (openScreen) return; uiSfx('click'); bus.api.toggleLedger?.(); });
@@ -1700,7 +1571,10 @@ function boot() {
   originalLabels = {};
   for (const h of bus.api.hotspots || []) originalLabels[h.id] = h.label;
   ensureBeacon();
-  showTitle();
+  // The engine can publish its capabilities a few seconds in. If the player
+  // already started the demo (or a run) in that window, boot must not yank the
+  // title card back over the top of it.
+  if (phase === 'title' && !isDemoRunning()) showTitle();
   const loop = () => {
     tickWorld(performance.now() / 1000);
     requestAnimationFrame(loop);

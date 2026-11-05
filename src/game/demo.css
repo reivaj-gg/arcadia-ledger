@@ -1,0 +1,201 @@
+/**
+ * ARCADIA · Demo chrome
+ * ---------------------------------------------------------------------------
+ * Letterbox, subtitles, a REC dot and a hairline progress bar. Everything is
+ * `pointer-events: none` except the skip button, so the demo can run over the
+ * Meta AI suite without stealing a single click.
+ */
+
+#dm-root.dm-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  font-family: var(--sans, 'Plus Jakarta Sans', system-ui, sans-serif);
+}
+#dm-root.dm-root.is-on { opacity: 1; }
+
+#dm-root .dm-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7vh;
+  background: #07090c;
+  transform: scaleY(0);
+  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+#dm-root.is-on .dm-bar { transform: scaleY(1); }
+#dm-root .dm-bar.top { top: 0; transform-origin: top; }
+#dm-root .dm-bar.bottom { bottom: 0; transform-origin: bottom; }
+
+#dm-root .dm-rec {
+  position: absolute;
+  top: 0;
+  height: 7vh;
+  right: 26px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+  color: rgba(255, 255, 255, 0.72);
+  opacity: 0;
+  transition: opacity 0.4s ease 0.6s;
+}
+#dm-root.is-on .dm-rec { opacity: 1; }
+#dm-root .dm-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e2483c;
+  box-shadow: 0 0 10px rgba(226, 72, 60, 0.9);
+  animation: dm-rec 1.4s ease-in-out infinite;
+}
+@keyframes dm-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+/* The subtitle lives *inside* the bottom bar. A caption floating over the
+   scene collided with the Meta AI suite on every instrument shot; the black bar
+   is a guaranteed empty surface, and it reads as a documentary. */
+#dm-root .dm-caption {
+  position: absolute;
+  left: clamp(24px, 5vw, 72px);
+  right: clamp(24px, 5vw, 72px);
+  bottom: 0;
+  height: 7vh;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+#dm-root .dm-caption.on { opacity: 1; transform: none; }
+
+#dm-root .dm-cap-k {
+  flex: 0 0 auto;
+  font-family: var(--ui, sans-serif);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #e8c37a;
+  white-space: nowrap;
+}
+#dm-root .dm-cap-t {
+  font-family: var(--hand, cursive);
+  font-size: clamp(19px, 2vw, 28px);
+  line-height: 1.1;
+  color: #fdf7ea;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#dm-root .dm-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+#dm-root .dm-progress i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, #e8c37a, #f5e6c0);
+  transition: transform 0.14s linear;
+}
+
+/* Skip lives in the top bar, so it can never land on the suite header. */
+#dm-root .dm-skip {
+  position: absolute;
+  top: 0;
+  left: 26px;
+  height: 7vh;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: var(--ui, sans-serif);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.6s, color 0.2s;
+}
+#dm-root.is-on .dm-skip { opacity: 1; }
+#dm-root .dm-skip:hover { color: #e8725f; }
+
+#dm-root .dm-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(80% 70% at 50% 50%, rgba(8, 10, 14, 0.72), rgba(5, 6, 9, 0.94));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+#dm-root .dm-card.on { opacity: 1; }
+#dm-root .dm-card-inner {
+  text-align: center;
+  max-width: min(760px, 84vw);
+  padding: 0 20px;
+}
+#dm-root .dm-card-kicker {
+  font-family: var(--ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: rgba(232, 195, 122, 0.86);
+  margin-bottom: 14px;
+}
+#dm-root .dm-card-title {
+  margin: 0;
+  font-family: var(--hand, cursive);
+  font-size: clamp(52px, 9vw, 108px);
+  line-height: 0.92;
+  color: #fdf8ec;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.8);
+}
+#dm-root .dm-card-sub {
+  margin: 16px 0 0;
+  font-family: var(--sans, sans-serif);
+  font-size: clamp(13px, 1.3vw, 16px);
+  letter-spacing: 0.06em;
+  color: rgba(253, 248, 236, 0.72);
+}
+
+body.dm-active { cursor: none; }
+body.dm-active #ag-hud { opacity: 0 !important; pointer-events: none !important; }
+body.dm-active #ag-assistant { opacity: 0 !important; }
+
+/* The suite has to fit between the bars, or the letterbox eats its header. */
+body.dm-active #ms-root .ms-sheet {
+  max-height: min(820px, calc(100vh - 14vh - 24px));
+}
+
+@media (max-width: 720px) {
+  #dm-root .dm-caption { left: 18px; right: 18px; gap: 10px; }
+  #dm-root .dm-cap-t { font-size: 17px; }
+  #dm-root .dm-rec { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #dm-root .dm-bar, #dm-root .dm-caption, #dm-root .dm-card { transition-duration: 0.2s; }
+  #dm-root .dm-rec-dot { animation: none; }
+}
